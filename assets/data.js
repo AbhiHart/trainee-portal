@@ -5,7 +5,7 @@
 const TODAY = new Date(2026, 9, 7);
 const DAY = 864e5;
 const PLANT = 'Waluj';
-const RULES_VER = 'Rule set v1.0 · equal weights · placeholder cut-offs';
+const RULES_VER = 'Rule set v1.1 · equal bucket weights · placeholder cut-offs';
 
 const BUCKETS = {
  P:{name:'Productivity', hint:'Output at the line rate'},
@@ -142,7 +142,7 @@ const COMMENTS = {
 };
 
 const DEFAULT_CFG = {
- w:Object.fromEntries(PARAMS.map(p=>[p.k,10])), blend:50,
+ w:{P:10,Q:10,C:10,D:10,S:10,M:10}, blend:50,
  bandA:76.5, bandB:47.1, vcurAsWL:3, wlNotRec:2, leniency:40, launchBefore:14, kzVerifyDays:30,
  vis:{
   hod:{agent:true, comments:true, data:true},
@@ -493,9 +493,9 @@ function evaluate(p, f, opts={}){
   if(mgr!=null && dpts!=null) score = (mgr*C.blend + dpts*(100-C.blend))/100; else score = mgr!=null ? mgr : dpts;
   return {par, mgr, dt, dpts, score, answered:vals.length, of:par.st.length};
  });
- const wsum = rows.reduce((s,r)=>s+(r.score!=null?(Number(C.w[r.par.k])||0):0),0)||1;
- const overall = rows.reduce((s,r)=>s+(r.score!=null?(Number(C.w[r.par.k])||0)*r.score:0),0)/wsum/5*100;
- const bk = BORDER.map(b=>{ const rs = rows.filter(r=>r.par.b===b && r.score!=null); const v = rs.length ? rs.reduce((s,r)=>s+r.score,0)/rs.length : null; return {b, v, p: v==null?null:v/5*100}; });
+ const bk = BORDER.map(b=>{ const rs = rows.filter(r=>r.par.b===b && r.score!=null); const v = rs.length ? rs.reduce((s,r)=>s+r.score,0)/rs.length : null; return {b, v, p: v==null?null:v/5*100, w:Number(C.w[b])||0}; });
+ const wsum = bk.reduce((s,x)=>s+(x.v!=null?x.w:0),0)||1;
+ const overall = bk.reduce((s,x)=>s+(x.v!=null?x.w*x.v:0),0)/wsum/5*100;
  const band = overall>=C.bandA?'A':overall>=C.bandB?'B':'C';
  const cd = conduct(p.id, asOf), sen = sentiment(f.strengths, f.improve);
  let fb = band, capped = false;
@@ -544,6 +544,8 @@ function narrative(p, f, e){
  if(e.prev) parts.push(`Previous checkpoint: ${pct(e.prev.overall)} (${e.overall>=e.prev.overall?'up':'down'} ${Math.abs(e.overall-e.prev.overall).toFixed(1)} points).`);
  return parts.join(' ');
 }
+function paramShare(k){ const C = S.cfg, b = PK[k].b, tot = BORDER.reduce((s,x)=>s+(Number(C.w[x])||0),0)||1; return (Number(C.w[b])||0)/tot / PARAMS.filter(p=>p.b===b).length; }
+function bucketShare(b){ const C = S.cfg, tot = BORDER.reduce((s,x)=>s+(Number(C.w[x])||0),0)||1; return (Number(C.w[b])||0)/tot; }
 function formsOf(tid){ return S.forms.filter(f=>f.tid===tid).sort((a,b)=>new Date(a.cpDate)-new Date(b.cpDate)); }
 const isDone = f => f.status==='With HoD' || f.status==='Completed';
 function lastSubmitted(tid){ const f = formsOf(tid).filter(isDone); return f[f.length-1]||null; }

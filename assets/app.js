@@ -117,7 +117,7 @@ function toast(msg){ const n = document.createElement('div'); n.className = 'toa
 function go(path){ location.hash = '#/'+path; }
 
 /* ----- shared store (this browser; all portals) ----- */
-const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-demo-v1';
+const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-demo-v2';
 let rev = 0, _ptimer = null;
 function persist(){
  rev++;
@@ -226,7 +226,7 @@ const A = {
  colsbtn(){ UI.cols = !UI.cols; render(); },
  vsave(){ const n = val('v-name'); if(n.length<2){ toast('Give the view a name'); return false; } const V = S.views.find(v=>v.id===UI.vid)||S.views[0]; const nv = {id:'v'+Date.now().toString(36), name:n, cols:V.cols.slice(), f:Object.assign({}, V.f, UI.mf||{}), group:V.group, sort:V.sort, sys:false}; S.views.push(nv); UI.vid = nv.id; UI.mf = {}; toast('View “'+n+'” saved'); render(); },
  vdel(){ S.views = S.views.filter(v=>v.id!==UI.vid); UI.vid = S.views[0].id; toast('View deleted'); render(); },
- cfgreset(){ S.cfg.w = clone(DEFAULT_CFG.w); S.cfg.blend = DEFAULT_CFG.blend; afterDataChange('Rule set changed'); log('sys','Plant HR','Rule set','Weights reset to equal.'); toast('Equal weights restored'); render(); },
+ cfgreset(){ S.cfg.w = clone(DEFAULT_CFG.w); S.cfg.blend = DEFAULT_CFG.blend; afterDataChange('Rule set changed'); log('sys','Plant HR','Rule set','Bucket weights reset to equal.'); toast('Equal bucket weights restored'); render(); },
  sfsync(){
   let note = 'Delta: 0 new, 0 changed';
   if(!S.sfDelta.done && S.people.t08){ S.people.t08.line = 'Frame Weld 1'; S.sfDelta.done = true; note = 'Delta: 0 new, 1 changed (Akash Pawar: line Frame Weld 2 → Frame Weld 1)'; }
