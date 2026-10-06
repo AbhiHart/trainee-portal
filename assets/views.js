@@ -41,6 +41,7 @@ function recChip(r){ const c = r==='Recommend conversion'?'good':r==='Not recomm
 function ids(p){ return `<span class="chip">Ticket ${esc(p.ticket)}</span>${p.tl?`<span class="chip">TeamLease ${esc(p.tl)}</span>`:''}<span class="chip brand">${esc(p.type)}</span>`; }
 const dueTxt = dt => { const n = Math.round((new Date(dt)-TODAY)/DAY); return n<0 ? `<span class="bad">${-n} day${n===-1?'':'s'} overdue</span>` : n===0 ? '<span class="warn">due today</span>' : `due in ${n} day${n===1?'':'s'}`; };
 const mo = p => Math.min(12, Math.floor(monthsIn(p.doj, TODAY)));
+function attSpark(p, asOf){ const ms = attMonths(p, asOf); return `<div class="spark" style="height:84px;gap:5px">${ms.map((m,i)=>`<div class="c ${i===ms.length-1?'cur':''}" title="${fmtM(d(m.k+'-01'))}: ${pct(m.v)}"><i style="height:${Math.max(4,(m.v-70)*1.8)}px;background:${m.v<85?'#E8A19D':m.v<92?'#F1D08E':'#9FD3B8'}"></i><span style="font-size:10.5px">${fmtM(d(m.k+'-01'))[0]}</span></div>`).join('')}</div>`; }
 function bar(v, max=100, cls=''){ const w = clamp(v/max*100,0,100); return `<div class="bar ${cls}"><i style="width:${w}%"></i></div>`; }
 const scoreCls = v => v==null?'':v>=3.8?'good':v>=2.6?'warn':'bad';
 function crumb(items){ return `<div class="crumb">${items.map((x,i)=>i<items.length-1?`<a href="#/${x[1]}">${esc(x[0])}</a><span>›</span>`:`<span>${esc(x[0])}</span>`).join('')}</div>`; }
@@ -104,10 +105,10 @@ function vMgrHome(){
  const m12 = ps.filter(p=>formsOf(p.id).some(f=>f.cp==='M12'));
  const me = USERS[ME];
  return `${ph('Good morning, '+esc(me.name), esc(me.title)+' · '+ps.length+' apprentices in your team')}
- <div class="grid g4">${kpi('Reviews to complete', due.length, due.filter(f=>new Date(f.cpDate)<TODAY).length+' overdue','reviews')}${kpi('Kaizens to evaluate', kzE.filter(k=>k.status==='Submitted').length, kzE.filter(k=>k.status==='Approved').length+' approved, awaiting implementation','kaizen')}${kpi('Incidents to validate', cs.length, 'Reported from the line tablet','cases')}${kpi('Month 12 apprentices', m12.length, 'Conversion stage','m12')}</div>
+ <div class="grid g4">${kpi('Reviews to complete', due.length, due.filter(f=>new Date(f.cpDate)<TODAY).length+' overdue','reviews')}${kpi('Kaizens to evaluate', kzE.filter(k=>k.status==='Submitted').length, kzE.filter(k=>k.status==='Approved').length+' approved, awaiting implementation','kaizen')}${kpi('Incidents to validate', cs.length, 'Reported from the line tablet','cases')}${kpi('Month 12 in next 60 days', ps.filter(p=>{ const t = addM(d(p.doj),12); return t>TODAY && t<=new Date(TODAY.getTime()+60*DAY); }).length, 'Review opens 14 days before')}</div>
  <div class="grid g21 mt24">
-  <section class="card"><div class="card-h"><div><h2>Reviews due</h2><p class="sub">Each review takes about 3 minutes: 16 statements on a 1–5 scale, in six PQCDSM buckets.</p></div><button class="btn sm" data-go="quick" type="button">Quick rate the team</button></div>
-   <div class="list">${due.map(f=>{ const p = S.people[f.tid]; const n = ALL_ST.filter(k=>f.ans[k]).length; return `<div class="li click" data-go="review/${f.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · ${f.cp}</div><div class="t2">${esc(p.line)} · checkpoint ${fmt(f.cpDate)} · ${dueTxt(f.cpDate)}</div></div><div style="width:140px">${bar(n,ALL_ST.length)}<div class="t2 mt8">${n} of ${ALL_ST.length} rated</div></div>${formChip(f)}</div>`; }).join('') || '<div class="empty-s">No reviews due. New reviews open automatically 7 days before each checkpoint.</div>'}</div>
+  <section class="card"><div class="card-h"><div><h2>Reviews due</h2><p class="sub">One review per apprentice, at Month 12, before the conversion decision. About 3 minutes: 16 statements on a 1–5 scale in six PQCDSM buckets.</p></div><button class="btn sm" data-go="quick" type="button">Quick rate the team</button></div>
+   <div class="list">${due.map(f=>{ const p = S.people[f.tid]; const n = ALL_ST.filter(k=>f.ans[k]).length; return `<div class="li click" data-go="review/${f.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · ${f.cp}</div><div class="t2">${esc(p.line)} · checkpoint ${fmt(f.cpDate)} · ${dueTxt(f.cpDate)}</div></div><div style="width:140px">${bar(n,ALL_ST.length)}<div class="t2 mt8">${n} of ${ALL_ST.length} rated</div></div>${formChip(f)}</div>`; }).join('') || '<div class="empty-s">No reviews due. A review opens automatically 14 days before an apprentice reaches Month 12.</div>'}</div>
   </section>
   <section class="stack">
    <div class="card"><h2>Kaizens waiting for you</h2><div class="list mt8">${kzE.slice(0,5).map(k=>`<div class="li click" data-act="kzopen" data-id="${k.seq}" role="button" tabindex="0"><span class="pq">${k.cat}</span><div class="sp"><div class="t1">${esc(k.title)}</div><div class="t2">${esc(S.people[k.tid].name)} · ${fmtS(d(k.date))}</div></div>${kzChip(k)}</div>`).join('')||'<div class="empty-s">Nothing waiting.</div>'}</div>${kzE.length>5?`<button class="btn ghost sm mt8" data-go="kaizen" type="button">All ${kzE.length} →</button>`:''}</div>
@@ -133,9 +134,9 @@ function vReviews(){
  const t = UI.rtab && tabs.some(x=>x[0]===UI.rtab) ? UI.rtab : tabs[0][0];
  const F = {open:f=>f.status==='Not started'||f.status==='In progress', sent:f=>f.status==='With HoD', sign:f=>f.status==='With HoD', done:f=>f.status==='Completed'};
  const list = fs.filter(F[t]).sort((a,b)=>t==='done'?new Date(b.cpDate)-new Date(a.cpDate):new Date(a.cpDate)-new Date(b.cpDate));
- return `${ph(role==='hod'?'Reviews to sign':'Reviews', role==='hod'?'Line managers appraise; you see a summary of each apprentice with the records PRAGATI pulls in, then sign or return.':'Reviews open automatically 7 days before each checkpoint (Month 3, 6, 9, 12).')}
+ return `${ph(role==='hod'?'Reviews to sign':'Reviews', role==='hod'?'Line managers appraise; you see a summary of each apprentice with the records PRAGATI pulls in, then sign or return.':'One review per apprentice, at Month 12, before the conversion decision. It opens automatically '+S.cfg.launchBefore+' days before the Month 12 date.')}
  <div class="viewtabs" role="group" aria-label="Filter reviews">${tabs.map(([k,l])=>`<button type="button" data-act="rtab" data-id="${k}" aria-pressed="${k===t}">${l} (${fs.filter(F[k]).length})</button>`).join('')}</div>
- <div class="tw"><table class="t"><thead><tr><th>Apprentice</th><th>Checkpoint</th><th>Date</th><th>Line manager</th><th>Progress</th><th class="r">Score</th><th>Band</th><th>Status</th></tr></thead><tbody>
+ <div class="tw"><table class="t"><thead><tr><th>Apprentice</th><th>Review</th><th>Month 12 date</th><th>Line manager</th><th>Progress</th><th class="r">Score</th><th>Band</th><th>Status</th></tr></thead><tbody>
  ${list.map(f=>{ const p = S.people[f.tid], n = ALL_ST.filter(k=>f.ans[k]).length, e = isDone(f) ? evaluate(p,f) : null; return `<tr class="click" data-go="review/${f.id}"><td class="nm">${esc(p.name)}<small>${esc(deptOf(p))} · ${esc(p.line)}</small></td><td><b class="ink">${f.cp}</b></td><td>${fmt(f.cpDate)}<div class="sm muted">${isDone(f)?'Submitted '+esc(f.submitted):dueTxt(f.cpDate)}</div></td><td>${esc(f.by)}</td><td style="min-width:120px">${bar(n,ALL_ST.length)}<div class="sm muted mt8">${n}/${ALL_ST.length}</div></td><td class="r">${e?pct(e.overall):'—'}</td><td>${e?bandChip(e.fb):bandChip()}</td><td>${formChip(f)}</td></tr>`; }).join('')||'<tr><td colspan="8" class="empty">Nothing here.</td></tr>'}
  </tbody></table></div>`;
 }
@@ -165,12 +166,12 @@ function vReviewForm(f){
  }).join('');
  const m12 = f.cp==='M12';
  return `${crumb([['Reviews','reviews'],[p.name+' · '+f.cp,'']])}
- <div class="ph"><div class="hero">${av(p.name)}<div><h1>${esc(p.name)} · ${f.cp} review</h1><div class="meta"><span>${esc(deptOf(p))} · ${esc(p.line)}</span><span>Joined ${fmt(d(p.doj))}</span><span>Checkpoint ${fmt(f.cpDate)} (${dueTxt(f.cpDate)})</span></div><div class="idrow">${ids(p)}${formChip(f)}</div></div></div>
+ <div class="ph"><div class="hero">${av(p.name)}<div><h1>${esc(p.name)} · Month 12 review</h1><div class="meta"><span>${esc(deptOf(p))} · ${esc(p.line)}</span><span>Joined ${fmt(d(p.doj))}</span><span>Month 12 on ${fmt(f.cpDate)} (${dueTxt(f.cpDate)})</span></div><div class="idrow">${ids(p)}${formChip(f)}</div></div></div>
   <div class="row"><button class="btn" data-go="person/${p.id}" type="button">${ic('eye',16)} Full record</button></div></div>
  ${f.returned?`<div class="note warn" style="margin-bottom:16px"><b>Returned by ${esc(f.returned.by)}:</b> ${esc(f.returned.note)}</div>`:''}
  <div class="grid rvg">
   <div>
-   <div class="card" style="padding:16px 22px;margin-bottom:16px"><div class="between"><div class="lkey">${LIKERT.map(([n,l])=>`<span><b>${n}</b> ${l}</span>`).join('')}</div><span class="sm muted">Rate what you have seen in the last 3 months.</span></div></div>
+   <div class="card" style="padding:16px 22px;margin-bottom:16px"><div class="between"><div class="lkey">${LIKERT.map(([n,l])=>`<span><b>${n}</b> ${l}</span>`).join('')}</div><span class="sm muted">Rate what you have seen over the whole apprenticeship.</span></div></div>
    ${accs}
    <section class="card mt16"><h2>Comments</h2><p class="sub">The agent reads these for the readiness parameter. Hindi or Marathi words are fine.</p>
     <div class="fgrid mt16"><div class="fld"><label for="ff-s">Strengths</label><textarea id="ff-s" data-ff="${f.id}" data-k="strengths" placeholder="What does this apprentice do well?">${esc(f.strengths)}</textarea></div>
@@ -184,10 +185,10 @@ function vReviewForm(f){
    <div class="card"><h3>At a glance</h3><p class="sub">Pulled in automatically; you do not type these.</p>
     <div class="list mt8">
      <div class="li"><div class="sp"><div class="t2">Attendance</div><div class="t1">${pct(a.pct)}</div></div>${srcTag('time')}</div>
-     <div class="li"><div class="sp"><div class="t2">Kaizens implemented (3 months)</div><div class="t1">${k.impl3} · ${k.rate.toFixed(1)} / month</div></div>${srcTag('kz')}</div>
+     <div class="li"><div class="sp"><div class="t2">Kaizens implemented (year)</div><div class="t1">${k.implY} · ${k.rate.toFixed(1)} / month</div></div>${srcTag('kz')}</div>
      <div class="li"><div class="sp"><div class="t2">Stations certified · JH step</div><div class="t1">${dv.st??'—'} · ${dv.jh!=null?'Step '+dv.jh:'—'}</div></div>${srcTag('coord')}</div>
      <div class="li"><div class="sp"><div class="t2">Conduct</div><div class="t1">${cdTxt(cd)}</div></div>${srcTag('case')}</div>
-     <div class="li"><div class="sp"><div class="t2">Previous review</div><div class="t1">${last?last.cp+' · '+pct(evaluate(p,last).overall)+' · band '+evaluate(p,last).fb:'None'}</div></div>${srcTag('app')}</div>
+     <div class="li"><div class="sp"><div class="t2">Months in programme</div><div class="t1">${mo(p)} of 12</div></div>${srcTag('sf')}</div>
     </div></div>
    <div class="card"><h3>Progress</h3><div class="mt8">${bar(n,ALL_ST.length, n===ALL_ST.length?'good':'')}</div><p class="sub mt8">${n} of ${ALL_ST.length} statements rated</p></div>
   </aside>
@@ -211,7 +212,7 @@ function vOverview(f){
   <div class="row" style="gap:20px">${showScores?`<div style="text-align:right"><div class="muted sm">Overall</div><div style="font-size:34px;font-weight:600;color:var(--ink);line-height:1.1">${pct(e.overall)}</div>${e.capped?`<div class="sm warn">Capped from ${e.band} by conduct</div>`:''}</div>`:''}${bandChip(e.fb,true)}</div></div>
   <div class="grid g3 mt24" style="align-items:end">
    <div><div class="section-t">Agent recommendation</div>${f.cp==='M12'?recChip(e.rec):statusChip(e.status)}${f.mrec?`<div class="sm mt8">Line manager recommends: <b class="ink">${esc(f.mrec)}</b></div>`:''}</div>
-   <div><div class="section-t">Score by checkpoint</div>${showScores?`<div class="spark">${tr.map(t=>`<div class="c ${t.cp===f.cp?'cur':''}"><b>${Math.round(t.v)}%</b><i style="height:${Math.max(6,t.v*0.6)}px"></i><span>${t.cp}</span></div>`).join('')||'<span class="muted sm">First review</span>'}</div>`:'<span class="muted sm">Hidden by HR view settings</span>'}</div>
+   <div><div class="section-t">Attendance by month</div>${attSpark(p, e.asOf)}</div>
    <div class="row" style="justify-content:flex-end"><button class="btn" data-go="person/${p.id}" type="button">${ic('eye',16)} Full apprentice record</button></div>
   </div>
  </section>
@@ -224,7 +225,7 @@ function vOverview(f){
     ${e.flags.length?`<div class="mt16"><div class="section-t">Flags for the reviewer</div>${e.flags.map(([c,t,x])=>`<div class="flag ${c}"><span class="fi"></span><div><b>${esc(t)}</b>${esc(x)}</div></div>`).join('')}</div>`:'<div class="note good mt16">No flags.</div>'}</section>`:''}
    <section class="card"><h2>Key records</h2><div class="grid g2 mt12">
     ${tile('Attendance', pct(a.pct), a.late30+' late-in'+(a.late30===1?'':'s')+' in 30 days', 'time')}
-    ${tile('Kaizens', k.impl3+' <small>in 3 mo</small>', k.verified+' verified'+(vis('plant','kaizen')||role!=='plant'?' · '+lakh(k.saving)+'/yr':''), 'kz')}
+    ${tile('Kaizens', k.implY+' <small>implemented</small>', k.verified+' verified'+(vis('plant','kaizen')||role!=='plant'?' · '+lakh(k.saving)+'/yr':''), 'kz')}
     ${tile('Skills', (dv.st??'—')+' <small>stations</small>', dv.jh!=null?'JH Step '+dv.jh:'No JH record', 'coord')}
     ${tile('Conduct', cd.wl||cd.vcur||cd.open?cd.wl+' WL':'Clean', cd.vcur+' VC/UR'+(cd.open?' · '+cd.open+' open':''), 'case')}
    </div></section>
@@ -489,22 +490,22 @@ function pOverview(p, le){
  const a = attStats(p.id), k = kzStats(p.id), dv = devAsOf(p), cd = conduct(p.id), tr = trend(p), nx = nextCp(p), role = USERS[ME].role;
  const showScores = role!=='plant' || vis('plant','scores');
  const tile = (lab, v, s, src, tab) => `<button class="kpi" type="button" data-go="person/${p.id}/${tab}"><div class="between"><span class="l">${lab}</span>${srcTag(src)}</div><div class="v" style="font-size:26px">${v}</div><div class="s">${s}</div></button>`;
- return `<div class="grid g5">${tile('Attendance', pct(a.pct), a.pres+' of '+a.sched+' days · '+a.late30+' late (30 d)','time','attendance')}${tile('Kaizens', k.implAll+' <small>implemented</small>', k.impl3+' in 3 months · '+k.verified+' verified','kz','kaizens')}${tile('Stations certified', dv.st??'—', 'Skill matrix · '+(dv.month||''),'coord','skills')}${tile('JH step', dv.jh!=null?'Step '+dv.jh:'—', 'TPM register','coord','skills')}${tile('Conduct', cd.wl||cd.vcur||cd.open?cd.wl+' WL · '+cd.vcur+' VC/UR':'Clean', cd.open?cd.open+' open case(s)':'Closed cases only','case','conduct')}</div>
+ return `<div class="grid g5">${tile('Attendance', pct(a.pct), a.pres+' of '+a.sched+' days · '+a.late30+' late (30 d)','time','attendance')}${tile('Kaizens', k.implAll+' <small>implemented</small>', k.rate.toFixed(1)+' a month · '+k.verified+' verified','kz','kaizens')}${tile('Stations certified', dv.st??'—', 'Skill matrix · '+(dv.month||''),'coord','skills')}${tile('JH step', dv.jh!=null?'Step '+dv.jh:'—', 'TPM register','coord','skills')}${tile('Conduct', cd.wl||cd.vcur||cd.open?cd.wl+' WL · '+cd.vcur+' VC/UR':'Clean', cd.open?cd.open+' open case(s)':'Closed cases only','case','conduct')}</div>
  <div class="grid g21 mt24" style="align-items:start">
   <section class="card"><div class="card-h"><div><h2>PQCDSM at the latest review</h2><p class="sub">${le?le.f.cp+' · '+fmt(le.f.cpDate)+' · '+esc(le.f.by):'No review submitted yet'}</p></div>${le?`<button class="btn sm" data-go="review/${le.f.id}" type="button">Open review</button>`:''}</div>
-   ${le?`<div class="pbars">${BORDER.map(b=>{ const x = le.e.bk.find(y=>y.b===b); return `<div class="pbar"><span class="pq">${b}</span><div class="n">${BUCKETS[b].name}<small>${PARAMS.filter(q=>q.b===b).map(q=>q.name).join(' · ')}</small></div><div>${showScores?bar(x.v||0,5,scoreCls(x.v)):''}</div><div class="v">${showScores&&x.v!=null?x.v.toFixed(1):''}</div></div>`; }).join('')}</div>`:'<div class="empty-s">The first review opens 7 days before Month 3.</div>'}
+   ${le?`<div class="pbars">${BORDER.map(b=>{ const x = le.e.bk.find(y=>y.b===b); return `<div class="pbar"><span class="pq">${b}</span><div class="n">${BUCKETS[b].name}<small>${PARAMS.filter(q=>q.b===b).map(q=>q.name).join(' · ')}</small></div><div>${showScores?bar(x.v||0,5,scoreCls(x.v)):''}</div><div class="v">${showScores&&x.v!=null?x.v.toFixed(1):''}</div></div>`; }).join('')}</div>`:'<div class="empty-s">The review opens '+S.cfg.launchBefore+' days before Month 12. Until then the record builds from attendance, kaizens, skills and conduct.</div>'}
   </section>
   <div class="stack">
-   <section class="card"><h2>Progress</h2>${showScores&&tr.length?`<div class="spark mt16">${tr.map((t,i)=>`<div class="c ${i===tr.length-1?'cur':''}"><b>${Math.round(t.v)}%</b><i style="height:${Math.max(6,t.v*.6)}px"></i><span>${t.cp}</span></div>`).join('')}</div>`:'<p class="muted mt8">No scores to show.</p>'}<p class="sm muted mt12">${nx?'Next: '+nx.cp+' on '+fmt(nx.date):'All four checkpoints done.'}</p></section>
+   <section class="card"><h2>Attendance by month</h2><div class="mt12">${attSpark(p)}</div><p class="sm muted mt12">${nx?'Month 12 review on '+fmt(nx.date)+' (opens '+S.cfg.launchBefore+' days before)':'Month 12 review done.'}</p></section>
    ${le&&(role!=='hod'||vis('hod','agent'))&&(role!=='manager'||vis('manager','agent'))?`<section class="card"><div class="between"><h2>Agent summary</h2>${srcTag('ag')}</div><p class="narr mt12">${esc(le.e.narrative)}</p></section>`:''}
   </div>
  </div>`;
 }
 function pReviews(p){
  const fs = formsOf(p.id);
- return `<div class="tw"><table class="t"><thead><tr><th>Checkpoint</th><th>Date</th><th>Line manager</th><th>Status</th>${BORDER.map(b=>`<th class="r">${b}</th>`).join('')}<th class="r">Overall</th><th>Band</th></tr></thead><tbody>
+ return `<div class="tw"><table class="t"><thead><tr><th>Review</th><th>Date</th><th>Line manager</th><th>Status</th>${BORDER.map(b=>`<th class="r">${b}</th>`).join('')}<th class="r">Overall</th><th>Band</th></tr></thead><tbody>
  ${fs.map(f=>{ const e = isDone(f)?evaluate(p,f):null; return `<tr class="click" data-go="review/${f.id}"><td><b class="ink">${f.cp}</b></td><td>${fmt(f.cpDate)}</td><td>${esc(f.by)}</td><td>${formChip(f)}</td>${BORDER.map(b=>{ const x = e&&e.bk.find(y=>y.b===b); return `<td class="r">${x&&x.v!=null?x.v.toFixed(1):'—'}</td>`; }).join('')}<td class="r">${e?pct(e.overall):'—'}</td><td>${e?bandChip(e.fb):bandChip()}</td></tr>`; }).join('')||'<tr><td colspan="12" class="empty">No reviews yet.</td></tr>'}
- </tbody></table></div><p class="sm muted mt12">Bucket scores out of 5. Reviews open 7 days before Month 3, 6, 9 and 12.</p>`;
+ </tbody></table></div><p class="sm muted mt12">Bucket scores out of 5. One review per apprentice, at Month 12.</p>`;
 }
 function pAtt(p){
  const a = attStats(p.id), last = a.days.slice(-91);
@@ -516,7 +517,7 @@ function pAtt(p){
 }
 function pKz(p){
  const L = kzOf(p.id).slice().reverse(), k = kzStats(p.id);
- return `<div class="grid g4">${kpi('Submitted', L.length)}${kpi('Implemented, last 3 months', k.impl3, k.rate.toFixed(1)+' per month (scores M1)')}${kpi('Verified as sustained', k.verified)}${kpi('Verified saving', lakh(k.saving), 'per year')}</div><div class="mt24">${kzRows(L)}</div>`;
+ return `<div class="grid g4">${kpi('Submitted', L.length)}${kpi('Implemented, over the apprenticeship', k.implY, k.rate.toFixed(1)+' per month (scores M1)')}${kpi('Verified as sustained', k.verified)}${kpi('Verified saving', lakh(k.saving), 'per year')}</div><div class="mt24">${kzRows(L)}</div>`;
 }
 function pSkills(p){
  const v = S.dev[p.id]||{}, dv = devAsOf(p);
@@ -549,7 +550,7 @@ const COLS = {
  overall:['Score', p=>{ const l = latestEval(p); return l?pct(l.e.overall):'—'; }, p=>{ const l = latestEval(p); return l?l.e.overall:-1; }],
  att:['Attendance', p=>pct(attStats(p.id).pct), p=>attStats(p.id).pct], kz3:['Kaizens 3 mo', p=>kzStats(p.id).impl3, p=>kzStats(p.id).impl3], skills:['Stations', p=>S.dev[p.id].st??'—', p=>S.dev[p.id].st??-1],
  jh:['JH step', p=>S.dev[p.id].jh??'—', p=>S.dev[p.id].jh??-1], conduct:['Conduct', p=>cdTxt(conduct(p.id)), p=>conduct(p.id).eff],
- next:['Next review', p=>{ const n = nextCp(p); return n?n.cp+' · '+fmtS(n.date):'Done'; }, p=>{ const n = nextCp(p); return n?n.date.getTime():9e15; }],
+ next:['Review (M12)', p=>{ const n = nextCp(p); return n?fmtS(n.date):'Done'; }, p=>{ const n = nextCp(p); return n?n.date.getTime():9e15; }],
  rec:['Agent', p=>{ const l = latestEval(p); return l&&l.f.cp==='M12'?recChip(l.e.rec):'—'; }, p=>{ const l = latestEval(p); return l?l.e.rec:''; }],
  decision:['Decision', p=>{ const dc = S.decisions[p.id]; return dc&&dc.hr?'<span class="chip good">'+esc(dc.hr.choice)+'</span>':dc&&dc.hod?esc(dc.hod.choice)+' (HoD)':'—'; }, p=>{ const dc = S.decisions[p.id]; return dc&&dc.hod?dc.hod.choice:''; }],
  status:['Status', p=>{ const l = latestEval(p); return p.status!=='Active'?esc(p.status):l?statusChip(l.e.status):'New'; }, p=>p.status],
@@ -607,7 +608,7 @@ function vRules(){
    <section class="card"><h2>Blend</h2><p class="sub">Share of the manager’s rating where a parameter also has records.</p><div class="row mt12">${num('blend', C.blend, 5, 90)}<span>% manager · ${100-C.blend}% records</span></div></section>
    <section class="card"><h2>Bands</h2><p class="sub">Overall = weighted average ÷ 5. Cut-offs keep the old form’s ratios (65/85 and 40/85).</p><div class="list mt8"><div class="li"><span class="sp">Band A from</span>${num('bandA',C.bandA,.1,90)}<span>%</span></div><div class="li"><span class="sp">Band B from</span>${num('bandB',C.bandB,.1,90)}<span>%</span></div></div></section>
    <section class="card"><h2>Conduct cap</h2><div class="list mt8"><div class="li"><span class="sp">VC/URs that count as one warning</span>${num('vcurAsWL',C.vcurAsWL,1,80)}</div><div class="li"><span class="sp">Warnings that make it “not recommended”</span>${num('wlNotRec',C.wlNotRec,1,80)}</div></div><p class="sm muted mt8">One warning caps the band at B. Termination ends training.</p></section>
-   <section class="card"><h2>Other</h2><div class="list mt8"><div class="li"><span class="sp">Leniency flag above % band A</span>${num('leniency',C.leniency,1,80)}</div><div class="li"><span class="sp">Open reviews days before checkpoint</span>${num('launchBefore',C.launchBefore,1,80)}</div><div class="li"><span class="sp">Kaizen sustain check after days</span>${num('kzVerifyDays',C.kzVerifyDays,1,80)}</div></div></section>
+   <section class="card"><h2>Other</h2><div class="list mt8"><div class="li"><span class="sp">Leniency flag above % band A</span>${num('leniency',C.leniency,1,80)}</div><div class="li"><span class="sp">Open the Month 12 review this many days before</span>${num('launchBefore',C.launchBefore,1,80)}</div><div class="li"><span class="sp">Kaizen sustain check after days</span>${num('kzVerifyDays',C.kzVerifyDays,1,80)}</div></div></section>
   </div>
  </div>
  <section class="card mt24"><h2>How records turn into a 1–5 score</h2><div class="tw mt12"><table class="t"><thead><tr><th>Parameter</th><th>Source</th><th>Rule (placeholder)</th></tr></thead><tbody>${PARAMS.filter(p=>p.data).map(p=>`<tr><td class="nm">${p.b} · ${esc(p.name)}</td><td>${srcTag(PSRC[p.data])}</td><td>${esc(DATA_RULES[p.data])}</td></tr>`).join('')}</tbody></table></div></section>`;
@@ -616,7 +617,7 @@ function vRules(){
 /* ======================= DATA SOURCES ======================= */
 const SOURCES = [
  {k:'sf',short:'SF/EC master',name:'SAP SuccessFactors Employee Central',dir:'in',what:'Employee master: ticket no., name, date of joining, department, line, reporting manager, HoD, employee class, status, exits.',how:'OData v2 API pull (EmpJob, EmpEmployment, PerPersonal, User) through SAP Integration Suite. Delta by lastModifiedDateTime.',when:'Daily 05:30 and on demand',run:'sfsync',
-  map:[['User.userId','Ticket no.','Primary key for every record'],['PerPersonal.firstName + lastName','Name',''],['EmpEmployment.startDate','Date of joining','Drives M3/M6/M9/M12 dates'],['EmpJob.department / division','Department, division','Routes to HoD'],['EmpJob.managerId','Line manager','Who appraises'],['EmpJob.employeeClass','Type (TTA / WILP)','Contingent worker = WILP'],['EmpJob.customString (line)','Line','If maintained in SF'],['EmpEmployment.endDate','Exit','Closes open reviews']]},
+  map:[['User.userId','Ticket no.','Primary key for every record'],['PerPersonal.firstName + lastName','Name',''],['EmpEmployment.startDate','Date of joining','Drives the Month 12 review date'],['EmpJob.department / division','Department, division','Routes to HoD'],['EmpJob.managerId','Line manager','Who appraises'],['EmpJob.employeeClass','Type (TTA / WILP)','Contingent worker = WILP'],['EmpJob.customString (line)','Line','If maintained in SF'],['EmpEmployment.endDate','Exit','Closes open reviews']]},
  {k:'sfout',short:'SF/EC conversion',name:'SAP SF/EC · conversion events',dir:'out',what:'Final Month 12 decision: job change to permanent operator, 3-month extension, or separation.',how:'OData upsert to EmpJob with event reason, or a workflow request so HR in SF approves. One call per finalised decision.',when:'Real time, when Plant HR finalises',run:null,
   map:[['Decision = Convert','EmpJob event: Job change','Effective first of next month'],['Decision = Extend 3 months','EmpEmployment / contract end date + 3 months',''],['Decision = Do not convert','Termination event (end of apprenticeship)',''],['PRAGATI assessment ID','Attachment / comment','Audit link back to PRAGATI']]},
  {k:'time',short:'Time system',name:'Plant time system (gate punches)',dir:'in',what:'Daily status per apprentice: present, late (with in-time), absent, weekly off.',how:'CSV file dropped on SFTP by the time system; PRAGATI picks it up, validates ticket numbers and loads. API if the vendor supports it.',when:'Daily 06:00',run:'timesync',
@@ -722,7 +723,7 @@ function vJoiners(){
  return `${ph('Joiner file', 'WILP apprentices are employed through TeamLease. The weekly joiner file adds the TeamLease code to the record created from SAP SF/EC, so attendance, kaizens, cases and reviews all land on one record.', `<button class="btn pri" data-act="tlimport" type="button" ${T.imported?'disabled':''}>${T.imported?'Imported':'Validate and import'}</button>`)}
  <div class="card" style="padding:16px 20px;margin-bottom:16px"><div class="file"><span class="ext" style="background:var(--warn-50);color:var(--warn)">CSV</span><div><b class="ink">${esc(T.file)}</b><div class="sm muted">Received ${fmt(new Date(TODAY.getTime()-DAY))} 18:30 · SFTP</div></div></div></div>
  <div class="tw"><table class="t"><thead><tr><th>Name</th><th>TeamLease code</th><th>Joined</th><th>Line</th><th>Line manager</th><th>Course</th><th>PRAGATI will</th></tr></thead><tbody>
- ${T.rows.map(r=>`<tr><td class="nm">${esc(r.name)}</td><td class="mono">${esc(r.tl)}</td><td>${fmt(d(r.doj))}</td><td>${esc(r.line)}</td><td>${esc(MANAGERS[r.mgr].name)}</td><td>${esc(r.course)}</td><td class="sm muted">Create the record, schedule the M3 review for ${fmtS(addM(d(r.doj),3))}</td></tr>`).join('')}
+ ${T.rows.map(r=>`<tr><td class="nm">${esc(r.name)}</td><td class="mono">${esc(r.tl)}</td><td>${fmt(d(r.doj))}</td><td>${esc(r.line)}</td><td>${esc(MANAGERS[r.mgr].name)}</td><td>${esc(r.course)}</td><td class="sm muted">Create the record, schedule the Month 12 review for ${fmtS(addM(d(r.doj),12))}</td></tr>`).join('')}
  </tbody></table></div>`;
 }
 
@@ -738,7 +739,7 @@ const PSTEPS = [
  ['Write back','Save the assessment to the record; the HoD sees it with the review.']
 ];
 function vConsole(){
- const q = queue(), pid = UI.pipe.tid || (q[0] && q[0].p.id) || 't01', p = S.people[pid], f = lastSubmitted(pid);
+ const q = queue(), pid = UI.pipe.tid || (q[0] && q[0].p.id) || (Object.values(S.people).find(x=>lastSubmitted(x.id))||{}).id, p = S.people[pid], f = lastSubmitted(pid);
  const e = f ? evaluate(p, f) : null, st = UI.pipe.tid===pid ? UI.pipe.step : 0;
  const out = i => { if(!e) return ''; const a = attStats(pid), k = kzStats(pid);
   return [`${formsOf(pid).length} reviews, ${kzOf(pid).length} kaizens, ${S.cases.filter(c=>c.tid===pid).length} cases, ${a.sched} attendance days`,

@@ -24,11 +24,11 @@ const PORTALS = {
  home:{file:'index.html',name:'Portals',roles:[],nav:[]},
  manager:{file:'manager.html',name:'Line Manager',icon:'clip',who:'Line managers on the shop floor (appraisers)',roles:['manager'],
   pitch:'Appraise your apprentices in minutes, evaluate their kaizens and validate incidents from your line.',
-  points:['16 plain statements on a 1–5 scale, in six PQCDSM buckets','Attendance, kaizens, skills and conduct pulled in for you','Quick rate the whole team one bucket at a time'],
-  nav:[['home','Home'],['team','My apprentices'],['reviews','Reviews'],['quick','Quick rate'],['kaizen','Kaizen'],['cases','Conduct'],['m12','Month 12']]},
+  points:['One review per apprentice, at Month 12: 16 plain statements on a 1–5 scale','Attendance, kaizens, skills and conduct pulled in for you','Quick rate the whole team one bucket at a time'],
+  nav:[['home','Home'],['team','My apprentices'],['reviews','Reviews'],['quick','Quick rate'],['kaizen','Kaizen'],['cases','Conduct']]},
  hod:{file:'hod.html',name:'Head of Department',icon:'users',who:'Skip-level managers (reviewing officers)',roles:['hod'],
   pitch:'See each apprentice on one page: the line manager’s appraisal with every record behind it.',
-  points:['Summary per apprentice with score trend and agent flags','Sign or return reviews; decide conduct actions','Decide Month 12 conversions with the full record'],
+  points:['Summary per apprentice with the year\u2019s records and agent flags','Sign or return reviews; decide conduct actions','Decide Month 12 conversions with the full record'],
   nav:[['home','Home'],['reviews','Reviews to sign'],['team','Apprentices'],['cases','Conduct'],['m12','Conversions']]},
  plant:{file:'plant.html',name:'Plant Head',icon:'plant',who:'Plant head and leadership',roles:['plant'],
   pitch:'The whole apprentice programme at a glance.',
@@ -252,7 +252,7 @@ const A = {
   if(S.tl.imported){ toast('Already imported'); return false; }
   S.tl.rows.forEach((r,i)=>{ const id = 'p'+(S.seq.p++); S.people[id] = {id,name:r.name,type:'WILP',mgr:r.mgr,doj:r.doj,line:r.line,prof:'good',mu:3.9,kzRate:1,ticket:'T'+(49001+i),tl:r.tl,status:'Active',empClass:'Contingent worker (TeamLease)',course:r.course,gen:{ab:.02,la:.02,streak:0,s:300+i}}; S.sfLen[id] = rawOf(id).length - 1; S.dev[id] = {st:null,jh:null,ie:null,month:'—',by:'—'}; });
   S.tl.imported = true; S.sources.tl = {last:stamp(), rec:S.tl.rows.length, status:'ok', note:S.tl.rows.length+' joiners imported'};
-  log('in','TeamLease','PRAGATI Master',`${S.tl.rows.length} WILP joiners added with TeamLease codes; M3 reviews scheduled.`); toast(S.tl.rows.length+' joiners added'); render();
+  log('in','TeamLease','PRAGATI Master',`${S.tl.rows.length} WILP joiners added with TeamLease codes; Month 12 reviews scheduled.`); toast(S.tl.rows.length+' joiners added'); render();
  },
  pick(el){ UI.pipe = {tid:el.dataset.id, step:0}; render(); },
  prun(el){

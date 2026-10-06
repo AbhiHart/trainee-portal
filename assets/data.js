@@ -58,7 +58,7 @@ const DATA_RULES = {
  qlapse:'No closed quality lapse = 5 \u00b7 1 = 3 \u00b7 2 or more = 1',
  jh:'JH Step 3 = 5 \u00b7 Step 2 = 4 \u00b7 Step 1 = 3 \u00b7 no step = 2',
  att:'\u2265 95% = 5 \u00b7 92\u201395% = 4 \u00b7 88\u201392% = 3 \u00b7 85\u201388% = 2 \u00b7 < 85% = 1; minus 1 if more than 3 late-ins in the last 30 days',
- kz:'Kaizens implemented per month over the last 3 months: \u2265 2 = 5 \u00b7 1.5\u20132 = 4 \u00b7 1\u20131.5 = 3 \u00b7 0.5\u20131 = 2 \u00b7 < 0.5 = 1',
+ kz:'Kaizens implemented per month over the apprenticeship (up to 12 months): \u2265 2 = 5 \u00b7 1.5\u20132 = 4 \u00b7 1\u20131.5 = 3 \u00b7 0.5\u20131 = 2 \u00b7 < 0.5 = 1',
  skill:'Stations certified on the skill matrix: > 12 = 5 \u00b7 9\u201312 = 4 \u00b7 6\u20138 = 3 \u00b7 3\u20135 = 2 \u00b7 < 3 = 1',
  sent:'Manager comments read positive = 5 \u00b7 neutral or mixed = 3 \u00b7 negative = 1'
 };
@@ -138,12 +138,12 @@ const COMMENTS = {
  lenient:[['Excellent trainee. Very good worker.','Nothing major.']],
  vishal:[['Excellent output, quick learner, good team player.','Mobile use during shift, warned. Must improve discipline.']],
  rahul:[['Good at his stage when present.','Frequently absent, tobacco on premises, careless about safety rules.']],
- sneha:[['Steady and dependable. Improved a lot since M6, punctual.','Needs more speed at model change.']]
+ sneha:[['Steady and dependable. Improved a lot over the year, punctual.','Needs more speed at model change.']]
 };
 
 const DEFAULT_CFG = {
  w:Object.fromEntries(PARAMS.map(p=>[p.k,10])), blend:50,
- bandA:76.5, bandB:47.1, vcurAsWL:3, wlNotRec:2, leniency:40, launchBefore:7, kzVerifyDays:30,
+ bandA:76.5, bandB:47.1, vcurAsWL:3, wlNotRec:2, leniency:40, launchBefore:14, kzVerifyDays:30,
  vis:{
   hod:{agent:true, comments:true, data:true},
   plant:{scores:true, comments:false, conduct:true, kaizen:true},
@@ -209,20 +209,20 @@ function seed(){
   reg:{month:'Sep 2026', uploaded:false, rows:[]}};
  // hand-built storylines (kept from the earlier prototype)
  const T = [
-  ['t01','Rohan Shinde','TTA','m1','2025-10-06','E-Line 2','strong',4.6,{ie:12,jh:3,st:14},2.3,.02,.02,0,[3,6,9],'strong'],
-  ['t02','Vishal Gaikwad','TTA','m2','2025-09-22','V-Line 1','strong',4.6,{ie:11,jh:3,st:13},2.1,.03,.03,0,[3,6,9,12],'vishal'],
-  ['t03','Rahul Bhosale','WILP','m2','2025-09-15','V-Line 3','avg',3.2,{ie:4,jh:2,st:6},1.1,.10,.06,0,[3,6,9,12],'rahul'],
-  ['t04','Sneha Patil','TTA','m4','2025-09-29','Dispatch Bay 2','avg',3.6,{ie:7,jh:2,st:8},1.4,.04,.03,0,[3,6,9,12],'sneha'],
-  ['t05','Nikhil More','WILP','m1','2026-03-02','E-Line D','avg',3.3,{ie:3,jh:2,st:5},1.0,.05,.04,0,[3,6],'avg'],
-  ['t06','Ganesh Wagh','TTA','m3','2026-01-12','Frame Weld 1','lenient',4.95,{ie:5,jh:2,st:6},1.2,.06,.05,0,[3,6],'lenient'],
-  ['t07','Pooja Kale','TTA','m3','2025-12-15','Frame Paint','lenient',4.95,{ie:10,jh:3,st:9},2.0,.02,.02,0,[3,6,9],'lenient'],
-  ['t08','Akash Pawar','WILP','m3','2026-04-06','Frame Weld 2','good',3.9,{ie:6,jh:2,st:5},1.5,.03,.03,0,[3],'good'],
-  ['t09','Kiran Salunkhe','WILP','m4','2026-02-16','Packing L1','avg',3.0,{ie:2,jh:1,st:4},.8,.07,.05,5,[3,6],'avg'],
-  ['t10','Amol Thorat','TTA','m4','2026-06-01','Dispatch Bay 1','good',3.9,{ie:5,jh:2,st:4},1.3,.03,.02,0,[3],'good'],
+  ['t01','Rohan Shinde','TTA','m1','2025-10-06','E-Line 2','strong',4.6,{ie:12,jh:3,st:14},2.3,.02,.02,0,[],'strong'],
+  ['t02','Vishal Gaikwad','TTA','m2','2025-09-22','V-Line 1','strong',4.6,{ie:11,jh:3,st:13},2.1,.03,.03,0,[12],'vishal'],
+  ['t03','Rahul Bhosale','WILP','m2','2025-09-15','V-Line 3','avg',3.2,{ie:4,jh:2,st:6},1.1,.10,.06,0,[12],'rahul'],
+  ['t04','Sneha Patil','TTA','m4','2025-09-29','Dispatch Bay 2','avg',3.6,{ie:7,jh:2,st:8},1.4,.04,.03,0,[12],'sneha'],
+  ['t05','Nikhil More','WILP','m1','2025-10-19','E-Line D','avg',3.3,{ie:3,jh:2,st:5},1.0,.05,.04,0,[],'avg'],
+  ['t06','Ganesh Wagh','TTA','m3','2025-09-08','Frame Weld 1','lenient',4.95,{ie:5,jh:2,st:6},1.2,.06,.05,0,[12],'lenient'],
+  ['t07','Pooja Kale','TTA','m3','2025-09-01','Frame Paint','lenient',4.95,{ie:10,jh:3,st:9},2.0,.02,.02,0,[12],'lenient'],
+  ['t08','Akash Pawar','WILP','m3','2025-10-13','Frame Weld 2','good',3.9,{ie:6,jh:2,st:5},1.5,.03,.03,0,[],'good'],
+  ['t09','Kiran Salunkhe','WILP','m4','2026-02-16','Packing L1','avg',3.0,{ie:2,jh:1,st:4},.8,.07,.05,5,[],'avg'],
+  ['t10','Amol Thorat','TTA','m4','2026-06-01','Dispatch Bay 1','good',3.9,{ie:5,jh:2,st:4},1.3,.03,.02,0,[],'good'],
   ['t11','Priya Deshmukh','WILP','m2','2026-07-01','V-Line 2','good',3.9,{ie:2,jh:1,st:2},.6,.02,.02,0,[],'good'],
-  ['t12','Suraj Kamble','TTA','m1','2026-05-04','E-Line 1','weak',2.3,{ie:0,jh:1,st:3},.4,.08,.08,0,[3],'weak'],
-  ['t13','Mahesh Kadam','TTA','m3','2026-03-23','Frame Weld 1','lenient',4.95,{ie:9,jh:2,st:7},1.8,.02,.02,0,[3,6],'lenient'],
-  ['t14','Sagar Jadhav','WILP','m4','2026-01-05','Packing L2','weak',2.6,{ie:null,jh:null,st:3},.5,.06,.07,0,[3,6],'weak']
+  ['t12','Suraj Kamble','TTA','m1','2025-09-08','E-Line 1','weak',2.3,{ie:0,jh:1,st:3},.4,.08,.08,0,[12],'weak'],
+  ['t13','Mahesh Kadam','TTA','m3','2025-08-25','Frame Weld 1','lenient',4.95,{ie:9,jh:2,st:7},1.8,.02,.02,0,[12],'lenient'],
+  ['t14','Sagar Jadhav','WILP','m4','2025-08-18','Packing L2','weak',2.6,{ie:null,jh:null,st:3},.5,.06,.07,0,[12],'weak']
  ];
  const OVER = {t03:{S2a:3,S1a:3}, t12:{S2a:1,S2b:2,M3a:1,M3b:2}, t04:{P1a:3,P1b:3,Q1a:3,M2a:3,D2a:3,D2b:4,M3a:3}};
  const add = (r,i,gen) => {
@@ -238,8 +238,8 @@ function seed(){
    const cm = cms[(i+j)%cms.length];
    const ans = ansFor(Math.min(5, mu + j*0.12), rng(i*101+n), prof==='lenient' ? Object.fromEntries(ALL_ST.map(k=>[k,5])) : OVER[id]);
    let status = 'Completed';
-   if(gen && TODAY - cpDate < 14*DAY){ const x = R(); status = x<.4?'With HoD':x<.65?'In progress':'Completed'; }
-   const f = {id:'PF-'+(S.seq.form++), tid:id, cp:'M'+n, cpDate:cpDate.toISOString(), launched:new Date(cpDate.getTime()-7*DAY).toISOString(), status,
+   if(gen && TODAY - cpDate < 21*DAY){ const x = R(); status = x<.4?'With HoD':x<.65?'In progress':'Completed'; }
+   const f = {id:'PF-'+(S.seq.form++), tid:id, cp:'M'+n, cpDate:cpDate.toISOString(), launched:new Date(cpDate.getTime()-14*DAY).toISOString(), status,
     ans: status==='In progress' ? Object.fromEntries(Object.entries(ans).slice(0,7)) : ans, strengths:status==='In progress'?'':cm[0], improve:status==='In progress'?'':cm[1], train:[], discussed:status!=='In progress', mrec:'',
     submitted: status==='In progress' ? '' : fmt(cpDate), signed: status==='Completed' ? fmt(new Date(cpDate.getTime()+2*DAY)) : '', by:MANAGERS[mgr].name};
    if(mu<3.4 && status!=='In progress') f.train = ['Quality checks','SOP / work instruction'];
@@ -255,9 +255,9 @@ function seed(){
   let name; do { name = FIRST[Math.floor(R0()*FIRST.length)]+' '+LAST[Math.floor(R0()*LAST.length)]; } while(used.has(name)); used.add(name);
   const mgr = mgrs[i % mgrs.length], M = MANAGERS[mgr];
   const type = R0()<.55?'TTA':'WILP';
-  const doj = dateKey(new Date(2025,8,15).getTime() + Math.floor(R0()*330)*DAY);
+  const doj = dateKey(R0()<.55 ? new Date(2025,7,4).getTime() + Math.floor(R0()*80)*DAY : new Date(2026,0,5).getTime() + Math.floor(R0()*220)*DAY);
   const q = R0(), mu = r1(2.4 + 2.3*q);
-  const done = [3,6,9,12].filter(n=>addM(d(doj),n) <= TODAY);
+  const done = [12].filter(n=>addM(d(doj),n) <= TODAY);
   const dev = {ie: q>.15 ? Math.round(q*13) : 0, jh: Math.min(3, 1+Math.floor(q*3)), st: 2+Math.round(q*12)};
   if(R0()<.08) dev.ie = null;
   const row = ['g'+String(i+1).padStart(2,'0'), name, type, mgr, doj, M.lines[Math.floor(R0()*M.lines.length)], profFromMu(mu), mu, dev, r1(.3+q*2), Math.round((.012+(1-q)*.07)*1000)/1000, Math.round((.015+(1-q)*.06)*1000)/1000, 0, done, null];
@@ -270,7 +270,8 @@ function seed(){
  // decisions on completed M12s
  S.decisions.t02 = {mgr:{choice:'Convert',by:'R. Joshi',at:'25 Sep 10:12'}};
  S.decisions.t03 = {mgr:{choice:'Extend 3 months',by:'R. Joshi',at:'25 Sep 10:20'}};
- S.decisions.t04 = {mgr:{choice:'Extend 3 months',by:'M. Rao',at:'01 Oct 09:30'},hod:{choice:'Convert',reason:'B overall but a steady rise from M6 to M12 and a clean conduct record.',by:'P. Iyer',at:'02 Oct 11:05'},hr:{choice:'Convert',by:'N. Sharma',at:'03 Oct 16:40'},ec:{at:'03 Oct 16:41',event:'Job change: Apprentice \u2192 Permanent operator (effective 01 Nov 2026)'}};
+ S.decisions.t04 = {mgr:{choice:'Extend 3 months',by:'M. Rao',at:'01 Oct 09:30'},hod:{choice:'Convert',reason:'B overall but steady improvement through the year and a clean conduct record.',by:'P. Iyer',at:'02 Oct 11:05'},hr:{choice:'Convert',by:'N. Sharma',at:'03 Oct 16:40'},ec:{at:'03 Oct 16:41',event:'Job change: Apprentice \u2192 Permanent operator (effective 01 Nov 2026)'}};
+ Object.values(S.people).forEach(p=>{ const f = S.forms.find(x=>x.tid===p.id&&x.cp==='M12'&&x.status==='Completed'); if(!f || S.decisions[p.id]) return; const c = f.mrec||'Extend 3 months', at = fmtS(new Date(new Date(f.cpDate).getTime()+3*DAY)); S.decisions[p.id] = {mgr:{choice:c,by:f.by,at}, hod:{choice:c,reason:'',by:HODS[MANAGERS[p.mgr].hod].name,at}, hr:{choice:c,by:'N. Sharma',at}, ec:{at, event: c==='Convert'?'Job change: Apprentice \u2192 Permanent operator':c==='Extend 3 months'?'Contract end date extended by 3 months':'End of apprenticeship: separation recorded'}}; });
  // reg upload rows for September
  Object.values(S.people).forEach((p,i)=>{ const v = S.dev[p.id], R = rng(i*31+5); S.reg.rows.push({ticket:p.ticket, name:p.name, st: v.st==null?null:v.st+(R()<.4?1:0), jh:v.jh, ie: v.ie==null?null:v.ie+(R()<.5?1:0)}); });
  S.reg.rows.push({ticket:'T99999', name:'(not found)', st:3, jh:1, ie:2});
@@ -294,11 +295,10 @@ function autoLaunch(S){
  const n = [];
  Object.values(S.people).filter(p=>p.status==='Active').forEach(p=>{
   const have = new Set(S.forms.filter(f=>f.tid===p.id).map(f=>f.cp));
-  [3,6,9,12].forEach(m=>{
+  [12].forEach(m=>{
    const cp = 'M'+m; if(have.has(cp)) return;
    const cpDate = addM(d(p.doj), m), launch = new Date(cpDate.getTime()-S.cfg.launchBefore*DAY);
-   const prevDone = m===3 || have.has('M'+(m-3));
-   if(launch<=TODAY && prevDone){
+   if(launch<=TODAY){
     S.forms.push({id:'PF-'+(S.seq.form++), tid:p.id, cp, cpDate:cpDate.toISOString(), launched:launch.toISOString(), status:'Not started', ans:{}, strengths:'', improve:'', train:[], discussed:false, mrec:'', by:MANAGERS[p.mgr].name});
     have.add(cp); n.push(p.name+' '+cp);
    }
@@ -403,12 +403,13 @@ function kzOf(tid){ return S.kaizens.filter(k=>k.tid===tid || (k.team||[]).inclu
 const KZ_DONE = ['Implemented','Verified'];
 function kzStats(tid, asOf){
  const at = asOf ? new Date(asOf) : TODAY, from = new Date(at.getTime()-91*DAY);
- const p = S.people[tid], mos = clamp(monthsIn(p.doj, at), 1, 3);
+ const p = S.people[tid], mos3 = clamp(monthsIn(p.doj, at), 1, 3), mos = clamp(monthsIn(p.doj, at), 1, 12), from12 = new Date(at.getTime()-366*DAY);
  const all = kzOf(tid).filter(k=>d(k.date)<=at);
  const impl = all.filter(k=>k.implAt && KZ_DONE.includes(k.status) && d(k.implAt)<=at && d(k.implAt)>=from);
  const ver = all.filter(k=>k.status==='Verified');
  const saving = ver.reduce((s,k)=>s+(k.verify?k.verify.saving:0),0);
- return {all:all.length, impl3:impl.length, rate:impl.length/mos, mos, implAll:all.filter(k=>KZ_DONE.includes(k.status)||k.status==='Not sustained').length, verified:ver.length, saving};
+ const implY = all.filter(k=>k.implAt && KZ_DONE.includes(k.status) && d(k.implAt)<=at && d(k.implAt)>=from12).length;
+ return {all:all.length, impl3:impl.length, implY, rate:implY/mos, mos, mos3, implAll:all.filter(k=>KZ_DONE.includes(k.status)||k.status==='Not sustained').length, verified:ver.length, saving};
 }
 function devAsOf(p, asOf){
  const v = S.dev[p.id] || {}, at = asOf ? new Date(asOf) : TODAY;
@@ -465,7 +466,7 @@ function dataScore(par, p, f, asOf){
  switch(par.data){
   case 'att': { const a = attStats(p.id, asOf); let s = a.pct>=95?5:a.pct>=92?4:a.pct>=88?3:a.pct>=85?2:1; const pen = a.late30>3; if(pen) s = Math.max(1, s-1);
    return {pts:s, val:pct(a.pct)+' present \u00b7 '+a.late30+' late-in'+(a.late30===1?'':'s')+' (30 days)'+(pen?' \u2212 1':'')}; }
-  case 'kz': { const k = kzStats(p.id, asOf); const r = k.rate; return {pts: r>=2?5:r>=1.5?4:r>=1?3:r>=.5?2:1, val:k.impl3+' implemented in '+(k.mos<3?Math.round(k.mos*10)/10+' month(s)':'3 months')+' \u00b7 '+r.toFixed(1)+' / month'}; }
+  case 'kz': { const k = kzStats(p.id, asOf); const r = k.rate; return {pts: r>=2?5:r>=1.5?4:r>=1?3:r>=.5?2:1, val:k.implY+' implemented in '+Math.round(k.mos)+' month'+(Math.round(k.mos)===1?'':'s')+' \u00b7 '+r.toFixed(1)+' / month'}; }
   case 'ie': { const v = devAsOf(p, asOf).ie; if(v==null) return {missing:true, val:'No IE study on record'}; return {pts: v>=10?5:v>=5?4:v>=1?3:2, val:v+'% task-time reduction'}; }
   case 'jh': { const v = devAsOf(p, asOf).jh; if(v==null) return {missing:true, val:'No TPM record'}; return {pts: v>=3?5:v===2?4:v===1?3:2, val: v?'JH Step '+v+' certified':'No JH step yet'}; }
   case 'skill': { const v = devAsOf(p, asOf).st; if(v==null) return {missing:true, val:'No skill matrix row'}; return {pts: v>12?5:v>=9?4:v>=6?3:v>=3?2:1, val:v+' station'+(v===1?'':'s')+' certified'}; }
@@ -536,7 +537,7 @@ function narrative(p, f, e){
  if(e.strong.length) parts.push(`Strongest in ${andList(e.strong)}.`);
  if(e.weak.length) parts.push(`Needs work in ${andList(e.weak)}.`);
  parts.push(`Attendance ${pct(a.pct)} with ${a.late30} late-in${a.late30===1?'':'s'} in the last 30 days.`);
- parts.push(`${k.impl3} kaizen${k.impl3===1?'':'s'} implemented in the last 3 months${k.verified?', '+k.verified+' verified as sustained overall':''}${k.saving?' (verified saving '+lakh(k.saving)+' a year)':''}.`);
+ parts.push(`${k.implY} kaizen${k.implY===1?'':'s'} implemented over the apprenticeship (${k.rate.toFixed(1)} a month)${k.verified?', '+k.verified+' verified as sustained overall':''}${k.saving?' (verified saving '+lakh(k.saving)+' a year)':''}.`);
  if(dv.st!=null) parts.push(`${dv.st} stations certified${dv.jh?', JH Step '+dv.jh:''}.`);
  parts.push(e.cd.closed||e.cd.open ? `Conduct: ${e.cd.wl} warning${e.cd.wl===1?'':'s'}, ${e.cd.vcur} VC/UR${e.cd.open?', '+e.cd.open+' open':''}.` : 'Clean conduct record.');
  if(e.sen.label!=='None') parts.push(`Manager comments read ${e.sen.label.toLowerCase()}.`);
@@ -553,8 +554,9 @@ function leniency(){
  return _len;
 }
 function latestEval(p){ const f = lastSubmitted(p.id); return f ? {f, e:evaluate(p,f)} : null; }
+function attMonths(p, asOf){ const a = attStats(p.id, asOf), m = {}; a.days.forEach(x=>{ if(x.s==='W') return; const k = x.d.slice(0,7); (m[k] ||= {n:0,p:0}); m[k].n++; if(x.s!=='A') m[k].p++; }); return Object.entries(m).slice(-12).map(([k,v])=>({k, v:v.p/v.n*100})); }
 function trend(p){ return formsOf(p.id).filter(isDone).map(f=>({cp:f.cp, v:evaluate(p,f,{noPrev:true,noLen:true}).overall})); }
-function nextCp(p){ const done = new Set(formsOf(p.id).filter(isDone).map(f=>f.cp)); for(const m of [3,6,9,12]){ if(!done.has('M'+m)) return {cp:'M'+m, date:addM(d(p.doj),m)}; } return null; }
+function nextCp(p){ const done = new Set(formsOf(p.id).filter(isDone).map(f=>f.cp)); for(const m of [12]){ if(!done.has('M'+m)) return {cp:'M'+m, date:addM(d(p.doj),m)}; } return null; }
 function suggest(tid,k){ const m = MISK[k]; const prior = S.cases.filter(c=>c.tid===tid&&c.k===k&&c.status===5&&c.steps.action&&c.steps.action.level!=='none').length; const i = Math.min(prior,m.lad.length-1); return {label:m.lad[i][0],level:m.lad[i][1],prior,step:i+1,of:m.lad.length}; }
 function hodOf(p){ return MANAGERS[p.mgr].hod; }
 function absAlerts(){ return Object.values(S.people).filter(p=>p.status==='Active').map(p=>({p,a:attStats(p.id)})).filter(x=>x.a.cont>=4); }
@@ -564,7 +566,7 @@ function seedLog(){
  const L = (at,dir,from,to,what) => S.log.push({at,dir,from,to,what});
  L('07 Oct 06:00','in','Time system','PRAGATI Attendance','Daily attendance file for 06 Oct: '+Object.keys(S.people).length+' apprentices, all records accepted.');
  L('07 Oct 05:30','in','SAP SF/EC','PRAGATI Master','Employee master delta: 0 new, 0 changed, 0 exits.');
- L('06 Oct 23:00','sys','Scheduler','PRAGATI Reviews','Nightly checks: reviews auto-launched 7 days before each checkpoint; reminders sent for overdue reviews.');
+ L('06 Oct 23:00','sys','Scheduler','PRAGATI Reviews','Nightly checks: Month 12 reviews opened 14 days before the date; reminders sent for overdue reviews.');
  L('03 Oct 16:41','out','PRAGATI','SAP SF/EC Job info','Sneha Patil: job change Apprentice \u2192 Permanent operator (effective 01 Nov 2026).');
  L('03 Oct 16:40','wf','Plant HR','PRAGATI Decision','Sneha Patil: final decision Convert.');
  L('02 Oct 11:05','wf','HoD','PRAGATI Decision','Sneha Patil: HoD decided Convert (agent said Refer to HoD).');
