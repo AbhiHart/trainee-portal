@@ -1,33 +1,24 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Trainee Review & Conduct Platform</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/core.css"></head>
-<body><header class="top"><div class="brand">Trainee Review &amp; Conduct Platform<small>Prototype · sample data only</small></div></header>
-<main class="wrap" style="max-width:1200px;margin-inline:auto">
- <div class="head"><div><div class="eyebrow">Apprentice performance and conduct</div><h1>One data flow, a portal for each stakeholder</h1>
- <p>Each portal has its own link and login and shows only what that stakeholder needs. Open portals in separate browser windows on the same computer: data sent from one appears in the others within a second. Every demo account uses the password <span class="mono">Demo@123</span>.</p></div></div>
- <div class="launch"><div class="lcard"><span class="tg">Shop floor managers</span><b>Line Manager Portal</b><span class="sub">Fill appraisal forms (all 19 attributes) or rate the whole team in Team Rater; validate incidents; give the Month 12 view.</span><span class="sub">Log in as: <span class="mono">anaik, skulkarni, rjoshi, mrao</span></span><div class="row"><a class="btn pri sm" href="manager.html" target="_blank" rel="noopener">Open portal</a><span class="lnk">manager.html</span></div></div><div class="lcard"><span class="tg">Heads of department</span><b>HoD Portal</b><span class="sub">Sign forms with the agent’s analysis beside them; decide actions on cases; decide Month 12 conversions.</span><span class="sub">Log in as: <span class="mono">dmehta, piyer</span></span><div class="row"><a class="btn pri sm" href="hod.html" target="_blank" rel="noopener">Open portal</a><span class="lnk">hod.html</span></div></div><div class="lcard"><span class="tg">Plant HR / Personnel</span><b>Plant HR Portal</b><span class="sub">Employee master, issue letters and close cases, final conversion decisions (updates EC), scoring rules.</span><span class="sub">Log in as: <span class="mono">nsharma</span></span><div class="row"><a class="btn pri sm" href="hr.html" target="_blank" rel="noopener">Open portal</a><span class="lnk">hr.html</span></div></div><div class="lcard"><span class="tg">Supervisors and security</span><b>Line Incident Reporting</b><span class="sub">Tablet form to report misconduct or an accident from the line.</span><span class="sub">Log in as: <span class="mono">supervisor, security</span></span><div class="row"><a class="btn pri sm" href="supervisor.html" target="_blank" rel="noopener">Open portal</a><span class="lnk">supervisor.html</span></div></div><div class="lcard"><span class="tg">TPM, IE and Training coordinators</span><b>Register Upload Portal</b><span class="sub">Monthly upload of kaizen, OPL, skill matrix, JH, time study and training registers.</span><span class="sub">Log in as: <span class="mono">coordinator</span></span><div class="row"><a class="btn pri sm" href="coordinator.html" target="_blank" rel="noopener">Open portal</a><span class="lnk">coordinator.html</span></div></div><div class="lcard"><span class="tg">Time office</span><b>Plant Time System</b><span class="sub">Gate punches; sends the daily attendance file to SF.</span><span class="sub">Log in as: <span class="mono">timeoffice</span></span><div class="row"><a class="btn pri sm" href="timesystem.html" target="_blank" rel="noopener">Open portal</a><span class="lnk">timesystem.html</span></div></div><div class="lcard"><span class="tg">TeamLease</span><b>TeamLease Partner Portal</b><span class="sub">Weekly joiner file that creates WILP trainees in EC.</span><span class="sub">Log in as: <span class="mono">teamlease</span></span><div class="row"><a class="btn pri sm" href="teamlease.html" target="_blank" rel="noopener">Open portal</a><span class="lnk">teamlease.html</span></div></div><div class="lcard"><span class="tg">HRIS / AI admin</span><b>Scoring Agent Console</b><span class="sub">Watch the agent read data, score it step by step and write the result back.</span><span class="sub">Log in as: <span class="mono">hrisadmin</span></span><div class="row"><a class="btn pri sm" href="agent.html" target="_blank" rel="noopener">Open portal</a><span class="lnk">agent.html</span></div></div><div class="lcard"><span class="tg">Project team</span><b>Data Flow Monitor</b><span class="sub">The whole chain on one screen, with the movement log and a guided walkthrough.</span><span class="sub">Log in as: <span class="mono">presenter (or nsharma / hrisadmin)</span></span><div class="row"><a class="btn pri sm" href="monitor.html" target="_blank" rel="noopener">Open portal</a><span class="lnk">monitor.html</span></div></div></div>
- <section class="card" style="margin-top:16px"><h2>Demo script (about 10 minutes)</h2>
- <ol style="margin:0;padding-left:20px;line-height:1.8">
-  <li>Press <b>Reset demo data</b> below. Open the Data Flow Monitor as <span class="mono">presenter</span> on one side of the screen.</li>
-  <li>Plant Time System (<span class="mono">timeoffice</span>): send the daily file. An absence alert appears for Kiran Salunkhe.</li>
-  <li>Register Upload Portal (<span class="mono">coordinator</span>): upload September; one unknown ticket is rejected.</li>
-  <li>TeamLease Partner Portal (<span class="mono">teamlease</span>): import two joiners into EC.</li>
-  <li>Line Incident Reporting (<span class="mono">supervisor</span>): report mobile use for Akash Pawar.</li>
-  <li>Line Manager Portal (<span class="mono">anaik</span>): rate Ganesh Wagh and Akash Pawar in Team Rater or the full form, then sign and send.</li>
-  <li>Scoring Agent Console (<span class="mono">hrisadmin</span>): run the agent step by step.</li>
-  <li>HoD Portal (<span class="mono">piyer</span>, <span class="mono">dmehta</span>): sign forms; decide Vishal Gaikwad’s Month 12 conversion.</li>
-  <li>Plant HR Portal (<span class="mono">nsharma</span>): confirm the final decision; the EC job change shows in the log.</li>
- </ol>
- <div class="row" style="margin-top:12px"><button class="btn danger" id="reset" type="button">Reset demo data</button><span class="sub" id="reset-msg">Resets all portals open in this browser to the sample data.</span></div></section>
- <p class="sub" style="margin-top:16px">Stand-in for SF / EC: forms, cases and records here represent what would be configured in SuccessFactors. Names and data are fictional.</p>
-</main><div id="toast-root"></div><div id="top" hidden></div><div id="app" hidden></div><div id="drawer-root" hidden></div>
-<script src="assets/core.js"></script>
-<script>
-function curSim(){ return 'index'; }
-function renderTop(){} function render(){}
-initStore();
-document.getElementById('reset').addEventListener('click', ()=>{ S = seed(); initAssess(true); seedLog(); persist(); document.getElementById('reset-msg').textContent = 'Demo data reset. Open portals refresh automatically.'; });
-</script></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PRAGATI</title>
+<meta name="description" content="PRAGATI: Performance & Records of Apprentices. Prototype with sample data.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/pragati.css">
+</head>
+<body data-portal="home">
+<header class="hdr" id="top"></header>
+<div id="app"></div>
+<div id="drawer-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+<script src="assets/data.js"></script>
+<script src="assets/views.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
