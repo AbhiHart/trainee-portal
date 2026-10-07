@@ -59,7 +59,7 @@ const DATA_RULES = {
  ie:'Task-time reduction \u2265 10% = 5 \u00b7 5\u201310% = 4 \u00b7 1\u20135% = 3 \u00b7 0% = 2',
  qlapse:'No closed quality lapse = 5 \u00b7 1 = 3 \u00b7 2 or more = 1',
  jh:'JH Step 3 = 5 \u00b7 Step 2 = 4 \u00b7 Step 1 = 3 \u00b7 no step = 2',
- att:'\u2265 95% = 5 \u00b7 92\u201395% = 4 \u00b7 88\u201392% = 3 \u00b7 85\u201388% = 2 \u00b7 < 85% = 1; minus 1 if more than 3 late-ins in the last 30 days',
+ att:'\u2265 95% = 5 \u00b7 92\u201395% = 4 \u00b7 88\u201392% = 3 \u00b7 85\u201388% = 2 \u00b7 < 85% = 1; minus 1 if more than 12 late-ins over the 12 months (more than one a month on average)',
  kz:'Kaizens implemented per month over the apprenticeship (up to 12 months): \u2265 2 = 5 \u00b7 1.5\u20132 = 4 \u00b7 1\u20131.5 = 3 \u00b7 0.5\u20131 = 2 \u00b7 < 0.5 = 1',
  skill:'Stations certified on the skill matrix: > 12 = 5 \u00b7 9\u201312 = 4 \u00b7 6\u20138 = 3 \u00b7 3\u20135 = 2 \u00b7 < 3 = 1',
  sent:'Manager comments read positive = 5 \u00b7 neutral or mixed = 3 \u00b7 negative = 1'
@@ -402,7 +402,7 @@ function attStats(tid, asOf){
  const pres = work.filter(x=>x.s!=='A').length;
  const last30 = a.slice(-30).map(x=>x.s);
  let cont = 0; for(let i=a.length-1;i>=0;i--){ if(a[i].s==='W') continue; if(a[i].s==='A') cont++; else break; }
- return {sched:work.length, pres, pct: work.length ? pres/work.length*100 : 100, late30:last30.filter(x=>x==='L').length, abs30:last30.filter(x=>x==='A').length, last30, cont, syncedTo: a.length ? a[a.length-1].d : '\u2014', days:a};
+ return {sched:work.length, pres, pct: work.length ? pres/work.length*100 : 100, late30:last30.filter(x=>x==='L').length, lateY:a.slice(-366).filter(x=>x.s==='L').length, abs30:last30.filter(x=>x==='A').length, last30, cont, syncedTo: a.length ? a[a.length-1].d : '\u2014', days:a};
 }
 function pendingDays(tid){ return rawOf(tid).length - (S.sfLen[tid] ?? 0); }
 function kzOf(tid){ return S.kaizens.filter(k=>k.tid===tid || (k.team||[]).includes(tid)); }
@@ -470,8 +470,8 @@ function highlight(txt, hits){
 function dataScore(par, p, f, asOf){
  const C = S.cfg;
  switch(par.data){
-  case 'att': { const a = attStats(p.id, asOf); let s = a.pct>=95?5:a.pct>=92?4:a.pct>=88?3:a.pct>=85?2:1; const pen = a.late30>3; if(pen) s = Math.max(1, s-1);
-   return {pts:s, val:pct(a.pct)+' present \u00b7 '+a.late30+' late-in'+(a.late30===1?'':'s')+' (30 days)'+(pen?' \u2212 1':'')}; }
+  case 'att': { const a = attStats(p.id, asOf); let s = a.pct>=95?5:a.pct>=92?4:a.pct>=88?3:a.pct>=85?2:1; const pen = a.lateY>12; if(pen) s = Math.max(1, s-1);
+   return {pts:s, val:pct(a.pct)+' present over the apprenticeship \u00b7 '+a.lateY+' late-in'+(a.lateY===1?'':'s')+' in the year'+(pen?' \u2212 1':'')}; }
   case 'kz': { const k = kzStats(p.id, asOf); const r = k.rate; return {pts: r>=2?5:r>=1.5?4:r>=1?3:r>=.5?2:1, val:k.implY+' implemented in '+Math.round(k.mos)+' month'+(Math.round(k.mos)===1?'':'s')+' \u00b7 '+r.toFixed(1)+' / month'}; }
   case 'ie': { const v = devAsOf(p, asOf).ie; if(v==null) return {missing:true, val:'No IE study on record'}; return {pts: v>=10?5:v>=5?4:v>=1?3:2, val:v+'% task-time reduction'}; }
   case 'jh': { const v = devAsOf(p, asOf).jh; if(v==null) return {missing:true, val:'No TPM record'}; return {pts: v>=3?5:v===2?4:v===1?3:2, val: v?'JH Step '+v+' certified':'No JH step yet'}; }
@@ -542,7 +542,7 @@ function narrative(p, f, e){
  parts.push(`${first} scores ${pct(e.overall)} at ${f.cp} (band ${e.fb==='X'?'\u2014':e.fb}${e.capped?', capped from '+e.band:''}).`);
  if(e.strong.length) parts.push(`Strongest in ${andList(e.strong)}.`);
  if(e.weak.length) parts.push(`Needs work in ${andList(e.weak)}.`);
- parts.push(`Attendance ${pct(a.pct)} with ${a.late30} late-in${a.late30===1?'':'s'} in the last 30 days.`);
+ parts.push(`Attendance ${pct(a.pct)} over the apprenticeship, with ${a.lateY} late-in${a.lateY===1?'':'s'} in the year.`);
  parts.push(`${k.implY} kaizen${k.implY===1?'':'s'} implemented over the apprenticeship (${k.rate.toFixed(1)} a month)${k.verified?', '+k.verified+' verified as sustained overall':''}${k.saving?' (verified saving '+lakh(k.saving)+' a year)':''}.`);
  if(dv.st!=null) parts.push(`${dv.st} stations certified${dv.jh?', JH Step '+dv.jh:''}.`);
  parts.push(e.cd.closed||e.cd.open ? `Conduct: ${e.cd.wl} warning${e.cd.wl===1?'':'s'}, ${e.cd.vcur} VC/UR${e.cd.open?', '+e.cd.open+' open':''}.` : 'Clean conduct record.');
