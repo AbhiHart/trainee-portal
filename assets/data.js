@@ -2,10 +2,12 @@
    Sample (fictional) data only. Nothing here comes from real employees. */
 
 /* ======================= CONSTANTS ======================= */
-const TODAY = new Date(2026, 9, 7);
+const TODAY = (()=>{ const t = new Date(); t.setHours(0,0,0,0); return t; })();
+const SHIFT = Math.round((TODAY - new Date(2026, 9, 7)) / 864e5);
+const sh = s => { const [y,m,dd] = s.split('-').map(Number); const x = new Date(y, m-1, dd + SHIFT); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
 const DAY = 864e5;
-const PLANT = 'Waluj';
-const RULES_VER = 'Rule set v1.1 · equal bucket weights · placeholder cut-offs';
+const PLANTS = {WLJ:'Waluj', CKN:'Chakan', PNT:'Pantnagar'};
+const RULES_VER = 'Rule set v1.1';
 
 const BUCKETS = {
  P:{name:'Productivity', hint:'Output at the line rate'},
@@ -82,7 +84,7 @@ const MIS = [
  {k:'thf',no:'10',name:'Theft',cat:'Integrity & security',tier:3,lad:[['Termination','end']]},
  {k:'dmg',no:'11',name:'Damage to company property',cat:'Integrity & security',tier:3,lad:[['Termination','end']]},
  {k:'pho',no:'13',name:'Photo / video on premises',cat:'Integrity & security',tier:3,lad:[['Discontinuation','end']]},
- {k:'neg',no:'New',name:'Work negligence / quality lapse',cat:'Quality',tier:1,lad:[['VC / UR (proposed)','vcur'],['Warning letter (proposed)','wl'],['Discontinuation (proposed)','end']]},
+ {k:'neg',no:'New',name:'Work negligence / quality lapse',cat:'Quality',tier:1,lad:[['VC / UR','vcur'],['Warning letter','wl'],['Discontinuation','end']]},
  {k:'acc',no:'New',name:'Accident (no violation found)',cat:'Incident \u2013 non-disciplinary',tier:0,lad:[['Record only; no penalty','none']]}
 ];
 const MISK = Object.fromEntries(MIS.map(m=>[m.k,m]));
@@ -91,12 +93,12 @@ const ACTIONS = [['VC / UR','vcur'],['Warning letter','wl'],['Show cause notice'
 const CSTATUS = ['','Reported','Validated','Action decided','Letter issued','Closed'];
 
 const MANAGERS = {
- m1:{name:'S. Kulkarni',dept:'Engine Assembly',div:'MCD',hod:'h1',lines:['E-Line 1','E-Line 2','E-Line D']},
- m2:{name:'R. Joshi',dept:'Vehicle Assembly',div:'MCD',hod:'h1',lines:['V-Line 1','V-Line 2','V-Line 3']},
- m5:{name:'M. Sawant',dept:'Machine Shop',div:'MCD',hod:'h1',lines:['CNC Cell 1','CNC Cell 2','CNC Cell 3']},
- m3:{name:'A. Naik',dept:'Frame Shop',div:'CVD',hod:'h2',lines:['Frame Weld 1','Frame Weld 2','Frame Paint']},
- m6:{name:'K. Pillai',dept:'Paint Shop',div:'CVD',hod:'h2',lines:['Paint Booth 1','Paint Booth 2','Pretreatment']},
- m4:{name:'M. Rao',dept:'Packing & Dispatch',div:'SPD',hod:'h2',lines:['Packing L1','Packing L2','Dispatch Bay 1','Dispatch Bay 2']}
+ m1:{name:'S. Kulkarni',dept:'Engine Assembly',div:'MCD',hod:'h1',plant:'WLJ',lines:['E-Line 1','E-Line 2','E-Line D']},
+ m2:{name:'R. Joshi',dept:'Vehicle Assembly',div:'MCD',hod:'h1',plant:'CKN',lines:['V-Line 1','V-Line 2','V-Line 3']},
+ m5:{name:'M. Sawant',dept:'Machine Shop',div:'MCD',hod:'h1',plant:'PNT',lines:['CNC Cell 1','CNC Cell 2','CNC Cell 3']},
+ m3:{name:'A. Naik',dept:'Frame Shop',div:'CVD',hod:'h2',plant:'WLJ',lines:['Frame Weld 1','Frame Weld 2','Frame Paint']},
+ m6:{name:'K. Pillai',dept:'Paint Shop',div:'CVD',hod:'h2',plant:'CKN',lines:['Paint Booth 1','Paint Booth 2','Pretreatment']},
+ m4:{name:'M. Rao',dept:'Packing & Dispatch',div:'SPD',hod:'h2',plant:'PNT',lines:['Packing L1','Packing L2','Dispatch Bay 1','Dispatch Bay 2']}
 };
 const HODS = {h1:{name:'D. Mehta',divs:['MCD']},h2:{name:'P. Iyer',divs:['CVD','SPD']}};
 const DEPTS = [...new Set(Object.values(MANAGERS).map(m=>m.dept))];
@@ -204,8 +206,8 @@ function seed(){
  const S = {cfg:clone(DEFAULT_CFG), people:{}, sfLen:{}, dev:{}, forms:[], cases:[], kaizens:[], assess:{}, decisions:{}, log:[], triggers:{}, alerts:{}, views:[], tour:{},
   seq:{case:131,form:1,aa:1,p:200,kz:1}, sources:{}, sfDelta:{done:false},
   tl:{file:'TL_Waluj_joiners_2026-10-06.csv', imported:false, rows:[
-   {name:'Ajinkya Lokhande',tl:'TR10498812',doj:'2026-10-05',mgr:'m3',line:'Frame Weld 2',course:'B.Voc Manufacturing'},
-   {name:'Neha Shirsat',tl:'TR10498877',doj:'2026-10-05',mgr:'m4',line:'Packing L1',course:'B.Voc Logistics'}]},
+   {name:'Ajinkya Lokhande',tl:'TR10498812',doj:sh('2026-10-05'),mgr:'m3',line:'Frame Weld 2',course:'B.Voc Manufacturing'},
+   {name:'Neha Shirsat',tl:'TR10498877',doj:sh('2026-10-05'),mgr:'m4',line:'Packing L1',course:'B.Voc Logistics'}]},
   reg:{month:'Sep 2026', uploaded:false, rows:[]}};
  // hand-built storylines (kept from the earlier prototype)
  const T = [
@@ -226,7 +228,7 @@ function seed(){
  ];
  const OVER = {t03:{S2a:3,S1a:3}, t12:{S2a:1,S2b:2,M3a:1,M3b:2}, t04:{P1a:3,P1b:3,Q1a:3,M2a:3,D2a:3,D2b:4,M3a:3}};
  const add = (r,i,gen) => {
-  const [id,name,type,mgr,doj,line,prof,mu,dev,kz,ab,la,streak,done,ck] = r;
+  const [id,name,type,mgr,doj0,line,prof,mu,dev,kz,ab,la,streak,done,ck] = r; const doj = gen ? doj0 : sh(doj0);
   const R = rng(i*977+31);
   S.people[id] = {id,name,type,mgr,doj,line,prof,mu,kzRate:kz,ck,ticket:'T'+(48200+i*37),tl:type==='WILP'?'TR10'+(496500+i*113):'',status:'Active',
    empClass:type==='WILP'?'Contingent worker (TeamLease)':'Apprentice (TTA)', course:COURSES[type][Math.floor(R()*COURSES[type].length)], gen:{ab,la,streak,s:i+7}};
@@ -255,7 +257,7 @@ function seed(){
   let name; do { name = FIRST[Math.floor(R0()*FIRST.length)]+' '+LAST[Math.floor(R0()*LAST.length)]; } while(used.has(name)); used.add(name);
   const mgr = mgrs[i % mgrs.length], M = MANAGERS[mgr];
   const type = R0()<.55?'TTA':'WILP';
-  const doj = dateKey(R0()<.55 ? new Date(2025,7,4).getTime() + Math.floor(R0()*80)*DAY : new Date(2026,0,5).getTime() + Math.floor(R0()*220)*DAY);
+  const doj = dateKey(R0()<.55 ? new Date(2025,7,4+SHIFT).getTime() + Math.floor(R0()*80)*DAY : new Date(2026,0,5+SHIFT).getTime() + Math.floor(R0()*220)*DAY);
   const q = R0(), mu = r1(2.4 + 2.3*q);
   const done = [12].filter(n=>addM(d(doj),n) <= TODAY);
   const dev = {ie: q>.15 ? Math.round(q*13) : 0, jh: Math.min(3, 1+Math.floor(q*3)), st: 2+Math.round(q*12)};
@@ -276,7 +278,7 @@ function seed(){
  Object.values(S.people).forEach((p,i)=>{ const v = S.dev[p.id], R = rng(i*31+5); S.reg.rows.push({ticket:p.ticket, name:p.name, st: v.st==null?null:v.st+(R()<.4?1:0), jh:v.jh, ie: v.ie==null?null:v.ie+(R()<.5?1:0)}); });
  S.reg.rows.push({ticket:'T99999', name:'(not found)', st:3, jh:1, ie:2});
  S.views = [
-  {id:'v1',name:'All apprentices',cols:['ticket','name','type','dept','mgr','month','band','overall','att','kz3','conduct','next'],f:{},group:'',sort:'name',sys:true},
+  {id:'v1',name:'All apprentices',cols:['ticket','name','type','plant','dept','mgr','month','band','overall','att','kz3','conduct','next'],f:{},group:'plant',sort:'name',sys:true},
   {id:'v2',name:'Month 12 pipeline',cols:['ticket','name','dept','mgr','month','band','overall','rec','decision'],f:{m12:true},group:'dept',sort:'overall',sys:false},
   {id:'v3',name:'At risk',cols:['ticket','name','dept','mgr','band','att','conduct','flags'],f:{risk:true},group:'',sort:'overall',sys:false},
   {id:'v4',name:'WILP (TeamLease)',cols:['ticket','tl','name','dept','month','band','att','next'],f:{type:'WILP'},group:'mgr',sort:'name',sys:false}
@@ -306,7 +308,7 @@ function autoLaunch(S){
  });
  return n;
 }
-function kzId(cat, dt, seq){ return 'KZ/WLJ/'+cat+'/'+dateKey(dt).slice(0,7)+'/'+String(seq).padStart(4,'0'); }
+function kzId(cat, dt, seq, plant){ return 'KZ/'+(plant||'WLJ')+'/'+cat+'/'+dateKey(dt).slice(0,7)+'/'+String(seq).padStart(4,'0'); }
 function kzGrade(pts){ return pts>=16?'Gold':pts>=9?'Silver':'Bronze'; }
 function seedKaizens(S){
  const list = [];
@@ -334,7 +336,7 @@ function seedKaizens(S){
   const seq = S.seq.kz++;
   const mates = Object.values(S.people).filter(x=>x.mgr===p.mgr && x.id!==p.id);
   const team = R()<.25 && mates.length ? [mates[Math.floor(R()*mates.length)].id] : [];
-  const k = {id:kzId(cat,dt,seq), seq, tid:p.id, team, date:dateKey(dt), dept:MANAGERS[p.mgr].dept, line:p.line, station:'Stn '+(2+Math.floor(R()*14)), cat, type, title, before, after, root,
+  const k = {id:kzId(cat,dt,seq,MANAGERS[p.mgr].plant), seq, tid:p.id, team, date:dateKey(dt), dept:MANAGERS[p.mgr].dept, line:p.line, station:'Stn '+(2+Math.floor(R()*14)), cat, type, title, before, after, root,
    benefit: saving>0 ? 'Tangible' : 'Intangible', metric:{name:mn, unit, before:mb, after:ma}, saving: saving ? Math.round(saving*(0.7+R()*0.6)/1000)*1000 : 0, cost,
    horiz:{yes:R()<.35, where:''}, std: type==='One-point lesson' ? 'OPL issued' : (R()<.6 ? 'SOP updated' : 'None'), photos:{before:true, after:status!=='Submitted' && status!=='Approved'},
    status, hist:[{at:fmt(dt),by:'Line tablet',what:'Submitted'}], channel:'Line tablet'};
@@ -357,12 +359,16 @@ function seedKaizens(S){
  });
 }
 function seedCases(S){
- const C = (id,tid,k,date,time,place,desc,status,action,extra={}) => {
+ const C = (id,tid,k,date0,time,place,desc,status,action,extra={}) => {
+  const date = date0.length===10 && /^\d{4}-/.test(date0) && extra.abs!==true ? sh(date0) : date0;
   const c = {id,tid,k,date,time,place,desc,evidence:extra.ev||[],reporter:extra.rep||'Security (line tablet)',status,channel:extra.ch||'Line tablet',steps:{reported:{by:extra.rep||'Security',at:fmt(d(date))}}};
   const at = n => fmt(new Date(d(date).getTime()+n*DAY));
   if(status>=2) c.steps.validated = {by:extra.val||MANAGERS[S.people[tid].mgr].name,at:at(1),remarks:extra.vr||'Confirmed with line supervisor.'};
   if(status>=3) c.steps.action = {by:HODS[MANAGERS[S.people[tid].mgr].hod].name,at:at(2),label:action[0],level:action[1],reason:''};
-  if(status>=4) c.steps.letter = {by:'N. Sharma',at:at(3)};
+  if(status>=4) c.steps.letter = action[1]==='none' ? {by:'N. Sharma',at:at(3),type:'No letter'} : {by:'N. Sharma',at:at(3),type:{vcur:'Verbal counselling / underwriting record',wl:'Warning letter',end:'Termination / discontinuation letter'}[action[1]],ref:'HR/CON/'+date.slice(0,4)+'/'+id.replace('C-',''),ack:true};
+  c.imm = ({mob:['Mobile phone confiscated'],tob:['Statement / confession taken'],uni:['Sent home and marked absent'],sho:['Supervisor and HR informed'],acc:['First aid given'],vrb:['Statement / confession taken'],neg:['Supervisor and HR informed']})[k]||[];
+  if(k==='acc') c.injury = {what:'Minor cut on hand', days:0, cause:'No: record only'};
+  if(extra.wit) c.wit = extra.wit;
   if(status>=5){ c.steps.closed = {by:'N. Sharma',at:at(4)}; c.closedAt = new Date(d(date).getTime()+4*DAY).toISOString(); }
   S.cases.push(c);
  };
@@ -384,7 +390,7 @@ function seedCases(S){
   const [k,desc] = opts[i%opts.length];
   const dt = new Date(Math.max(d(p.doj).getTime()+40*DAY, TODAY.getTime()-(10+Math.floor(R()*150))*DAY));
   const st = i<5 ? 5 : (i===5 ? 2 : 1);
-  C('C-'+(112+i), p.id, k, dateKey(dt), '1'+Math.floor(R()*6)+':'+String(Math.floor(R()*60)).padStart(2,'0'), p.line, desc, st, ['VC / UR','vcur'], {rep: R()<.5?'Security (line tablet)':MANAGERS[p.mgr].name+' (line manager)'});
+  C('C-'+(112+i), p.id, k, dateKey(dt), '1'+Math.floor(R()*6)+':'+String(Math.floor(R()*60)).padStart(2,'0'), p.line, desc, st, ['VC / UR','vcur'], {abs:true, rep: R()<.5?'Security (line tablet)':MANAGERS[p.mgr].name+' (line manager)'});
  });
 }
 
@@ -559,7 +565,7 @@ function latestEval(p){ const f = lastSubmitted(p.id); return f ? {f, e:evaluate
 function attMonths(p, asOf){ const a = attStats(p.id, asOf), m = {}; a.days.forEach(x=>{ if(x.s==='W') return; const k = x.d.slice(0,7); (m[k] ||= {n:0,p:0}); m[k].n++; if(x.s!=='A') m[k].p++; }); return Object.entries(m).slice(-12).map(([k,v])=>({k, v:v.p/v.n*100})); }
 function trend(p){ return formsOf(p.id).filter(isDone).map(f=>({cp:f.cp, v:evaluate(p,f,{noPrev:true,noLen:true}).overall})); }
 function nextCp(p){ const done = new Set(formsOf(p.id).filter(isDone).map(f=>f.cp)); for(const m of [12]){ if(!done.has('M'+m)) return {cp:'M'+m, date:addM(d(p.doj),m)}; } return null; }
-function suggest(tid,k){ const m = MISK[k]; const prior = S.cases.filter(c=>c.tid===tid&&c.k===k&&c.status===5&&c.steps.action&&c.steps.action.level!=='none').length; const i = Math.min(prior,m.lad.length-1); return {label:m.lad[i][0],level:m.lad[i][1],prior,step:i+1,of:m.lad.length}; }
+function suggest(tid,k,excl){ const m = MISK[k]; const prior = S.cases.filter(c=>c.tid===tid&&c.k===k&&c.id!==excl&&c.status===5&&c.steps.action&&c.steps.action.level!=='none').length; const i = Math.min(prior,m.lad.length-1); return {label:m.lad[i][0],level:m.lad[i][1],prior,step:i+1,of:m.lad.length}; }
 function hodOf(p){ return MANAGERS[p.mgr].hod; }
 function absAlerts(){ return Object.values(S.people).filter(p=>p.status==='Active').map(p=>({p,a:attStats(p.id)})).filter(x=>x.a.cont>=4); }
 function log(dir,from,to,what){ S.log.unshift({at:stamp(),dir,from,to,what,ts:Date.now()}); if(S.log.length>120) S.log.length = 120; }

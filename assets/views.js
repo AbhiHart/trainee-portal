@@ -49,6 +49,8 @@ function ph(title, sub, right='', cr=''){ return `<div class="ph"><div>${cr}<h1>
 function kpi(l, v, s='', go=''){ return go ? `<button class="kpi" type="button" data-go="${go}"><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</button>` : `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`; }
 const vis = (role, k) => !!(S.cfg.vis[role] && S.cfg.vis[role][k]);
 function cdTxt(cd){ if(!cd.wl&&!cd.vcur&&!cd.end&&!cd.open) return '<span class="good">Clean</span>'; return `<span class="${cd.eff||cd.end?'bad':'warn'}">${[cd.wl?cd.wl+' WL':'',cd.vcur?cd.vcur+' VC/UR':'',cd.open?cd.open+' open':''].filter(Boolean).join(' \u00b7 ')}</span>`; }
+function plantOf(p){ return MANAGERS[p.mgr].plant; }
+function plantPick(){ return `<div class="fld" style="min-width:200px"><label for="pl-pick">Plant</label><select id="pl-pick"><option value="">All plants</option>${Object.entries(PLANTS).map(([k,v])=>`<option value="${k}" ${UI.plant===k?'selected':''}>${v}</option>`).join('')}</select></div>`; }
 function deptOf(p){ return MANAGERS[p.mgr].dept; }
 
 /* ======================= LANDING ======================= */
@@ -56,22 +58,21 @@ function vLanding(){
  const ps = Object.values(S.people), act = ps.filter(p=>p.status==='Active');
  const ev = act.map(p=>latestEval(p)).filter(Boolean);
  const k3 = S.kaizens.filter(k=>k.implAt && d(k.implAt) >= new Date(TODAY.getTime()-91*DAY)).length;
- const group = (title, sub, keys) => `<section class="pgroup"><h2>${title}</h2><p>${sub}</p><div class="grid g4">${keys.map(k=>{ const x = PORTALS[k]; const creds = Object.entries(USERS).filter(([u,v])=>x.roles.includes(v.role)).map(([u])=>u); return `<a class="portal" href="${x.file}"><span class="ico">${ic(x.icon,22)}</span><b>${esc(x.name)}</b><span class="who">${esc(x.who)}</span><span class="cred">Demo login: <span class="mono">${esc(creds.slice(0,3).join(', '))}${creds.length>3?' …':''}</span></span><span class="go">Open portal →</span></a>`; }).join('')}</div></section>`;
+ const group = (title, sub, keys) => `<section class="pgroup"><h2>${title}</h2><p>${sub}</p><div class="grid g4">${keys.map(k=>{ const x = PORTALS[k]; const creds = Object.entries(USERS).filter(([u,v])=>x.roles.includes(v.role)).map(([u])=>u); return `<a class="portal" href="${x.file}"><span class="ico">${ic(x.icon,22)}</span><b>${esc(x.name)}</b><span class="who">${esc(x.who)}</span><span class="go">Open portal →</span></a>`; }).join('')}</div></section>`;
  return `<div class="land-hero"><div class="in"><div>
-  <div class="eyebrow">Bajaj Auto · ${PLANT} plant · Apprentice programme</div>
+  <div class="eyebrow">Bajaj Auto · Apprentice programme · All plants</div>
   <h1><span>PRAGATI</span><br>One record for every apprentice, from joining to conversion.</h1>
-  <p class="exp"><b>P</b>erformance & <b>R</b>ecords of <b>A</b>pprentices: <b>G</b>rowth, <b>A</b>ttendance, <b>T</b>raining, <b>I</b>ntegrity. Reviews, attendance, kaizens, skills and conduct in one place. Data flows in from SAP SF/EC and plant systems; the final decision flows back to SF/EC.</p>
+  <p class="exp"><b>P</b>erformance & <b>R</b>ecords of <b>A</b>pprentices: <b>G</b>rowth, <b>A</b>ttendance, <b>T</b>raining, <b>I</b>ntegrity. Reviews, attendance, kaizens, skills and conduct in one place. Master data flows in from SAP SF/EC and plant systems at every location; the final decision flows back to SF/EC.</p>
   <div class="acro">${[['P','Performance'],['R','Records'],['A','Apprentices'],['G','Growth'],['A','Attendance'],['T','Training'],['I','Integrity']].map(([a,b])=>`<div><b>${a}</b><span>${b}</span></div>`).join('')}</div>
  </div>
- <div class="heroboard"><div class="between"><h3>Today at ${PLANT}</h3><span class="muted sm">${fmt(TODAY)}</span></div>
+ <div class="heroboard"><div class="between"><h3>Today across ${Object.keys(PLANTS).length} plants</h3><span class="muted sm">${fmt(TODAY)}</span></div>
   <div class="grid g2 mt16">${kpi('Active apprentices', act.length)}${kpi('Reviews waiting for HoD', S.forms.filter(f=>f.status==='With HoD').length)}${kpi('Kaizens implemented (90 days)', k3)}${kpi('Open conduct cases', S.cases.filter(c=>c.status<5).length)}</div>
   <div class="mt16"><div class="between sm muted"><span>Band mix, latest reviews</span><span>${ev.length} reviewed</span></div>${bandMix(ev.map(x=>x.e.fb))}</div>
  </div></div></div>
  <div class="page" style="padding-top:8px">
   ${group('People managers','Review, sign off and decide. Each role sees what HR has configured for it.',['manager','hod','plant','hr'])}
   ${group('Shop floor','Capture at the source: incidents and kaizens from the line, registers from coordinators.',['tablet','coordinator'])}
-  ${group('Source systems (simulated)','Stand-ins for the systems that feed PRAGATI. In production these are automated interfaces.',['timesystem','teamlease','agent','monitor'])}
-  <section class="pgroup"><div class="note">All demo accounts use the password <span class="mono">${DEMO_PW}</span>. Portals open in separate tabs and stay in sync in this browser. Names and numbers are sample data. <button class="linkbtn" data-act="reset" type="button">Reset demo data</button></div></section>
+  ${group('Partners and administration','Feeds from the time office and TeamLease, the scoring agent, and system administration.',['timesystem','teamlease','agent','monitor'])}
  </div>`;
 }
 function bandMix(bands){
@@ -91,8 +92,8 @@ function vLogin(){
   <div class="fld"><label for="lg-p">Password</label><input id="lg-p" type="password" autocomplete="current-password"></div>
   <div class="err" id="lg-e" role="alert"></div>
   <button class="btn pri lg" type="submit">Sign in</button>
-  <div class="demo"><b class="ink">Demo accounts</b> · password <span class="mono">${DEMO_PW}</span><div class="row">${accts.map(([u,x])=>`<button class="btn sm" type="button" data-act="fill" data-id="${u}" title="${esc(x.title)}">${u}</button>`).join('')}</div></div>
-  <p class="sm muted">Prototype with sample data · <a href="index.html">All portals</a></p>
+  <details class="demo"><summary class="ink" style="cursor:pointer;font-weight:500">Quick sign-in</summary><div class="row">${accts.map(([u,x])=>`<button class="btn sm" type="button" data-act="fill" data-id="${u}" title="${esc(x.title)}">${u}</button>`).join('')}</div></details>
+  <p class="sm muted"><a href="index.html">All portals</a></p>
  </form></div></div>`;
 }
 
@@ -124,7 +125,7 @@ function vTeam(){
  const showScore = role!=='plant' || vis('plant','scores');
  return `${ph(role==='manager'?'My apprentices':'Apprentices', list.length+' apprentices'+(role==='hod'?' in '+HODS[USER().persona].divs.join(' & '):'')+'. Open anyone for the full record.', `<div class="search"><span>${ic('search',16)}</span><input id="q" type="search" placeholder="Search name or ticket" value="${esc(UI.q||'')}" aria-label="Search apprentices" style="width:260px"></div>`)}
  <div class="tw"><table class="t"><thead><tr><th>Apprentice</th><th>Department · line</th><th>Month</th><th>Latest review</th>${showScore?'<th class="r">Score</th>':''}<th>Band</th><th>Attendance</th><th>Kaizens (3 mo)</th><th>Conduct</th><th>Status</th></tr></thead><tbody>
- ${list.map(p=>{ const le = latestEval(p), a = attStats(p.id), k = kzStats(p.id), cd = conduct(p.id); return `<tr class="click" data-go="person/${p.id}"><td class="nm">${esc(p.name)}<small>${esc(p.ticket)} · ${p.type}</small></td><td>${esc(deptOf(p))}<div class="sm muted">${esc(p.line)}</div></td><td>M${mo(p)}</td><td>${le?le.f.cp+' · '+fmtS(le.f.cpDate):'<span class="muted">None yet</span>'}</td>${showScore?`<td class="r">${le?pct(le.e.overall):'—'}</td>`:''}<td>${le?bandChip(le.e.fb):bandChip()}</td><td>${pct(a.pct)}</td><td>${k.impl3}</td><td>${cdTxt(cd)}</td><td>${p.status!=='Active'?`<span class="chip">${esc(p.status)}</span>`:le?statusChip(le.e.status):'<span class="chip">New</span>'}</td></tr>`; }).join('')||'<tr><td colspan="10" class="empty">No match.</td></tr>'}
+ ${list.map(p=>{ const le = latestEval(p), a = attStats(p.id), k = kzStats(p.id), cd = conduct(p.id); return `<tr class="click" data-go="person/${p.id}"><td class="nm">${esc(p.name)}<small>${esc(p.ticket)} · ${p.type}</small></td><td>${esc(deptOf(p))}<div class="sm muted">${esc(PLANTS[plantOf(p)])} · ${esc(p.line)}</div></td><td>M${mo(p)}</td><td>${le?le.f.cp+' · '+fmtS(le.f.cpDate):'<span class="muted">None yet</span>'}</td>${showScore?`<td class="r">${le?pct(le.e.overall):'—'}</td>`:''}<td>${le?bandChip(le.e.fb):bandChip()}</td><td>${pct(a.pct)}</td><td>${k.impl3}</td><td>${cdTxt(cd)}</td><td>${p.status!=='Active'?`<span class="chip">${esc(p.status)}</span>`:le?statusChip(le.e.status):'<span class="chip">New</span>'}</td></tr>`; }).join('')||'<tr><td colspan="10" class="empty">No match.</td></tr>'}
  </tbody></table></div>`;
 }
 function vReviews(){
@@ -242,7 +243,7 @@ function vOverview(f){
    <div class="mt12">${BORDER.map(b=>PARAMS.filter(x=>x.b===b).flatMap(x=>x.st).map(s=>`<div class="between" style="padding:8px 0;border-bottom:1px solid var(--line-2);gap:16px;flex-wrap:nowrap"><span style="font-size:14px;color:var(--ink)"><span class="pq" style="width:22px;height:22px;font-size:11.5px;margin-right:8px">${b}</span>${esc(STATEMENTS[s])}</span><b class="ink" style="white-space:nowrap">${f.ans[s]||'—'} <span class="sm muted" style="font-weight:400">${f.ans[s]?LIKERT[f.ans[s]-1][1]:''}</span></b></div>`).join('')).join('')}</div>
   </section>
  </div>
- ${canSign ? `<section class="card mt24"><h2>${f.cp==='M12'?'Your decision':'Sign off'}</h2><p class="sub">${f.cp==='M12'?'Decide on conversion. A decision that differs from the agent needs a reason. Plant HR finalises and PRAGATI sends it to SAP SF/EC.':'Sign the review, or return it to the line manager with a note.'}</p>
+ ${canSign ? `<section class="card mt24"><h2>${f.cp==='M12'?'Your decision':'Sign off'}</h2><p class="sub">${f.cp==='M12'?'Decide on conversion. A decision that differs from the agent needs a reason. HR finalises and PRAGATI sends it to SAP SF/EC.':'Sign the review, or return it to the line manager with a note.'}</p>
   ${f.cp==='M12'?`<div class="fgrid mt16"><div class="fld"><label for="dh-c">Decision</label><select id="dh-c">${['Convert','Extend 3 months','Do not convert'].map(x=>`<option ${x===(e.rec==='Recommend conversion'?'Convert':e.rec==='Not recommended'?'Do not convert':f.mrec||'Extend 3 months')?'selected':''}>${x}</option>`).join('')}</select></div><div class="fld"><label for="dh-r">Reason</label><input id="dh-r" placeholder="Required if it differs from the agent"></div></div>`:`<div class="fld mt16"><label for="rt-n">Note (only if returning)</label><input id="rt-n" placeholder="What should the manager look at again?"></div>`}
   <div class="err mt8" id="dh-e"></div>
   <div class="row mt16"><button class="btn pri lg" data-act="${f.cp==='M12'?'hoddecide':'signform'}" data-id="${f.id}" type="button">${ic('check',16)} ${f.cp==='M12'?'Sign and decide':'Sign review'}</button><button class="btn lg" data-act="returnform" data-id="${f.id}" type="button">Return to line manager</button></div>
@@ -254,7 +255,7 @@ function decisionTrail(p){
   ['Agent', S.assess[p.id] ? S.assess[p.id].rec : '—', S.assess[p.id] ? 'Run '+S.assess[p.id].runAt : ''],
   ['Line manager', (f&&f.mrec) || (dc.mgr&&dc.mgr.choice) || '—', f&&f.submitted ? MANAGERS[p.mgr].name+' · '+f.submitted : ''],
   ['HoD', dc.hod ? dc.hod.choice : 'Pending', dc.hod ? dc.hod.by+' · '+dc.hod.at+(dc.hod.reason?' · “'+dc.hod.reason+'”':'') : ''],
-  ['Plant HR', dc.hr ? 'Finalised: '+dc.hr.choice : 'Pending', dc.hr ? dc.hr.by+' · '+dc.hr.at : ''],
+  ['HR', dc.hr ? 'Finalised: '+dc.hr.choice : 'Pending', dc.hr ? dc.hr.by+' · '+dc.hr.at : ''],
   ['SAP SF/EC', dc.ec ? dc.ec.event : 'Not sent', dc.ec ? 'Sent '+dc.ec.at : '']
  ];
  return `<div class="grid g5 mt12">${st.map(([a,b,c])=>`<div class="kpi" style="padding:14px 16px"><div class="l">${a}</div><div class="ink" style="font-weight:600;margin-top:4px">${esc(b)}</div><div class="s">${esc(c)}</div></div>`).join('')}</div>`;
@@ -321,7 +322,7 @@ function vKzDash(){
  const mx = Math.max(...months.map(x=>x.sub),1);
  const by = DEPTS.map(dp=>{ const ps = Object.values(S.people).filter(p=>deptOf(p)===dp), ks = L.filter(k=>k.dept===dp && d(k.date)>=new Date(now-91*DAY)); return {dp, n:ps.length, ks, impl:ks.filter(k=>k.implAt).length, ver:L.filter(k=>k.dept===dp&&k.status==='Verified').reduce((s,k)=>s+k.verify.saving,0)}; });
  const top = L.filter(k=>k.status==='Verified').sort((a,b)=>b.verify.saving-a.verify.saving).slice(0,6);
- return `${ph('Kaizen', 'Improvement activity from the digital register across the plant.')}
+ return `${ph('Kaizen', 'Improvement activity from the digital kaizen register across plants.')}
  ${kzKpis(L.filter(k=>d(k.date)>=new Date(now-182*DAY)))}<p class="sm muted mt8">Last 6 months.</p>
  <div class="grid g2 mt24" style="align-items:start">
   <section class="card"><h2>Submitted and implemented by month</h2><div class="spark mt16" style="height:180px">${months.map(x=>`<div class="c"><b>${x.sub}</b><div style="display:flex;gap:4px;align-items:flex-end;width:100%;justify-content:center;height:130px"><i style="height:${x.sub/mx*120}px;max-width:22px"></i><i style="height:${x.impl/mx*120}px;max-width:22px;background:var(--brand)"></i></div><span>${fmtM(x.m).split(' ')[0]}</span></div>`).join('')}</div><div class="legend mt12"><span><i style="background:var(--brand-100)"></i>Submitted</span><span><i style="background:var(--brand)"></i>Implemented</span></div></section>
@@ -346,7 +347,7 @@ function kzDrawer(seq){
    <div><div class="section-t">Root cause (why-why)</div><p class="ink">${esc(k.root)}</p></div>
    <div class="card" style="padding:18px"><div class="grid g3"><div><div class="section-t">${esc(m.name)}</div><div class="metric"><span class="mv">${m.before}</span><span class="arrow">→</span><span class="mv" style="color:var(--good)">${m.after}</span><span class="muted">${esc(m.unit)}</span></div></div><div><div class="section-t">Benefit</div><div class="ink" style="font-weight:600">${k.benefit==='Tangible'?inr(k.saving)+' / yr (estimated)':'Intangible'}</div>${k.verify&&k.verify.sustained&&k.saving?`<div class="sm good">Verified ${inr(k.verify.saving)} / yr</div>`:''}</div><div><div class="section-t">Cost</div><div class="ink" style="font-weight:600">${k.cost?inr(k.cost):'Nil'}</div></div></div></div>
    <dl class="kv"><dt>Standardised</dt><dd>${esc(k.std)}</dd><dt>Horizontal deployment</dt><dd>${k.horiz.yes?'Yes · '+esc(k.horiz.where||'to be listed'):'Not applicable'}</dd>${k.eval?`<dt>Evaluation</dt><dd>Impact ${k.eval.impact} × originality ${k.eval.orig} = ${k.eval.pts} points · ${esc(k.eval.by)}${k.eval.remarks?' · “'+esc(k.eval.remarks)+'”':''}</dd>`:''}${k.implAt?`<dt>Implemented</dt><dd>${fmt(d(k.implAt))}${due&&!k.verify?' · sustain check due '+fmt(due):''}</dd>`:''}${k.verify?`<dt>Sustain check</dt><dd>${k.verify.sustained?'Sustained':'Not sustained'} · ${esc(k.verify.by)} · ${esc(k.verify.at)}${k.verify.remarks?' · “'+esc(k.verify.remarks)+'”':''}</dd>`:''}</dl>
-   ${canEval?`<div class="card" style="padding:18px"><h3>Evaluate</h3><p class="sub">Points = impact × originality. Bronze under 9, Silver 9–15, Gold 16+ (placeholder).</p>
+   ${canEval?`<div class="card" style="padding:18px"><h3>Evaluate</h3><p class="sub">Points = impact × originality. Bronze under 9, Silver 9–15, Gold 16+.</p>
     <div class="grid g2 mt12"><div class="fld"><span class="lbl">Impact</span><div class="score5">${[1,2,3,4,5].map(n=>`<button type="button" data-act="kzs" data-k="impact" data-v="${n}" aria-pressed="${E.impact===n}">${n}</button>`).join('')}</div></div><div class="fld"><span class="lbl">Originality</span><div class="score5">${[1,2,3,4,5].map(n=>`<button type="button" data-act="kzs" data-k="orig" data-v="${n}" aria-pressed="${E.orig===n}">${n}</button>`).join('')}</div></div></div>
     ${E.impact&&E.orig?`<p class="mt12">${E.impact*E.orig} points · <span class="grade ${kzGrade(E.impact*E.orig)}">${kzGrade(E.impact*E.orig)}</span></p>`:''}
     <div class="fld mt12"><label for="kz-r">Remarks</label><input id="kz-r" placeholder="Optional for approval; required for rework or rejection"></div><div class="err mt8" id="kz-e"></div>
@@ -369,37 +370,131 @@ function vKzVerify(){
 }
 
 /* ======================= CONDUCT ======================= */
-function vCases(){
+/* ----- conduct: register, log, framework, case record ----- */
+const TIER = {0:['Record only',''],1:['Tier 1 · Minor','warn'],2:['Tier 2 · Serious','bad'],3:['Tier 3 · Gross','bad']};
+const tierChip = t => `<span class="chip ${TIER[t][1]}">${TIER[t][0]}</span>`;
+const DOCS = {0:'Accident report; first-aid or medical record',1:'Incident report',2:'Incident report; written statement or confession',3:'Incident report; confession letter; ID card, punch card and bus pass collected'};
+const IMMEDIATE = ['Sent home and marked absent','ID card and punch card collected','Mobile phone confiscated','Statement / confession taken','First aid given','Referred to hospital','Supervisor and HR informed'];
+const CPRESETS = [['all','All cases'],['open','Open'],['wl','Warning letters'],['att','Attendance'],['acc','Accidents'],['end','Terminations']];
+const LETTERS = {vcur:'Verbal counselling / underwriting record', wl:'Warning letter', end:'Termination / discontinuation letter', none:'No letter'};
+const canLog = () => ['manager','hod','hr'].includes(USERS[ME].role);
+function conductTabs(cur){
+ const T = [['register','Conduct register'],...(canLog()?[['log','Log an incident']]:[]),['framework','Conduct framework']];
+ return `<nav class="itabs" style="margin-top:0" aria-label="Conduct">${T.map(([k,l])=>`<a href="#/cases/${k}" ${k===cur?'aria-current="page"':''}>${l}</a>`).join('')}</nav>`;
+}
+function vCases(tab){
+ tab = ['register','log','framework'].includes(tab) ? tab : 'register';
+ if(tab==='log' && !canLog()) tab = 'register';
+ return conductTabs(tab) + ({register:cRegister, log:cLog, framework:cFramework})[tab]();
+}
+function caseFilter(cs){
+ const F = UI.cf || (UI.cf = {preset:'all',q:'',cat:'',tier:'',st:'',plant:''});
+ const lv = c => c.steps.action ? c.steps.action.level : '';
+ const P = {all:()=>true, open:c=>c.status<5, wl:c=>lv(c)==='wl', att:c=>MISK[c.k].cat==='Attendance', acc:c=>c.k==='acc', end:c=>lv(c)==='end'}[F.preset] || (()=>true);
+ return cs.filter(c=>{ const p = S.people[c.tid], m = MISK[c.k];
+  return P(c) && (!F.cat||m.cat===F.cat) && (F.tier===''||String(m.tier)===F.tier) && (!F.st||String(c.status)===F.st) && (!F.plant||plantOf(p)===F.plant) && (!F.q||(c.id+' '+p.name+' '+p.ticket+' '+(p.tl||'')+' '+m.name).toLowerCase().includes(F.q.toLowerCase())); });
+}
+function cRegister(){
  const ps = myPeople(), role = USERS[ME].role;
- const cs = S.cases.filter(c=>ps.some(p=>p.id===c.tid)).sort((a,b)=>a.status-b.status || d(b.date)-d(a.date));
+ const all = S.cases.filter(c=>ps.some(p=>p.id===c.tid)).sort((a,b)=>d(b.date)-d(a.date) || b.id.localeCompare(a.id));
+ const cs = caseFilter(all), F = UI.cf;
  const mine = c => (role==='manager'&&c.status===1)||(role==='hod'&&c.status===2)||(role==='hr'&&(c.status===3||c.status===4));
  const showDetail = role!=='plant' || vis('plant','conduct');
- return `${ph('Conduct', 'Incidents reported on the line tablet. Line manager validates → HoD decides the action (the misconduct ladder suggests it) → Plant HR issues the letter and closes. Only closed cases count in scoring.')}
- <div class="grid g4">${[1,2,3,4].map(s=>kpi(CSTATUS[s], cs.filter(c=>c.status===s).length, s===1?'Line manager to validate':s===2?'HoD to decide':s===3?'HR to issue letter':'HR to close')).join('')}</div>
- <div class="tw mt24"><table class="t"><thead><tr><th>Case</th><th>Date</th><th>Apprentice</th><th>What happened</th><th>Category</th><th>Action</th><th>Status</th></tr></thead><tbody>
- ${cs.map(c=>{ const p = S.people[c.tid]; return `<tr class="click" data-go="case/${c.id}"><td class="mono">${c.id}${mine(c)?' <span class="chip info" style="height:20px;font-size:11px">Your step</span>':''}</td><td>${fmtS(d(c.date))}</td><td class="nm">${esc(p.name)}<small>${esc(deptOf(p))}</small></td><td>${showDetail?esc(MISK[c.k].name):'<span class="muted">Hidden</span>'}</td><td>${esc(MISK[c.k].cat)}</td><td>${c.steps.action?esc(c.steps.action.label):'<span class="muted">—</span>'}</td><td>${caseChip(c)}</td></tr>`; }).join('')||'<tr><td colspan="7" class="empty">No cases.</td></tr>'}
- </tbody></table></div>`;
+ const lv = l => all.filter(c=>c.steps.action&&c.steps.action.level===l).length;
+ const cats = [...new Set(MIS.map(m=>m.cat))];
+ return `${ph('Conduct register', 'Every incident and misconduct on record, with its action, letter and status. Replaces the incident, warning-letter and habitual-absence registers. Only closed cases count in evaluation.', `${canLog()?`<a class="btn pri" href="#/cases/log">${ic('alert',16)} Log an incident</a>`:''}<button class="btn" data-act="casecsv" type="button">${ic('download',16)} Export</button>`)}
+ <div class="grid g5">${kpi('Cases on record', all.length)}${kpi('Open', all.filter(c=>c.status<5).length, all.filter(mine).length?all.filter(mine).length+' waiting for you':'')}${kpi('VC / UR', lv('vcur'))}${kpi('Warning-level actions', lv('wl'), 'Warning letter, show cause, suspension')}${kpi('Terminations', lv('end'))}</div>
+ <div class="viewtabs mt24" role="group" aria-label="Register view">${CPRESETS.map(([k,l])=>`<button type="button" data-act="cpreset" data-id="${k}" aria-pressed="${F.preset===k}">${l}</button>`).join('')}</div>
+ <section class="card" style="padding:16px 20px;margin-bottom:16px"><div class="toolbar" style="margin-bottom:0">
+  <div class="fld"><label for="cf-q">Search</label><input id="cf-q" data-cf="q" type="search" value="${esc(F.q)}" placeholder="Case, name, ticket or TeamLease code" style="width:260px"></div>
+  <div class="fld"><label for="cf-cat">Category</label><select id="cf-cat" data-cf="cat"><option value="">All</option>${cats.map(x=>`<option ${F.cat===x?'selected':''}>${esc(x)}</option>`).join('')}</select></div>
+  <div class="fld"><label for="cf-tier">Tier</label><select id="cf-tier" data-cf="tier"><option value="">All</option>${[1,2,3,0].map(t=>`<option value="${t}" ${F.tier===String(t)?'selected':''}>${TIER[t][0]}</option>`).join('')}</select></div>
+  <div class="fld"><label for="cf-st">Status</label><select id="cf-st" data-cf="st"><option value="">All</option>${[1,2,3,4,5].map(s=>`<option value="${s}" ${F.st===String(s)?'selected':''}>${CSTATUS[s]}</option>`).join('')}</select></div>
+  <div class="fld"><label for="cf-plant">Plant</label><select id="cf-plant" data-cf="plant"><option value="">All</option>${Object.entries(PLANTS).map(([k,v])=>`<option value="${k}" ${F.plant===k?'selected':''}>${v}</option>`).join('')}</select></div>
+ </div></section>
+ <div class="tw"><table class="t"><thead><tr><th>Case</th><th>Date</th><th>Apprentice</th><th>Department</th><th>Misconduct</th><th>Tier</th><th>Action</th><th>Letter</th><th>Status</th></tr></thead><tbody>
+ ${cs.map(c=>{ const p = S.people[c.tid], m = MISK[c.k], L = c.steps.letter; return `<tr class="click" data-go="case/${c.id}"><td style="white-space:nowrap"><span class="mono">${c.id}</span>${mine(c)?'<div><span class="chip info" style="height:20px;font-size:11px;margin-top:4px">Your step</span></div>':''}</td><td style="white-space:nowrap">${fmt(d(c.date))}</td><td class="nm">${esc(p.name)}<small>${esc(p.ticket)}${p.tl?' · '+esc(p.tl):''}</small></td><td>${esc(deptOf(p))}<div class="sm muted">${esc(PLANTS[plantOf(p)])}</div></td><td>${showDetail?esc(m.name):'<span class="muted">Hidden</span>'}<div class="sm muted">${esc(m.cat)}</div></td><td>${tierChip(m.tier)}</td><td>${c.steps.action?esc(c.steps.action.label):'<span class="muted">—</span>'}</td><td class="sm">${L&&L.ref?esc(L.ref):L?'—':'<span class="muted">—</span>'}</td><td>${caseChip(c)}</td></tr>`; }).join('')||'<tr><td colspan="9" class="empty">No cases match.</td></tr>'}
+ </tbody></table></div><p class="sm muted mt12">${cs.length} of ${all.length} cases</p>`;
+}
+function cLog(){
+ const G = UI.lg || (UI.lg = {tid:'',k:'',imm:[]});
+ const ps = myPeople().filter(p=>p.status==='Active').sort((a,b)=>a.name.localeCompare(b.name));
+ const p = G.tid ? S.people[G.tid] : null, m = G.k ? MISK[G.k] : null, sg = p && m ? suggest(p.id, G.k) : null;
+ const prior = p ? S.cases.filter(c=>c.tid===p.id).sort((a,b)=>d(b.date)-d(a.date)) : [];
+ const sec = (n, t, inner) => `<section class="card mt16"><div class="row" style="gap:12px;margin-bottom:16px"><span class="pq lg">${n}</span><h2>${t}</h2></div>${inner}</section>`;
+ return `${ph('Log an incident', 'One form for every incident: misconduct, quality lapse or accident. It replaces the paper misconduct report and the TeamLease incident / accident report (Annexure 1). The case then moves through validation, action, letter and closure.')}
+ <div class="grid rvg">
+ <div>
+ ${sec(1,'Apprentice',`<div class="fld"><label for="lg-tid">Apprentice</label><select id="lg-tid" data-lg="tid"><option value="">Select apprentice</option>${ps.map(x=>`<option value="${x.id}" ${x.id===G.tid?'selected':''}>${esc(x.name)} · ${x.ticket}${x.tl?' · '+x.tl:''}</option>`).join('')}</select></div>
+  ${p?`<dl class="kv mt16"><dt>Ticket no.</dt><dd>${esc(p.ticket)}</dd>${p.tl?`<dt>TeamLease code</dt><dd>${esc(p.tl)}</dd>`:''}<dt>Type</dt><dd>${esc(p.empClass)}</dd><dt>Department</dt><dd>${esc(deptOf(p))} · ${esc(p.line)} · ${esc(PLANTS[plantOf(p)])}</dd><dt>Line manager</dt><dd>${esc(MANAGERS[p.mgr].name)} · HoD ${esc(HODS[hodOf(p)].name)}</dd></dl>`:''}`)}
+ ${sec(2,'What happened',`<div class="fld"><label for="lg-k">Misconduct / incident</label><select id="lg-k" data-lg="k"><option value="">Select from the misconduct list</option>${[...new Set(MIS.map(x=>x.cat))].map(cat=>`<optgroup label="${esc(cat)}">${MIS.filter(x=>x.cat===cat).map(x=>`<option value="${x.k}" ${x.k===G.k?'selected':''}>${esc(x.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>
+  ${m?`<div class="row mt12">${tierChip(m.tier)}<span class="chip">${esc(m.cat)} · list no. ${esc(m.no)}</span>${sg&&m.tier?`<span class="chip info">Ladder step ${sg.step} of ${sg.of}: ${esc(sg.label)}</span>`:''}</div><p class="sm muted mt8">Documents needed: ${esc(DOCS[m.tier])}.</p>`:''}
+  <div class="fgrid c3 mt16"><div class="fld"><label for="lg-date">Date</label><input id="lg-date" type="date" value="${esc(G['lg-date']||dateKey(TODAY))}" max="${dateKey(TODAY)}"></div><div class="fld"><label for="lg-time">Time</label><input id="lg-time" type="time" value="${esc(G['lg-time']||'')}"></div><div class="fld"><label for="lg-place">Place</label><input id="lg-place" value="${esc(G['lg-place']||(p?p.line:''))}"></div></div>
+  <div class="fld mt16"><label for="lg-desc">Description</label><textarea id="lg-desc" placeholder="What was seen, by whom, and what the apprentice said">${esc(G['lg-desc']||'')}</textarea></div>
+  <div class="fgrid mt16"><div class="fld"><label for="lg-oth">Other person involved (if any)</label><input id="lg-oth" value="${esc(G['lg-oth']||'')}" placeholder="Name and ticket no."></div><div class="fld"><label for="lg-wit">Witnesses</label><input id="lg-wit" value="${esc(G['lg-wit']||'')}" placeholder="Names"></div></div>
+  ${G.k==='acc'?`<div class="fgrid c3 mt16"><div class="fld"><label for="lg-inj">Injury</label><input id="lg-inj" value="${esc(G['lg-inj']||'')}" placeholder="e.g. cut on left hand"></div><div class="fld"><label for="lg-days">Days lost</label><input id="lg-days" type="number" min="0" value="${esc(G['lg-days']||'0')}"></div><div class="fld"><label for="lg-cause">Violation found?</label><select id="lg-cause"><option>No: record only</option><option>Yes: log as that misconduct</option></select></div></div>`:''}
+  <div class="fld mt16"><label for="lg-ev">Evidence (photo, statement, confession)</label><input id="lg-ev" type="file" multiple></div>`)}
+ ${sec(3,'Immediate action taken',`<div class="colpick">${IMMEDIATE.map(x=>`<label><input type="checkbox" data-lgimm value="${esc(x)}" ${G.imm.includes(x)?'checked':''}>${esc(x)}</label>`).join('')}</div>`)}
+ <div class="err mt16" id="lg-err"></div>
+ <div class="row mt16"><button class="btn pri lg" data-act="lgsubmit" type="button">Submit incident</button><span class="sm muted">Reported by ${esc(USER().name)} (${esc(USER().title)}). ${USERS[ME].role==='manager'?'As the line manager, your report is recorded as validated.':'The line manager validates it next.'}</span></div>
+ </div>
+ <aside class="stack rva">
+  <section class="card"><h3>Conduct history</h3>${p?(prior.length?`<div class="list mt8">${prior.map(c=>`<div class="li"><div class="sp"><div class="t1" style="font-size:14px">${esc(MISK[c.k].name)}</div><div class="t2">${c.id} · ${fmtS(d(c.date))} · ${c.steps.action?esc(c.steps.action.label):CSTATUS[c.status]}</div></div></div>`).join('')}</div>`:'<p class="good mt8">No earlier cases.</p>'):'<p class="muted mt8">Pick an apprentice to see earlier cases.</p>'}</section>
+  ${m&&m.tier?`<section class="card"><h3>Ladder for this misconduct</h3><div class="list mt8">${m.lad.map((l,i)=>`<div class="li"><span class="pq" style="${sg&&i+1===sg.step?'':'background:var(--line-2);color:var(--muted)'}">${i+1}</span><span class="${sg&&i+1===sg.step?'ink':''}">${esc(l[0])}</span></div>`).join('')}</div></section>`:''}
+ </aside></div>`;
+}
+function cFramework(){
+ const cats = [...new Set(MIS.map(m=>m.cat))];
+ const step = (m,i) => m.lad[i] ? esc(m.lad[i][0]) : '<span class="muted">—</span>';
+ return `${ph('Conduct framework', 'The misconduct list, its escalation ladder, how a case is handled and how conduct counts in the evaluation. Set by HR; applies to every plant.')}
+ <div class="grid g4">${[1,2,3,0].map(t=>`<div class="kpi"><div>${tierChip(t)}</div><div class="s mt8" style="color:var(--text)">${({1:'Ladder starts at VC / UR and escalates on repeat.',2:'Starts at warning letter, show cause or suspension.',3:'Termination or discontinuation on the first instance.',0:'Recorded for safety follow-up; no penalty unless a violation is found.'})[t]}</div></div>`).join('')}</div>
+ <section class="card mt24"><h2>Misconduct list and ladder</h2><p class="sub">The ladder counts earlier closed cases of the same misconduct. Three VC / URs across any categories count as one warning.</p>
+  <div class="tw mt12"><table class="t"><thead><tr><th>No.</th><th>Misconduct</th><th>Tier</th><th>First instance</th><th>Repeat</th><th>Further</th><th>Documents</th></tr></thead><tbody>
+  ${cats.map(cat=>`<tr class="grp"><td colspan="7">${esc(cat)}</td></tr>`+MIS.filter(m=>m.cat===cat).map(m=>`<tr><td>${esc(m.no)}</td><td class="nm">${esc(m.name)}</td><td>${tierChip(m.tier)}</td><td>${step(m,0)}</td><td>${step(m,1)}</td><td>${step(m,2)}</td><td class="sm">${esc(DOCS[m.tier])}</td></tr>`).join('')).join('')}
+  </tbody></table></div></section>
+ <div class="grid g2 mt24" style="align-items:start">
+  <section class="card"><h2>How a case moves</h2><div class="tw mt12"><table class="t"><thead><tr><th>Step</th><th>Who</th><th>Must be filled to move on</th><th>Target</th></tr></thead><tbody>
+   ${[['1 · Reported','Anyone: supervisor, security, line manager (line tablet or desktop)','Apprentice, date, time, place, misconduct, description; evidence if any','Same shift'],['2 · Validated','Line manager / shift-in-charge','Validator remarks; confirm or correct the misconduct','2 working days'],['3 · Action decided','HoD','Action from the ladder; reason if it differs','3 working days'],['4 · Letter issued','HR (TeamLease legal for WILP letters)','Letter type, reference no., apprentice acknowledgement','2 working days'],['5 · Closed','HR','Closure; the case now counts in evaluation','Same day']].map(r=>`<tr>${r.map((x,i)=>`<td class="${i===0?'nm':''}">${esc(x)}</td>`).join('')}</tr>`).join('')}
+  </tbody></table></div><p class="sm muted mt12">WILP apprentices: TeamLease HR gets a copy at every step; letters go out on TeamLease letterhead.</p></section>
+  <section class="card"><h2>How conduct counts in the evaluation</h2><div class="tw mt12"><table class="t"><thead><tr><th>On record (closed)</th><th>Effect</th></tr></thead><tbody>
+   ${[['Safety cases (PPE, driving)','S1 Safety & 5S: 1 VC/UR = 3; warning or more = 1'],['Quality lapses','Q1 Quality: 1 case = 3; 2 or more = 1'],['All other misconduct','S2 Discipline: clean 5 · 1 VC/UR 4 · 2 VC/UR 3 · 3+ VC/UR or 1 warning 2 · 2+ warnings 1'],['1 warning-level action','Band capped at B; HoD reviews'],['2+ warning-level actions','Not recommended unless HoD and HR override with a reason'],['Termination','Training ends; no review'],['Open case','Not scored; shown to the HoD as pending'],['Accident, no violation','Recorded only']].map(r=>`<tr><td class="nm">${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('')}
+  </tbody></table></div></section>
+ </div>
+ <section class="card mt24"><h2>Mapping from the TeamLease incident report</h2><div class="tw mt12"><table class="t"><thead><tr><th>TeamLease tick-box</th><th>Category here</th><th>Misconduct list items</th></tr></thead><tbody>
+  ${[['Unauthorised absenteeism','Attendance','Habitual absenteeism; continuous unauthorised absence; absent from stage'],['Misappropriation','Integrity & security','Theft; proxy punching'],['Misbehaviour','Behaviour','Physical fight; verbal fight / abusive language'],['Damage to official property','Integrity & security','Damage to company property'],['Policy violation','Work indiscipline / Safety / Substance','Pick the specific item: mobile, uniform, PPE, tobacco, alcohol, photo / video, driving'],['Accident in premises / on the way','Incident – non-disciplinary','Accident (record only unless a violation is found)'],['Any other','Quality','Work negligence / quality lapse']].map(r=>`<tr>${r.map((x,i)=>`<td class="${i===0?'nm':''}">${esc(x)}</td>`).join('')}</tr>`).join('')}
+ </tbody></table></div></section>`;
+}
+function letterText(c){
+ const p = S.people[c.tid], m = MISK[c.k], a = c.steps.action;
+ return `To: ${p.name} (Ticket ${p.ticket}${p.tl?', TeamLease '+p.tl:''}), ${deptOf(p)}, ${PLANTS[plantOf(p)]}\nSubject: ${LETTERS[a.level]} — ${m.name}\nRef: ${c.id}\n\nOn ${fmt(d(c.date))} at ${c.place}, you were found to have committed the following: ${c.desc}\n\nThis ${({vcur:'is recorded as verbal counselling / underwriting',wl:'is a written warning ('+a.label+')',end:'is a '+a.label.toLowerCase()+' order',none:'is recorded for information only'})[a.level]} under the apprentice conduct framework (${m.cat}, ${TIER[m.tier][0]}).${a.level==='wl'?' A repeat of this or any other misconduct may lead to discontinuation of your training.':''}${a.level==='end'?' Your training is discontinued with effect from the date of this letter. Return your ID card, punch card and bus pass to HR.':''}\n\nPlease sign below to acknowledge receipt.`;
 }
 function vCase(id){
  const c = S.cases.find(x=>x.id===id); if(!c) return notFound();
  const p = S.people[c.tid]; if(!canSee(p)) return notFound();
- const role = USERS[ME].role, m = MISK[c.k], sg = suggest(c.tid, c.k);
+ const role = USERS[ME].role, m = MISK[c.k], sg = suggest(c.tid, c.k, c.id);
  const step = n => `<div class="s ${c.status>=n?'done':''} ${c.status+1===n?'cur':''}">${CSTATUS[n]}</div>`;
  const can = (role==='manager'&&c.status===1&&myPeople().some(x=>x.id===c.tid)) ? 'validate' : (role==='hod'&&c.status===2) ? 'action' : (role==='hr'&&c.status===3) ? 'letter' : (role==='hr'&&c.status===4) ? 'close' : '';
  const showDetail = role!=='plant' || vis('plant','conduct');
- return `${crumb([['Conduct','cases'],[c.id,'']])}
- ${ph(esc(c.id)+' · '+(showDetail?esc(m.name):'Conduct case'), esc(p.name)+' · '+esc(deptOf(p))+' · '+fmt(d(c.date))+' '+esc(c.time), `<button class="btn" data-go="person/${p.id}" type="button">Full record</button>`)}
+ const prior = S.cases.filter(x=>x.tid===c.tid && x.id!==c.id).sort((a,b)=>d(b.date)-d(a.date));
+ const L = c.steps.letter;
+ const lvl = c.steps.action ? c.steps.action.level : '';
+ return `${crumb([['Conduct register','cases'],[c.id,'']])}
+ ${ph(esc(c.id)+' · '+(showDetail?esc(m.name):'Conduct case'), esc(p.name)+' · '+esc(deptOf(p))+' · '+esc(PLANTS[plantOf(p)])+' · '+fmt(d(c.date))+(c.time&&c.time!=='—'?' '+esc(c.time):''), `${tierChip(m.tier)}${caseChip(c)}<button class="btn" data-go="person/${p.id}" type="button">Full record</button>`)}
  <section class="card"><div class="steps">${[1,2,3,4,5].map(step).join('')}</div></section>
  <div class="grid g21 mt24" style="align-items:start">
-  <section class="card"><h2>Report</h2>
-   ${showDetail?`<dl class="kv mt12"><dt>What happened</dt><dd>${esc(m.name)} · ${esc(m.cat)} (misconduct no. ${esc(m.no)})</dd><dt>Place</dt><dd>${esc(c.place)}</dd><dt>Description</dt><dd>${esc(c.desc)}</dd><dt>Reported by</dt><dd>${esc(c.reporter)} via ${esc(c.channel)}</dd><dt>Evidence</dt><dd>${c.evidence.length?c.evidence.map(esc).join(', '):'None attached'}</dd></dl>`:'<p class="muted mt12">Details are hidden for your role by HR view settings.</p>'}
-   <div class="hist mt24">${[['reported','Reported'],['validated','Validated'],['action','Action decided'],['letter','Letter issued'],['closed','Closed']].filter(([k])=>c.steps[k]).map(([k,l])=>{ const s = c.steps[k]; return `<div><b>${l}${s.label?': '+esc(s.label):''}</b><span>${esc(s.at)} · ${esc(s.by)}${s.remarks?' · “'+esc(s.remarks)+'”':''}${s.reason?' · “'+esc(s.reason)+'”':''}</span></div>`; }).join('')}</div>
-  </section>
   <div class="stack">
-   <section class="card"><h3>Misconduct ladder</h3><p class="sub">Earlier closed cases of this type: ${sg.prior}. Suggested: step ${sg.step} of ${sg.of}.</p><div class="list mt8">${m.lad.map((l,i)=>`<div class="li"><span class="pq" style="${i+1===sg.step?'':'background:var(--line-2);color:var(--muted)'}">${i+1}</span><span class="${i+1===sg.step?'ink':''}">${esc(l[0])}</span></div>`).join('')}</div></section>
-   ${can==='validate'?`<section class="card"><h3>Validate</h3><p class="sub">Confirm with the line supervisor and witnesses.</p><div class="fld mt12"><label for="cv-r">Remarks</label><textarea id="cv-r" style="min-height:72px"></textarea></div><div class="err" id="cv-e"></div><div class="row mt12"><button class="btn pri" data-act="cvalid" data-id="${c.id}" type="button">Validate</button><button class="btn" data-act="cnot" data-id="${c.id}" type="button">Not substantiated</button></div></section>`:''}
+  <section class="card"><h2>Incident record</h2>
+   ${showDetail?`<dl class="kv mt12"><dt>Apprentice</dt><dd>${esc(p.name)} · Ticket ${esc(p.ticket)}${p.tl?' · TeamLease '+esc(p.tl):''} · ${esc(p.type)}</dd><dt>Where</dt><dd>${esc(deptOf(p))} · ${esc(c.place)} · ${esc(PLANTS[plantOf(p)])}</dd><dt>Misconduct</dt><dd>${esc(m.name)} · ${esc(m.cat)} · list no. ${esc(m.no)}</dd><dt>Description</dt><dd>${esc(c.desc)}</dd>${c.other?`<dt>Other person</dt><dd>${esc(c.other)}</dd>`:''}${c.wit?`<dt>Witnesses</dt><dd>${esc(c.wit)}</dd>`:''}${c.injury?`<dt>Injury</dt><dd>${esc(c.injury.what)} · ${c.injury.days} day(s) lost · ${esc(c.injury.cause)}</dd>`:''}<dt>Immediate action</dt><dd>${(c.imm||[]).length?c.imm.map(esc).join('; '):'None recorded'}</dd><dt>Evidence</dt><dd>${(c.evidence||[]).length?c.evidence.map(esc).join(', '):'None attached'}</dd><dt>Reported by</dt><dd>${esc(c.reporter)} via ${esc(c.channel)}</dd><dt>Documents needed</dt><dd>${esc(DOCS[m.tier])}</dd></dl>`:'<p class="muted mt12">Details are hidden for your role by HR view settings.</p>'}
+  </section>
+  <section class="card"><h2>Sign-off trail</h2><div class="hist mt12">${[['reported','Reported'],['validated','Validated'],['action','Action decided'],['letter','Letter issued'],['closed','Closed']].filter(([k])=>c.steps[k]).map(([k,l])=>{ const s = c.steps[k]; return `<div><b>${l}${s.label?': '+esc(s.label):''}${s.type?': '+esc(s.type):''}</b><span>${esc(s.at)} · ${esc(s.by)}${s.ref?' · '+esc(s.ref):''}${s.ack?' · acknowledged':''}${s.remarks?' · “'+esc(s.remarks)+'”':''}${s.reason?' · “'+esc(s.reason)+'”':''}</span></div>`; }).join('')}</div>${p.type==='WILP'?'<p class="sm muted mt8">WILP apprentice: TeamLease HR is copied on each step.</p>':''}</section>
+  ${L&&L.type&&L.type!=='No letter'?`<section class="card"><h2>Letter</h2><pre class="quote mt12" style="white-space:pre-wrap;font-family:var(--f);margin:12px 0 0">${esc(letterText(c))}</pre></section>`:''}
+  </div>
+  <div class="stack">
+   <section class="card"><h3>Conduct history</h3>${prior.length?`<div class="list mt8">${prior.map(x=>`<div class="li click" data-go="case/${x.id}" role="button" tabindex="0"><div class="sp"><div class="t1" style="font-size:14px">${esc(MISK[x.k].name)}</div><div class="t2">${x.id} · ${fmtS(d(x.date))} · ${x.steps.action?esc(x.steps.action.label):CSTATUS[x.status]}</div></div></div>`).join('')}</div>`:'<p class="good mt8">No other cases.</p>'}</section>
+   <section class="card"><h3>Misconduct ladder</h3><p class="sub">${c.steps.action?'Action taken: '+esc(c.steps.action.label)+'. ':''}Other closed cases of this type: ${sg.prior}.${c.steps.action?'':' Suggested: step '+sg.step+' of '+sg.of+'.'}</p><div class="list mt8">${m.lad.map((l,i)=>`<div class="li"><span class="pq" style="${i+1===sg.step?'':'background:var(--line-2);color:var(--muted)'}">${i+1}</span><span class="${i+1===sg.step?'ink':''}">${esc(l[0])}</span></div>`).join('')}</div></section>
+   ${can==='validate'?`<section class="card"><h3>Validate</h3><p class="sub">Confirm with the line supervisor and witnesses. Correct the misconduct if it was logged wrongly.</p><div class="fld mt12"><label for="cv-k">Misconduct</label><select id="cv-k">${MIS.map(x=>`<option value="${x.k}" ${x.k===c.k?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div><div class="fld mt12"><label for="cv-r">Remarks</label><textarea id="cv-r" style="min-height:72px"></textarea></div><div class="err" id="cv-e"></div><div class="row mt12"><button class="btn pri" data-act="cvalid" data-id="${c.id}" type="button">Validate</button><button class="btn" data-act="cnot" data-id="${c.id}" type="button">Not substantiated</button></div></section>`:''}
    ${can==='action'?`<section class="card"><h3>Decide the action</h3><div class="fld mt12"><label for="ca-a">Action</label><select id="ca-a">${ACTIONS.map(a=>`<option ${a[1]===sg.level&&a[0].startsWith(sg.label.split(' ')[0])?'selected':''}>${a[0]}</option>`).join('')}</select></div><div class="fld mt12"><label for="ca-r">Reason (required if it differs from the ladder)</label><input id="ca-r"></div><div class="err" id="ca-e"></div><button class="btn pri mt12" data-act="caction" data-id="${c.id}" type="button">Confirm action</button></section>`:''}
-   ${can==='letter'?`<section class="card"><h3>Issue the letter</h3><p class="sub">${c.steps.action.level==='none'?'No letter needed for this action.':'Generate the letter from the template and record the apprentice’s acknowledgement.'}</p><button class="btn pri mt12" data-act="cletter" data-id="${c.id}" type="button">${c.steps.action.level==='none'?'Confirm, no letter':'Letter issued and acknowledged'}</button></section>`:''}
+   ${can==='letter'?`<section class="card"><h3>Issue the letter</h3>${lvl==='none'?'<p class="sub">No letter needed for this action.</p>':`<div class="fld mt12"><label for="cl-t">Letter</label><select id="cl-t">${[LETTERS[lvl],'Show cause notice','Suspension order'].filter((x,i,a)=>a.indexOf(x)===i).map(x=>`<option>${esc(x)}</option>`).join('')}</select></div><div class="fld mt12"><label for="cl-r">Reference no.</label><input id="cl-r" value="HR/CON/${TODAY.getFullYear()}/${c.id.replace('C-','')}"></div><label class="check mt12"><input type="checkbox" id="cl-a"> Apprentice has signed the acknowledgement</label>${p.type==='WILP'?'<p class="sm muted mt8">WILP: TeamLease legal issues the letter; record their reference here.</p>':''}<details class="map mt12"><summary>Preview letter</summary><pre class="quote" style="white-space:pre-wrap;font-family:var(--f);margin-top:8px">${esc(letterText(c))}</pre></details>`}<div class="err" id="cl-e"></div><button class="btn pri mt12" data-act="cletter" data-id="${c.id}" type="button">${lvl==='none'?'Confirm, no letter':'Record letter issued'}</button></section>`:''}
    ${can==='close'?`<section class="card"><h3>Close the case</h3><p class="sub">Once closed, the case counts in Safety, Discipline or Quality scoring and the conduct cap.</p><button class="btn pri mt12" data-act="cclose" data-id="${c.id}" type="button">Close case</button></section>`:''}
   </div>
  </div>`;
@@ -409,9 +504,9 @@ function vCase(id){
 function vM12(){
  const role = USERS[ME].role, ps = myPeople().filter(p=>formsOf(p.id).some(f=>f.cp==='M12') || mo(p)>=11);
  const row = p => { const f = formsOf(p.id).find(x=>x.cp==='M12'), e = f&&isDone(f)?evaluate(p,f):null, dc = S.decisions[p.id]||{};
-  const stage = !f ? 'Review opens '+fmtS(new Date(addM(d(p.doj),12).getTime()-7*DAY)) : !isDone(f) ? 'With line manager' : f.status==='With HoD' ? 'With HoD' : !dc.hr ? 'With Plant HR' : 'Finalised';
+  const stage = !f ? 'Review opens '+fmtS(new Date(addM(d(p.doj),12).getTime()-7*DAY)) : !isDone(f) ? 'With line manager' : f.status==='With HoD' ? 'With HoD' : !dc.hr ? 'With HR' : 'Finalised';
   return `<tr class="click" data-go="${f&&isDone(f)?'review/'+f.id:'person/'+p.id}"><td class="nm">${esc(p.name)}<small>${esc(deptOf(p))} · ${esc(p.ticket)}</small></td><td>${fmt(addM(d(p.doj),12))}</td><td class="r">${e?pct(e.overall):'—'}</td><td>${e?bandChip(e.fb):bandChip()}</td><td>${e?recChip(e.rec):'—'}</td><td>${esc((f&&f.mrec)||'—')}</td><td>${dc.hod?`<b class="ink">${esc(dc.hod.choice)}</b>`:'—'}</td><td><span class="chip ${stage==='Finalised'?'good':stage.startsWith('With')?'warn':''}">${esc(stage)}</span>${role==='hr'&&dc.hod&&!dc.hr?` <button class="btn sm pri" data-act="hrfinal" data-id="${p.id}" type="button">Finalise → SF/EC</button>`:''}</td></tr>`; };
- return `${ph(role==='manager'?'Month 12':'Conversions', 'At Month 12 the line manager recommends, the agent scores, the HoD decides and Plant HR finalises. PRAGATI then sends the job change to SAP SF/EC. Open any row for the full record behind the decision.')}
+ return `${ph(role==='manager'?'Month 12':'Conversions', 'At Month 12 the line manager recommends, the agent scores, the HoD decides and HR finalises. PRAGATI then sends the job change to SAP SF/EC. Open any row for the full record behind the decision.')}
  <div class="tw"><table class="t"><thead><tr><th>Apprentice</th><th>Month 12 date</th><th class="r">Score</th><th>Band</th><th>Agent</th><th>Line manager</th><th>HoD decision</th><th>Stage</th></tr></thead><tbody>${ps.sort((a,b)=>a.doj.localeCompare(b.doj)).map(row).join('')||'<tr><td colspan="8" class="empty">Nobody at Month 12 yet.</td></tr>'}</tbody></table></div>`;
 }
 
@@ -436,22 +531,24 @@ function cycleStats(ps){
  return {due:fs.length, done:fs.filter(f=>f.status==='Completed').length, hod:fs.filter(f=>f.status==='With HoD').length, open:fs.filter(f=>!isDone(f)).length};
 }
 function vPlantDash(){
- const ps = Object.values(S.people), act = ps.filter(p=>p.status==='Active');
+ const PL = UI.plant||'', inPl = p => !PL || plantOf(p)===PL;
+ const ps = Object.values(S.people).filter(inPl), act = ps.filter(p=>p.status==='Active');
  const ev = act.map(latestEval).filter(Boolean);
  const cyc = cycleStats(act), risk = ev.filter(x=>x.e.status==='At risk');
- const k90 = S.kaizens.filter(k=>k.implAt && d(k.implAt)>=new Date(TODAY.getTime()-91*DAY));
- const sav = S.kaizens.filter(k=>k.status==='Verified').reduce((s,k)=>s+k.verify.saving,0);
+ const KZ = S.kaizens.filter(k=>inPl(S.people[k.tid]));
+ const k90 = KZ.filter(k=>k.implAt && d(k.implAt)>=new Date(TODAY.getTime()-91*DAY));
+ const sav = KZ.filter(k=>k.status==='Verified').reduce((s,k)=>s+k.verify.saving,0);
  const m12 = act.filter(p=>formsOf(p.id).some(f=>f.cp==='M12') || mo(p)>=11);
- const pipe = [['Due in next 60 days', act.filter(p=>{ const t = addM(d(p.doj),12); return t>TODAY && t<=new Date(TODAY.getTime()+60*DAY); }).length],['With line manager', m12.filter(p=>{ const f = formsOf(p.id).find(x=>x.cp==='M12'); return f && !isDone(f); }).length],['With HoD', m12.filter(p=>{ const f = formsOf(p.id).find(x=>x.cp==='M12'); return f && f.status==='With HoD'; }).length],['With Plant HR', m12.filter(p=>S.decisions[p.id]&&S.decisions[p.id].hod&&!S.decisions[p.id].hr).length],['Finalised', ps.filter(p=>S.decisions[p.id]&&S.decisions[p.id].hr).length]];
+ const pipe = [['Due in next 60 days', act.filter(p=>{ const t = addM(d(p.doj),12); return t>TODAY && t<=new Date(TODAY.getTime()+60*DAY); }).length],['With line manager', m12.filter(p=>{ const f = formsOf(p.id).find(x=>x.cp==='M12'); return f && !isDone(f); }).length],['With HoD', m12.filter(p=>{ const f = formsOf(p.id).find(x=>x.cp==='M12'); return f && f.status==='With HoD'; }).length],['With HR', m12.filter(p=>S.decisions[p.id]&&S.decisions[p.id].hod&&!S.decisions[p.id].hr).length],['Finalised', ps.filter(p=>S.decisions[p.id]&&S.decisions[p.id].hr).length]];
  const showScores = USERS[ME].role!=='plant' || vis('plant','scores');
- return `${ph('Plant overview', `${PLANT} · all apprentices · ${fmt(TODAY)}`)}
- <div class="grid g5">${kpi('Active apprentices', act.length, act.filter(p=>p.type==='TTA').length+' TTA · '+act.filter(p=>p.type==='WILP').length+' WILP','team')}${kpi('Review cycle', pct0(cyc.due?cyc.done/cyc.due*100:100)+'<small>signed</small>', cyc.due+' due in this window · '+cyc.hod+' with HoD · '+cyc.open+' with managers')}${kpi('At risk', risk.length, 'Band C, warning-level conduct or open case')}${kpi('Kaizens implemented', k90.length+'<small>90 days</small>', vis('plant','kaizen')||USERS[ME].role!=='plant'?lakh(sav)+' verified saving / yr':'', 'kzdash')}${kpi('Open conduct cases', S.cases.filter(c=>c.status<5).length, '', USERS[ME].role==='hr'?'cases':'')}</div>
+ return `${ph('Overview', (PL?PLANTS[PL]:'All plants')+' · '+fmt(TODAY), plantPick())}
+ <div class="grid g5">${kpi('Active apprentices', act.length, act.filter(p=>p.type==='TTA').length+' TTA · '+act.filter(p=>p.type==='WILP').length+' WILP','team')}${kpi('Review cycle', pct0(cyc.due?cyc.done/cyc.due*100:100)+'<small>signed</small>', cyc.due+' due in this window · '+cyc.hod+' with HoD · '+cyc.open+' with managers')}${kpi('At risk', risk.length, 'Band C, warning-level conduct or open case')}${kpi('Kaizens implemented', k90.length+'<small>90 days</small>', vis('plant','kaizen')||USERS[ME].role!=='plant'?lakh(sav)+' verified saving / yr':'', 'kzdash')}${kpi('Open conduct cases', S.cases.filter(c=>c.status<5 && inPl(S.people[c.tid])).length, '', 'cases')}</div>
  <section class="card mt24"><div class="card-h"><div><h2>By department</h2><p class="sub">Latest review per apprentice.</p></div></div>
-  <div class="tw"><table class="t"><thead><tr><th>Department</th><th>HoD</th><th class="r">Apprentices</th><th>Review cycle</th>${showScores?'<th class="r">Avg score</th>':''}<th style="min-width:200px">Band mix</th><th class="r">At risk</th><th class="r">Attendance</th><th class="r">Kaizens / person (90 d)</th></tr></thead><tbody>
-  ${DEPTS.map(dp=>{ const dps = act.filter(p=>deptOf(p)===dp), de = dps.map(latestEval).filter(Boolean), c = cycleStats(dps), mk = Object.values(MANAGERS).find(m=>m.dept===dp); const att = dps.reduce((s,p)=>s+attStats(p.id).pct,0)/Math.max(1,dps.length); return `<tr><td class="nm">${esc(dp)}<small>${esc(mk.name)}</small></td><td>${esc(HODS[mk.hod].name)}</td><td class="r">${dps.length}</td><td>${c.done}/${c.due} signed</td>${showScores?`<td class="r">${de.length?pct(de.reduce((s,x)=>s+x.e.overall,0)/de.length):'—'}</td>`:''}<td>${bandMix(de.map(x=>x.e.fb)).split('<div class="legend')[0]}</td><td class="r ${de.filter(x=>x.e.status==='At risk').length?'bad':''}">${de.filter(x=>x.e.status==='At risk').length}</td><td class="r">${pct(att)}</td><td class="r">${(dps.reduce((s,p)=>s+kzStats(p.id).impl3,0)/Math.max(1,dps.length)).toFixed(1)}</td></tr>`; }).join('')}
+  <div class="tw"><table class="t"><thead><tr><th>Department</th><th>Plant</th><th>HoD</th><th class="r">Apprentices</th><th>Review cycle</th>${showScores?'<th class="r">Avg score</th>':''}<th style="min-width:200px">Band mix</th><th class="r">At risk</th><th class="r">Attendance</th><th class="r">Kaizens / person (90 d)</th></tr></thead><tbody>
+  ${DEPTS.filter(dp=>!PL||Object.values(MANAGERS).some(m=>m.dept===dp&&m.plant===PL)).map(dp=>{ const dps = act.filter(p=>deptOf(p)===dp), de = dps.map(latestEval).filter(Boolean), c = cycleStats(dps), mk = Object.values(MANAGERS).find(m=>m.dept===dp); const att = dps.reduce((s,p)=>s+attStats(p.id).pct,0)/Math.max(1,dps.length); return `<tr><td class="nm">${esc(dp)}<small>${esc(mk.name)}</small></td><td>${esc(PLANTS[mk.plant])}</td><td>${esc(HODS[mk.hod].name)}</td><td class="r">${dps.length}</td><td>${c.done}/${c.due} signed</td>${showScores?`<td class="r">${de.length?pct(de.reduce((s,x)=>s+x.e.overall,0)/de.length):'—'}</td>`:''}<td>${bandMix(de.map(x=>x.e.fb)).split('<div class="legend')[0]}</td><td class="r ${de.filter(x=>x.e.status==='At risk').length?'bad':''}">${de.filter(x=>x.e.status==='At risk').length}</td><td class="r">${pct(att)}</td><td class="r">${(dps.reduce((s,p)=>s+kzStats(p.id).impl3,0)/Math.max(1,dps.length)).toFixed(1)}</td></tr>`; }).join('')}
   </tbody></table></div></section>
  <div class="grid g2 mt24" style="align-items:start">
-  <section class="card"><h2>Conversion pipeline</h2><p class="sub">Month 12 apprentices, line manager → HoD → Plant HR → SAP SF/EC.</p>
+  <section class="card"><h2>Conversion pipeline</h2><p class="sub">Month 12 apprentices, line manager → HoD → HR → SAP SF/EC.</p>
    <div class="grid g5 mt16">${pipe.map(([l,n],i)=>`<div class="kpi" style="padding:14px;${i===4?'border-top:3px solid var(--good)':''}"><div class="l" style="font-size:12.5px">${l}</div><div class="v" style="font-size:24px">${n}</div></div>`).join('')}</div>
    <button class="btn ghost sm mt12" data-go="m12" type="button">Open conversions →</button></section>
   <section class="card"><h2>Needs attention</h2><div class="list mt8">${risk.slice(0,7).map(({f,e})=>{ const p = S.people[f.tid]; return `<div class="li click" data-go="person/${p.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)}</div><div class="t2">${esc(deptOf(p))} · ${f.cp} · ${esc(e.reasons[1]||'')}</div></div>${bandChip(e.fb)}</div>`; }).join('')||'<div class="empty-s">Nobody at risk.</div>'}</div></section>
@@ -463,7 +560,7 @@ function vHrHome(){
  const fin = ps.filter(p=>S.decisions[p.id]&&S.decisions[p.id].hod&&!S.decisions[p.id].hr);
  const od = S.forms.filter(f=>!isDone(f) && new Date(f.cpDate)<TODAY);
  const warnS = Object.entries(S.sources).filter(([k,v])=>v.status==='warn');
- return `${ph('Plant HR', 'Everything about apprentices at '+PLANT+' in one place.')}
+ return `${ph('HR', 'Everything about apprentices across plants in one place.')}
  <div class="grid g4">${kpi('Letters to issue / cases to close', hrCases.length, '', 'cases')}${kpi('Decisions to finalise', fin.length, 'HoD decided; send to SAP SF/EC', 'm12')}${kpi('Overdue reviews', od.length, 'Past the checkpoint date', 'master')}${kpi('Data feeds needing attention', warnS.length, warnS.map(([k])=>SOURCES.find(s=>s.k===k).short).join(', ')||'All feeds on time', 'sources')}</div>
  <div class="grid g2 mt24" style="align-items:start">
   <section class="card"><h2>Overdue reviews</h2><div class="list mt8">${od.slice(0,8).map(f=>{ const p = S.people[f.tid]; return `<div class="li click" data-go="review/${f.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · ${f.cp}</div><div class="t2">${esc(f.by)} · ${dueTxt(f.cpDate)}</div></div>${formChip(f)}</div>`; }).join('')||'<div class="empty-s">None overdue.</div>'}</div></section>
@@ -528,12 +625,12 @@ function pSkills(p){
 function pConduct(p){
  const cs = S.cases.filter(c=>c.tid===p.id).sort((a,b)=>d(b.date)-d(a.date)), cd = conduct(p.id);
  const showDetail = USERS[ME].role!=='plant' || vis('plant','conduct');
- return `<div class="grid g4">${kpi('Warning-level actions', cd.wl, 'Warning letter, show cause, suspension')}${kpi('VC / UR', cd.vcur, cd.vcur>=S.cfg.vcurAsWL?'Counts as a warning':'Minor')}${kpi('Open cases', cd.open, 'Not counted until closed')}${kpi('Conduct cap', cd.end?'Training ended':cd.eff>=S.cfg.wlNotRec?'Not recommended':cd.eff?'Max band B':'None')}</div>
+ return `${['manager','hod','hr'].includes(USERS[ME].role)&&p.status==='Active'?`<div class="row" style="justify-content:flex-end;margin-bottom:16px"><button class="btn pri" data-act="lgfor" data-id="${p.id}" type="button">Log an incident for ${esc(p.name.split(' ')[0])}</button></div>`:''}<div class="grid g4">${kpi('Warning-level actions', cd.wl, 'Warning letter, show cause, suspension')}${kpi('VC / UR', cd.vcur, cd.vcur>=S.cfg.vcurAsWL?'Counts as a warning':'Minor')}${kpi('Open cases', cd.open, 'Not counted until closed')}${kpi('Conduct cap', cd.end?'Training ended':cd.eff>=S.cfg.wlNotRec?'Not recommended':cd.eff?'Max band B':'None')}</div>
  <div class="tw mt24"><table class="t"><thead><tr><th>Case</th><th>Date</th><th>What happened</th><th>Action</th><th>Status</th></tr></thead><tbody>${cs.map(c=>`<tr class="click" data-go="case/${c.id}"><td class="mono">${c.id}</td><td>${fmt(d(c.date))}</td><td>${showDetail?esc(MISK[c.k].name):esc(MISK[c.k].cat)}</td><td>${c.steps.action?esc(c.steps.action.label):'—'}</td><td>${caseChip(c)}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No cases on record.</td></tr>'}</tbody></table></div>`;
 }
 function pTimeline(p){
  const ev = [];
- ev.push({t:d(p.doj), w:'Joined '+PLANT+' as '+p.type+' apprentice ('+p.course+')', s:'sf'});
+ ev.push({t:d(p.doj), w:'Joined '+PLANTS[MANAGERS[p.mgr].plant]+' as '+p.type+' apprentice ('+p.course+')', s:'sf'});
  formsOf(p.id).forEach(f=>{ if(f.submitted && isDone(f)) ev.push({t:new Date(f.cpDate), w:f.cp+' review submitted by '+f.by+(f.status==='Completed'?'; signed '+f.signed:'; with HoD'), s:'app'}); });
  kzOf(p.id).forEach(k=>{ ev.push({t:d(k.date), w:'Kaizen submitted: '+k.title, s:'kz'}); if(k.verify) ev.push({t:new Date(d(k.implAt).getTime()+30*DAY), w:'Kaizen '+(k.verify.sustained?'verified as sustained':'not sustained')+': '+k.title, s:'kz'}); });
  S.cases.filter(c=>c.tid===p.id).forEach(c=>ev.push({t:d(c.date), w:'Conduct case '+c.id+' reported'+(c.steps.action?' → '+c.steps.action.label:''), s:'case'}));
@@ -545,7 +642,7 @@ function pTimeline(p){
 /* ======================= HR MASTER (configurable views) ======================= */
 const COLS = {
  ticket:['Ticket', p=>esc(p.ticket), p=>p.ticket], tl:['TeamLease code', p=>esc(p.tl||'—'), p=>p.tl], name:['Name', p=>`<span class="nm">${esc(p.name)}</span>`, p=>p.name], type:['Type', p=>p.type, p=>p.type],
- dept:['Department', p=>esc(deptOf(p)), p=>deptOf(p)], mgr:['Line manager', p=>esc(MANAGERS[p.mgr].name), p=>MANAGERS[p.mgr].name], line:['Line', p=>esc(p.line), p=>p.line], doj:['Joined', p=>fmt(d(p.doj)), p=>p.doj],
+ plant:['Plant', p=>esc(PLANTS[plantOf(p)]), p=>PLANTS[plantOf(p)]], dept:['Department', p=>esc(deptOf(p)), p=>deptOf(p)], mgr:['Line manager', p=>esc(MANAGERS[p.mgr].name), p=>MANAGERS[p.mgr].name], line:['Line', p=>esc(p.line), p=>p.line], doj:['Joined', p=>fmt(d(p.doj)), p=>p.doj],
  month:['Month', p=>'M'+mo(p), p=>mo(p)], band:['Band', p=>{ const l = latestEval(p); return l?bandChip(l.e.fb):bandChip(); }, p=>{ const l = latestEval(p); return l?l.e.fb:''; }],
  overall:['Score', p=>{ const l = latestEval(p); return l?pct(l.e.overall):'—'; }, p=>{ const l = latestEval(p); return l?l.e.overall:-1; }],
  att:['Attendance', p=>pct(attStats(p.id).pct), p=>attStats(p.id).pct], kz3:['Kaizens 3 mo', p=>kzStats(p.id).impl3, p=>kzStats(p.id).impl3], skills:['Stations', p=>S.dev[p.id].st??'—', p=>S.dev[p.id].st??-1],
@@ -563,6 +660,7 @@ function vMaster(){
   const l = latestEval(p);
   if(F.type && p.type!==F.type) return false;
   if(F.dept && deptOf(p)!==F.dept) return false;
+  if(F.plant && plantOf(p)!==F.plant) return false;
   if(F.band && (!l || l.e.fb!==F.band)) return false;
   if(F.m12 && !(formsOf(p.id).some(f=>f.cp==='M12') || mo(p)>=11)) return false;
   if(F.risk && !(l && l.e.status==='At risk')) return false;
@@ -573,16 +671,17 @@ function vMaster(){
  ps.sort((a,b)=>{ const x = sk(a), y = sk(b); return typeof x==='number' ? (V.sort==='overall'?y-x:x-y) : String(x).localeCompare(String(y)); });
  let rows = '';
  const tr = p => `<tr class="click" data-go="person/${p.id}">${V.cols.map(c=>`<td>${COLS[c][1](p)}</td>`).join('')}</tr>`;
- if(V.group){ const g = {name:p=>p.name, dept:deptOf, mgr:p=>MANAGERS[p.mgr].name, type:p=>p.type, band:p=>{ const l = latestEval(p); return l?'Band '+l.e.fb:'No review'; }}[V.group]; const groups = {}; ps.forEach(p=>(groups[g(p)] ||= []).push(p)); rows = Object.keys(groups).sort().map(k=>`<tr class="grp"><td colspan="${V.cols.length}">${esc(k)} · ${groups[k].length}</td></tr>`+groups[k].map(tr).join('')).join(''); }
+ if(V.group){ const g = {name:p=>p.name, plant:p=>PLANTS[plantOf(p)], dept:deptOf, mgr:p=>MANAGERS[p.mgr].name, type:p=>p.type, band:p=>{ const l = latestEval(p); return l?'Band '+l.e.fb:'No review'; }}[V.group]; const groups = {}; ps.forEach(p=>(groups[g(p)] ||= []).push(p)); rows = Object.keys(groups).sort().map(k=>`<tr class="grp"><td colspan="${V.cols.length}">${esc(k)} · ${groups[k].length}</td></tr>`+groups[k].map(tr).join('')).join(''); }
  else rows = ps.map(tr).join('');
  return `${ph('Apprentice master', 'Every apprentice, with data from all sources on one row. Choose a view, filter, pick columns and group; save it as your own view.', `<button class="btn" data-act="mastercsv" type="button">${ic('download',16)} Export CSV</button>`)}
  <div class="viewtabs" role="group" aria-label="Saved views">${S.views.map(v=>`<button type="button" data-act="vsel" data-id="${v.id}" aria-pressed="${v.id===V.id}">${esc(v.name)}</button>`).join('')}</div>
  <section class="card" style="padding:18px 20px;margin-bottom:16px">
   <div class="toolbar" style="margin-bottom:0"><div class="fld"><label for="q">Search</label><input id="q" type="search" value="${esc(UI.q||'')}" placeholder="Name, ticket or TeamLease code" style="width:240px"></div>
+   <div class="fld"><label for="mf-plant">Plant</label><select id="mf-plant" data-mf="plant"><option value="">All</option>${Object.entries(PLANTS).map(([k,v])=>`<option value="${k}" ${F.plant===k?'selected':''}>${v}</option>`).join('')}</select></div>
    <div class="fld"><label for="mf-dept">Department</label><select id="mf-dept" data-mf="dept"><option value="">All</option>${DEPTS.map(x=>`<option ${F.dept===x?'selected':''}>${x}</option>`).join('')}</select></div>
    <div class="fld"><label for="mf-type">Type</label><select id="mf-type" data-mf="type"><option value="">All</option>${['TTA','WILP'].map(x=>`<option ${F.type===x?'selected':''}>${x}</option>`).join('')}</select></div>
    <div class="fld"><label for="mf-band">Band</label><select id="mf-band" data-mf="band"><option value="">All</option>${['A','B','C'].map(x=>`<option ${F.band===x?'selected':''}>${x}</option>`).join('')}</select></div>
-   <div class="fld"><label for="v-group">Group by</label><select id="v-group" data-vset="group"><option value="">None</option>${[['dept','Department'],['mgr','Line manager'],['type','Type'],['band','Band']].map(([k,l])=>`<option value="${k}" ${V.group===k?'selected':''}>${l}</option>`).join('')}</select></div>
+   <div class="fld"><label for="v-group">Group by</label><select id="v-group" data-vset="group"><option value="">None</option>${[['plant','Plant'],['dept','Department'],['mgr','Line manager'],['type','Type'],['band','Band']].map(([k,l])=>`<option value="${k}" ${V.group===k?'selected':''}>${l}</option>`).join('')}</select></div>
    <div class="fld"><label for="v-sort">Sort by</label><select id="v-sort" data-vset="sort">${Object.entries(COLS).map(([k,c])=>`<option value="${k}" ${V.sort===k?'selected':''}>${c[0]}</option>`).join('')}</select></div>
    <span class="sp"></span><button class="btn" data-act="colsbtn" type="button" aria-expanded="${!!UI.cols}">${ic('cog',16)} Columns</button></div>
   ${UI.cols?`<div class="mt16"><div class="colpick">${Object.entries(COLS).map(([k,c])=>`<label><input type="checkbox" data-col="${k}" ${V.cols.includes(k)?'checked':''}>${c[0]}</label>`).join('')}</div>
@@ -592,15 +691,15 @@ function vMaster(){
  <p class="sm muted mt12">${ps.length} apprentices</p>`;
 }
 function vAccess(){
- const R = [['hod','Head of Department',[['agent','Agent summary and flags'],['comments','Line manager’s comments'],['data','Record values next to each parameter']]],['plant','Plant head',[['scores','Individual scores (otherwise bands only)'],['comments','Line manager’s comments'],['conduct','Conduct case details (otherwise counts only)'],['kaizen','Kaizen savings in rupees']]],['manager','Line manager',[['agent','Agent summary for own team after submitting']]]];
- return `${ph('Role views', 'Plant HR decides what each role sees. Changes apply immediately in every portal.')}
+ const R = [['hod','Head of Department',[['agent','Agent summary and flags'],['comments','Line manager’s comments'],['data','Record values next to each parameter']]],['plant','Leadership',[['scores','Individual scores (otherwise bands only)'],['comments','Line manager’s comments'],['conduct','Conduct case details (otherwise counts only)'],['kaizen','Kaizen savings in rupees']]],['manager','Line manager',[['agent','Agent summary for own team after submitting']]]];
+ return `${ph('Role views', 'HR decides what each role sees. Changes apply immediately in every portal.')}
  <div class="grid g3">${R.map(([r,l,items])=>`<section class="card"><h2>${l}</h2><div class="list mt12">${items.map(([k,t])=>`<label class="check li"><input type="checkbox" data-vis="${r}.${k}" ${vis(r,k)?'checked':''}><span>${esc(t)}</span></label>`).join('')}</div></section>`).join('')}</div>
- <div class="note mt24">Line managers always see their own team only. HoDs see their divisions. Plant head and HR see the whole plant. The apprentice master views on the HR home are saved per plant.</div>`;
+ <div class="note mt24">Line managers always see their own team only. HoDs see their divisions. Leadership and HR see every plant. The apprentice master views on the HR home are saved per plant.</div>`;
 }
 function vRules(){
  const ro = USERS[ME].role!=='hr', C = S.cfg;
  const num = (k, v, step=1, w=110) => `<input type="number" step="${step}" style="width:${w}px;height:36px;text-align:right" data-cfg="${k}" value="${v}" ${ro?'disabled':''} aria-label="${k}">`;
- return `${ph('Scoring rules', RULES_VER+'. Weight is split equally across the six PQCDSM buckets, then equally across the parameters inside each bucket. Bucket weights can be changed while the plant agrees them.', ro?'':`<button class="btn" data-act="cfgreset" type="button">Reset to equal weights</button>`)}
+ return `${ph('Scoring rules', RULES_VER+'. Weight is split equally across the six PQCDSM buckets, then equally across the parameters inside each bucket.', ro?'':`<button class="btn" data-act="cfgreset" type="button">Reset to equal weights</button>`)}
  <div class="grid g21" style="align-items:start">
   <section class="card"><h2>Buckets and weights</h2><p class="sub">11 parameters, clubbed from the 19 on the old appraisal form into Bajaj’s PQCDSM buckets. A bucket’s score is the average of its parameters.</p>
    <div class="mt12">${BORDER.map(b=>`<div class="wt" style="border-bottom:0;padding-bottom:4px"><span class="pq lg">${b}</span><div class="ink" style="font-weight:600">${BUCKETS[b].name}</div>${num('w.'+b, C.w[b])}<span class="share" style="color:var(--ink);font-weight:600">${pct(bucketShare(b)*100)}</span></div>${PARAMS.filter(p=>p.b===b).map(p=>`<div class="wt" style="padding:6px 0 6px 0"><span></span><div><div class="ink" style="font-weight:500;font-size:14px">${esc(p.name)}</div><div class="sm muted">${p.st.length?p.st.length+' statement'+(p.st.length>1?'s':''):'Records only'}${p.data?' + '+esc(p.src):''} · clubs: ${esc(p.clubbed)}</div></div><span></span><span class="share">${pct(paramShare(p.k)*100)}</span></div>`).join('')}`).join('')}</div></section>
@@ -611,14 +710,14 @@ function vRules(){
    <section class="card"><h2>Other</h2><div class="list mt8"><div class="li"><span class="sp">Leniency flag above % band A</span>${num('leniency',C.leniency,1,80)}</div><div class="li"><span class="sp">Open the Month 12 review this many days before</span>${num('launchBefore',C.launchBefore,1,80)}</div><div class="li"><span class="sp">Kaizen sustain check after days</span>${num('kzVerifyDays',C.kzVerifyDays,1,80)}</div></div></section>
   </div>
  </div>
- <section class="card mt24"><h2>How records turn into a 1–5 score</h2><div class="tw mt12"><table class="t"><thead><tr><th>Parameter</th><th>Source</th><th>Rule (placeholder)</th></tr></thead><tbody>${PARAMS.filter(p=>p.data).map(p=>`<tr><td class="nm">${p.b} · ${esc(p.name)}</td><td>${srcTag(PSRC[p.data])}</td><td>${esc(DATA_RULES[p.data])}</td></tr>`).join('')}</tbody></table></div></section>`;
+ <section class="card mt24"><h2>How records turn into a 1–5 score</h2><div class="tw mt12"><table class="t"><thead><tr><th>Parameter</th><th>Source</th><th>Rule</th></tr></thead><tbody>${PARAMS.filter(p=>p.data).map(p=>`<tr><td class="nm">${p.b} · ${esc(p.name)}</td><td>${srcTag(PSRC[p.data])}</td><td>${esc(DATA_RULES[p.data])}</td></tr>`).join('')}</tbody></table></div></section>`;
 }
 
 /* ======================= DATA SOURCES ======================= */
 const SOURCES = [
  {k:'sf',short:'SF/EC master',name:'SAP SuccessFactors Employee Central',dir:'in',what:'Employee master: ticket no., name, date of joining, department, line, reporting manager, HoD, employee class, status, exits.',how:'OData v2 API pull (EmpJob, EmpEmployment, PerPersonal, User) through SAP Integration Suite. Delta by lastModifiedDateTime.',when:'Daily 05:30 and on demand',run:'sfsync',
   map:[['User.userId','Ticket no.','Primary key for every record'],['PerPersonal.firstName + lastName','Name',''],['EmpEmployment.startDate','Date of joining','Drives the Month 12 review date'],['EmpJob.department / division','Department, division','Routes to HoD'],['EmpJob.managerId','Line manager','Who appraises'],['EmpJob.employeeClass','Type (TTA / WILP)','Contingent worker = WILP'],['EmpJob.customString (line)','Line','If maintained in SF'],['EmpEmployment.endDate','Exit','Closes open reviews']]},
- {k:'sfout',short:'SF/EC conversion',name:'SAP SF/EC · conversion events',dir:'out',what:'Final Month 12 decision: job change to permanent operator, 3-month extension, or separation.',how:'OData upsert to EmpJob with event reason, or a workflow request so HR in SF approves. One call per finalised decision.',when:'Real time, when Plant HR finalises',run:null,
+ {k:'sfout',short:'SF/EC conversion',name:'SAP SF/EC · conversion events',dir:'out',what:'Final Month 12 decision: job change to permanent operator, 3-month extension, or separation.',how:'OData upsert to EmpJob with event reason, or a workflow request so HR in SF approves. One call per finalised decision.',when:'Real time, when HR finalises',run:null,
   map:[['Decision = Convert','EmpJob event: Job change','Effective first of next month'],['Decision = Extend 3 months','EmpEmployment / contract end date + 3 months',''],['Decision = Do not convert','Termination event (end of apprenticeship)',''],['PRAGATI assessment ID','Attachment / comment','Audit link back to PRAGATI']]},
  {k:'time',short:'Time system',name:'Plant time system (gate punches)',dir:'in',what:'Daily status per apprentice: present, late (with in-time), absent, weekly off.',how:'CSV file dropped on SFTP by the time system; PRAGATI picks it up, validates ticket numbers and loads. API if the vendor supports it.',when:'Daily 06:00',run:'timesync',
   map:[['EMP_CODE','Ticket no.','Rows with unknown codes rejected'],['ATT_DATE','Date',''],['STATUS (P/A/WO)','Status',''],['IN_TIME','In-time','After 07:10 = late-in']]},
@@ -651,7 +750,7 @@ function logTable(n){
 function vLog(){ return `${ph('Audit log', 'Every data movement and decision, newest first.')}${logTable()}`; }
 
 /* ======================= LINE TABLET ======================= */
-function tabletShell(title, inner){ return `<div class="tablet"><div class="screen"><div class="tb"><b>${title}</b><span>${fmtS(TODAY)} · ${PLANT}</span></div>${inner}</div></div>`; }
+function tabletShell(title, inner){ return `<div class="tablet"><div class="screen"><div class="tb"><b>${title}</b><span>${fmtS(TODAY)}</span></div>${inner}</div></div>`; }
 function vReport(){
  const D = UI.tablet || (UI.tablet = {tid:'',k:'',place:'',desc:'',time:''});
  const p = D.tid ? S.people[D.tid] : null, sg = (D.tid && D.k) ? suggest(D.tid, D.k) : null;
@@ -713,7 +812,7 @@ function vPunches(){
  const rec = (p,k) => rawOf(p.id).find(x=>x.d===k) || {s:'—'};
  const cell = x => x.s==='A'?'Absent':x.s==='W'?'Off':esc((x.in||'')+(x.s==='L'?' late':''));
  return `${ph('Gate punches', 'Apprentices punch in at the gate. Every morning at 06:00 the time system sends PRAGATI one file with each apprentice’s status per day. Nobody types attendance.', `<button class="btn pri" data-act="timesync" type="button" ${pend.length?'':'disabled'}>Send daily file${pend.length?' ('+pend.length+' apprentices)':''}</button>`)}
- <div class="feedbox"><div class="hd"><span><b>TIME SYSTEM</b> · ${PLANT} gate</span><span>PRAGATI synced to ${esc(attStats(ps[0].id).syncedTo)}</span></div>
+ <div class="feedbox"><div class="hd"><span><b>TIME SYSTEM</b> · gate punches, all plants</span><span>PRAGATI synced to ${esc(attStats(ps[0].id).syncedTo)}</span></div>
  <div style="overflow-x:auto"><table class="t"><thead><tr><th>EMP_CODE</th><th>Name</th><th>${fmtS(new Date(TODAY.getTime()-DAY))}</th><th>${fmtS(TODAY)}</th><th>In PRAGATI</th></tr></thead><tbody>
  ${ps.map(p=>{ const y = rec(p,yk), t = rec(p,tk); return `<tr><td class="mono">${esc(p.ticket)}</td><td>${esc(p.name)}</td><td class="${y.s}">${cell(y)}</td><td class="${t.s}">${cell(t)}</td><td>${pendingDays(p.id)?'<span class="chip warn">Pending</span>':'<span class="chip good">Yes</span>'}</td></tr>`; }).join('')}
  </tbody></table></div></div>`;
@@ -761,7 +860,7 @@ function vConsole(){
 function vHow(){
  return `${ph('How the agent works', 'Rules decide the score. AI only reads the free-text comments, and every output shows its reasons.')}
  <div class="grid g2"><section class="card"><h2>Inputs</h2><div class="list mt8">${SOURCES.filter(s=>s.dir!=='out').map(s=>`<div class="li"><span class="ico">${ic('db')}</span><div><div class="t1">${esc(s.short)}</div><div class="t2">${esc(s.what)}</div></div></div>`).join('')}</div></section>
- <section class="card"><h2>Guardrails</h2><div class="list mt8">${['The rule set is published and versioned; HR changes it, not the agent.','Only closed conduct cases count. Open cases are flagged, never scored.','A missing record is never guessed: the manager’s rating stands and a flag is raised.','The agent recommends at Month 12. The HoD decides and Plant HR finalises.','Every run is logged with its inputs, so any score can be reproduced.'].map(x=>`<div class="li"><span class="ico good">${ic('check')}</span><div class="t1" style="font-weight:400">${x}</div></div>`).join('')}</div></section></div>`;
+ <section class="card"><h2>Guardrails</h2><div class="list mt8">${['The rule set is published and versioned; HR changes it, not the agent.','Only closed conduct cases count. Open cases are flagged, never scored.','A missing record is never guessed: the manager’s rating stands and a flag is raised.','The agent recommends at Month 12. The HoD decides and HR finalises.','Every run is logged with its inputs, so any score can be reproduced.'].map(x=>`<div class="li"><span class="ico good">${ic('check')}</span><div class="t1" style="font-weight:400">${x}</div></div>`).join('')}</div></section></div>`;
 }
 
 /* ======================= FLOW MAP ======================= */
@@ -770,8 +869,8 @@ function vFlow(){
  const H = (...k) => k.some(x=>[...hot].some(h=>h && h.startsWith(x))) ? 'hot' : '';
  const node = (href, cls, t, s, feed) => `<a class="node ${cls}" href="${href}" target="_blank" rel="noopener" style="text-decoration:none"><b>${t}</b><span>${s}</span>${feed?`<span class="feed">${feed}</span>`:''}</a>`;
  const pend = Object.keys(S.people).filter(k=>pendingDays(k)>0).length;
- const T = [['Send today’s punches','Time system','timesystem.html'],['Upload September registers','Coordinator','coordinator.html'],['Import TeamLease joiners','TeamLease','teamlease.html'],['Submit a kaizen and report an incident','Line tablet','supervisor.html'],['Evaluate the kaizen and complete a review (anaik)','Line manager','manager.html'],['Sign the review with the summary (piyer)','HoD','hod.html'],['See the plant summary (vdeshpande)','Plant head','plant.html'],['Finalise a conversion → SF/EC (nsharma)','Plant HR','hr.html']];
- return `${ph('How data moves', 'From the shop floor and SAP SF/EC into PRAGATI, through the agent, to a decision that goes back to SAP SF/EC. Boxes light up when data moves; each opens its portal.', `<button class="btn" data-act="nightly" type="button">Run nightly checks</button><button class="btn danger" data-act="reset" type="button">Reset demo data</button>`)}
+ const T = [['Send today’s punches','Time system','timesystem.html'],['Upload September registers','Coordinator','coordinator.html'],['Import TeamLease joiners','TeamLease','teamlease.html'],['Submit a kaizen and report an incident','Line tablet','supervisor.html'],['Evaluate the kaizen and complete a review (anaik)','Line manager','manager.html'],['Sign the review with the summary (piyer)','HoD','hod.html'],['See the summary across plants (vdeshpande)','Leadership','plant.html'],['Finalise a conversion → SF/EC (nsharma)','HR','hr.html']];
+ return `${ph('How data moves', 'From the shop floor and SAP SF/EC into PRAGATI, through the agent, to a decision that goes back to SAP SF/EC. Boxes light up when data moves; each opens its portal.', `<button class="btn" data-act="nightly" type="button">Run nightly checks</button><button class="btn danger" data-act="reset" type="button">Reset data</button>`)}
  <section class="card"><div class="flow">
   <div class="col"><h3>Sources</h3>
    ${node('hr.html#/sources',H('SAP SF/EC'),'SAP SF/EC','Employee master in, daily','OData API')}
@@ -791,11 +890,11 @@ function vFlow(){
    ${node('manager.html',H('Line manager'),'Line manager','Appraises, validates, evaluates kaizens','')}
    ${node('hod.html',H('HoD'),'HoD (skip level)','Summary view; signs and decides','')}
    ${node('plant.html','','Plant head','Plant summary','')}
-   ${node('hr.html#/m12',H('Plant HR'),'Plant HR','Finalises; owns the rules and views','')}
+   ${node('hr.html#/m12',H('HR'),'HR','Finalises; owns the rules and views','')}
    ${node('hr.html#/sources',H('PRAGATI','SAP SF/EC Job'),'SAP SF/EC job change','Outbound on finalise','')}
   </div>
  </div></section>
- <div class="grid g2 mt24" style="align-items:start"><section class="card"><h2>Walkthrough</h2><p class="sub">Open each portal in its own tab; changes appear everywhere within a second.</p><div class="list mt8">${T.map(([t,w,h],i)=>`<a class="li click" href="${h}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="pq">${i+1}</span><div class="sp"><div class="t1">${t}</div><div class="t2">${w}</div></div>${ic('arrow',16)}</a>`).join('')}</div></section>
+ <div class="grid g2 mt24" style="align-items:start"><section class="card"><h2>End-to-end process</h2><p class="sub">Open each portal in its own tab; changes appear everywhere within a second.</p><div class="list mt8">${T.map(([t,w,h],i)=>`<a class="li click" href="${h}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="pq">${i+1}</span><div class="sp"><div class="t1">${t}</div><div class="t2">${w}</div></div>${ic('arrow',16)}</a>`).join('')}</div></section>
  <section class="card"><h2>Data movements</h2>${logTable(10)}</section></div>`;
 }
 function vSettings(id){ const t = ['rules','access','log'].includes(id)?id:'rules'; return `<nav class="itabs" style="margin-top:0" aria-label="Settings">${[['rules','Scoring rules'],['access','Role views'],['log','Audit log']].map(([k,l])=>`<a href="#/settings/${k}" ${k===t?'aria-current="page"':''}>${l}</a>`).join('')}</nav>`+({rules:vRules,access:vAccess,log:vLog})[t](); }
