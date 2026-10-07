@@ -62,7 +62,7 @@ function vLanding(){
  return `<div class="land-hero"><div class="in"><div>
   <div class="eyebrow">Bajaj Auto · Apprentice programme · All plants</div>
   <h1><span>PRAGATI</span><br>One record for every apprentice, from joining to conversion.</h1>
-  <p class="exp"><b>P</b>erformance & <b>R</b>ecords of <b>A</b>pprentices: <b>G</b>rowth, <b>A</b>ttendance, <b>T</b>raining, <b>I</b>ntegrity. Reviews, attendance, kaizens, skills and conduct in one place. Master data flows in from SAP SF/EC and plant systems at every location; the final decision flows back to SF/EC.</p>
+  <p class="exp"><b>P</b>erformance & <b>R</b>ecords of <b>A</b>pprentices: <b>G</b>rowth, <b>A</b>ttendance, <b>T</b>raining, <b>I</b>ntegrity. Reviews, attendance, kaizens, skills and conduct in one place.</p>
   <div class="acro">${[['P','Performance'],['R','Records'],['A','Apprentices'],['G','Growth'],['A','Attendance'],['T','Training'],['I','Integrity']].map(([a,b])=>`<div><b>${a}</b><span>${b}</span></div>`).join('')}</div>
  </div>
  <div class="heroboard"><div class="between"><h3>Today across ${Object.keys(PLANTS).length} plants</h3><span class="muted sm">${fmt(TODAY)}</span></div>
