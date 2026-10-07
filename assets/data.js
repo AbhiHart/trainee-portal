@@ -6,7 +6,7 @@ const TODAY = (()=>{ const t = new Date(); t.setHours(0,0,0,0); return t; })();
 const SHIFT = Math.round((TODAY - new Date(2026, 9, 7)) / 864e5);
 const sh = s => { const [y,m,dd] = s.split('-').map(Number); const x = new Date(y, m-1, dd + SHIFT); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
 const DAY = 864e5;
-const PLANTS = {WLJ:'Waluj', CKN:'Chakan', PNT:'Pantnagar'};
+const PLANTS = {WLJ:'Waluj'};
 const RULES_VER = 'Rule set v1.1';
 
 const BUCKETS = {
@@ -94,11 +94,11 @@ const CSTATUS = ['','Reported','Validated','Action decided','Letter issued','Clo
 
 const MANAGERS = {
  m1:{name:'S. Kulkarni',dept:'Engine Assembly',div:'MCD',hod:'h1',plant:'WLJ',lines:['E-Line 1','E-Line 2','E-Line D']},
- m2:{name:'R. Joshi',dept:'Vehicle Assembly',div:'MCD',hod:'h1',plant:'CKN',lines:['V-Line 1','V-Line 2','V-Line 3']},
- m5:{name:'M. Sawant',dept:'Machine Shop',div:'MCD',hod:'h1',plant:'PNT',lines:['CNC Cell 1','CNC Cell 2','CNC Cell 3']},
+ m2:{name:'R. Joshi',dept:'Vehicle Assembly',div:'MCD',hod:'h1',plant:'WLJ',lines:['V-Line 1','V-Line 2','V-Line 3']},
+ m5:{name:'M. Sawant',dept:'Machine Shop',div:'MCD',hod:'h1',plant:'WLJ',lines:['CNC Cell 1','CNC Cell 2','CNC Cell 3']},
  m3:{name:'A. Naik',dept:'Frame Shop',div:'CVD',hod:'h2',plant:'WLJ',lines:['Frame Weld 1','Frame Weld 2','Frame Paint']},
- m6:{name:'K. Pillai',dept:'Paint Shop',div:'CVD',hod:'h2',plant:'CKN',lines:['Paint Booth 1','Paint Booth 2','Pretreatment']},
- m4:{name:'M. Rao',dept:'Packing & Dispatch',div:'SPD',hod:'h2',plant:'PNT',lines:['Packing L1','Packing L2','Dispatch Bay 1','Dispatch Bay 2']}
+ m6:{name:'K. Pillai',dept:'Paint Shop',div:'CVD',hod:'h2',plant:'WLJ',lines:['Paint Booth 1','Paint Booth 2','Pretreatment']},
+ m4:{name:'M. Rao',dept:'Packing & Dispatch',div:'SPD',hod:'h2',plant:'WLJ',lines:['Packing L1','Packing L2','Dispatch Bay 1','Dispatch Bay 2']}
 };
 const HODS = {h1:{name:'D. Mehta',divs:['MCD']},h2:{name:'P. Iyer',divs:['CVD','SPD']}};
 const DEPTS = [...new Set(Object.values(MANAGERS).map(m=>m.dept))];
@@ -278,7 +278,7 @@ function seed(){
  Object.values(S.people).forEach((p,i)=>{ const v = S.dev[p.id], R = rng(i*31+5); S.reg.rows.push({ticket:p.ticket, name:p.name, st: v.st==null?null:v.st+(R()<.4?1:0), jh:v.jh, ie: v.ie==null?null:v.ie+(R()<.5?1:0)}); });
  S.reg.rows.push({ticket:'T99999', name:'(not found)', st:3, jh:1, ie:2});
  S.views = [
-  {id:'v1',name:'All apprentices',cols:['ticket','name','type','plant','dept','mgr','month','band','overall','att','kz3','conduct','next'],f:{},group:'plant',sort:'name',sys:true},
+  {id:'v1',name:'All apprentices',cols:['ticket','name','type','plant','dept','mgr','month','band','overall','att','kz3','conduct','next'],f:{},group:'',sort:'name',sys:true},
   {id:'v2',name:'Month 12 pipeline',cols:['ticket','name','dept','mgr','month','band','overall','rec','decision'],f:{m12:true},group:'dept',sort:'overall',sys:false},
   {id:'v3',name:'At risk',cols:['ticket','name','dept','mgr','band','att','conduct','flags'],f:{risk:true},group:'',sort:'overall',sys:false},
   {id:'v4',name:'WILP (TeamLease)',cols:['ticket','tl','name','dept','month','band','att','next'],f:{type:'WILP'},group:'mgr',sort:'name',sys:false}

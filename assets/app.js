@@ -117,7 +117,7 @@ function toast(msg){ const n = document.createElement('div'); n.className = 'toa
 function go(path){ location.hash = '#/'+path; }
 
 /* ----- shared store (this browser; all portals) ----- */
-const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v3';
+const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v4';
 let rev = 0, _ptimer = null;
 function persist(){
  rev++;

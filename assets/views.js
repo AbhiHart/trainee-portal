@@ -50,7 +50,7 @@ function kpi(l, v, s='', go=''){ return go ? `<button class="kpi" type="button" 
 const vis = (role, k) => !!(S.cfg.vis[role] && S.cfg.vis[role][k]);
 function cdTxt(cd){ if(!cd.wl&&!cd.vcur&&!cd.end&&!cd.open) return '<span class="good">Clean</span>'; return `<span class="${cd.eff||cd.end?'bad':'warn'}">${[cd.wl?cd.wl+' WL':'',cd.vcur?cd.vcur+' VC/UR':'',cd.open?cd.open+' open':''].filter(Boolean).join(' \u00b7 ')}</span>`; }
 function plantOf(p){ return MANAGERS[p.mgr].plant; }
-function plantPick(){ return `<div class="fld" style="min-width:200px"><label for="pl-pick">Plant</label><select id="pl-pick"><option value="">All plants</option>${Object.entries(PLANTS).map(([k,v])=>`<option value="${k}" ${UI.plant===k?'selected':''}>${v}</option>`).join('')}</select></div>`; }
+function plantPick(){ if(Object.keys(PLANTS).length<2) return ''; return `<div class="fld" style="min-width:200px"><label for="pl-pick">Plant</label><select id="pl-pick"><option value="">All plants</option>${Object.entries(PLANTS).map(([k,v])=>`<option value="${k}" ${UI.plant===k?'selected':''}>${v}</option>`).join('')}</select></div>`; }
 function deptOf(p){ return MANAGERS[p.mgr].dept; }
 
 /* ======================= LANDING ======================= */
@@ -60,12 +60,12 @@ function vLanding(){
  const k3 = S.kaizens.filter(k=>k.implAt && d(k.implAt) >= new Date(TODAY.getTime()-91*DAY)).length;
  const group = (title, sub, keys) => `<section class="pgroup"><h2>${title}</h2><p>${sub}</p><div class="grid g4">${keys.map(k=>{ const x = PORTALS[k]; const creds = Object.entries(USERS).filter(([u,v])=>x.roles.includes(v.role)).map(([u])=>u); return `<a class="portal" href="${x.file}"><span class="ico">${ic(x.icon,22)}</span><b>${esc(x.name)}</b><span class="who">${esc(x.who)}</span><span class="go">Open portal →</span></a>`; }).join('')}</div></section>`;
  return `<div class="land-hero"><div class="in"><div>
-  <div class="eyebrow">Bajaj Auto · Apprentice programme · All plants</div>
+  <div class="eyebrow">Bajaj Auto · Apprentice programme</div>
   <h1><span>PRAGATI</span><br>One record for every apprentice, from joining to conversion.</h1>
   <p class="exp"><b>P</b>erformance & <b>R</b>ecords of <b>A</b>pprentices: <b>G</b>rowth, <b>A</b>ttendance, <b>T</b>raining, <b>I</b>ntegrity. Reviews, attendance, kaizens, skills and conduct in one place.</p>
   <div class="acro">${[['P','Performance'],['R','Records'],['A','Apprentices'],['G','Growth'],['A','Attendance'],['T','Training'],['I','Integrity']].map(([a,b])=>`<div><b>${a}</b><span>${b}</span></div>`).join('')}</div>
  </div>
- <div class="heroboard"><div class="between"><h3>Today across ${Object.keys(PLANTS).length} plants</h3><span class="muted sm">${fmt(TODAY)}</span></div>
+ <div class="heroboard"><div class="between"><h3>Today</h3><span class="muted sm">${fmt(TODAY)}</span></div>
   <div class="grid g2 mt16">${kpi('Active apprentices', act.length)}${kpi('Reviews waiting for HoD', S.forms.filter(f=>f.status==='With HoD').length)}${kpi('Kaizens implemented (90 days)', k3)}${kpi('Open conduct cases', S.cases.filter(c=>c.status<5).length)}</div>
   <div class="mt16"><div class="between sm muted"><span>Band mix, latest reviews</span><span>${ev.length} reviewed</span></div>${bandMix(ev.map(x=>x.e.fb))}</div>
  </div></div></div>
@@ -410,7 +410,7 @@ function cRegister(){
   <div class="fld"><label for="cf-cat">Category</label><select id="cf-cat" data-cf="cat"><option value="">All</option>${cats.map(x=>`<option ${F.cat===x?'selected':''}>${esc(x)}</option>`).join('')}</select></div>
   <div class="fld"><label for="cf-tier">Tier</label><select id="cf-tier" data-cf="tier"><option value="">All</option>${[1,2,3,0].map(t=>`<option value="${t}" ${F.tier===String(t)?'selected':''}>${TIER[t][0]}</option>`).join('')}</select></div>
   <div class="fld"><label for="cf-st">Status</label><select id="cf-st" data-cf="st"><option value="">All</option>${[1,2,3,4,5].map(s=>`<option value="${s}" ${F.st===String(s)?'selected':''}>${CSTATUS[s]}</option>`).join('')}</select></div>
-  <div class="fld"><label for="cf-plant">Plant</label><select id="cf-plant" data-cf="plant"><option value="">All</option>${Object.entries(PLANTS).map(([k,v])=>`<option value="${k}" ${F.plant===k?'selected':''}>${v}</option>`).join('')}</select></div>
+  ${Object.keys(PLANTS).length>1?`<div class="fld"><label for="cf-plant">Plant</label><select id="cf-plant" data-cf="plant"><option value="">All</option>${Object.entries(PLANTS).map(([k,v])=>`<option value="${k}" ${F.plant===k?'selected':''}>${v}</option>`).join('')}</select></div>`:''}
  </div></section>
  <div class="tw"><table class="t"><thead><tr><th>Case</th><th>Date</th><th>Apprentice</th><th>Department</th><th>Misconduct</th><th>Tier</th><th>Action</th><th>Letter</th><th>Status</th></tr></thead><tbody>
  ${cs.map(c=>{ const p = S.people[c.tid], m = MISK[c.k], L = c.steps.letter; return `<tr class="click" data-go="case/${c.id}"><td style="white-space:nowrap"><span class="mono">${c.id}</span>${mine(c)?'<div><span class="chip info" style="height:20px;font-size:11px;margin-top:4px">Your step</span></div>':''}</td><td style="white-space:nowrap">${fmt(d(c.date))}</td><td class="nm">${esc(p.name)}<small>${esc(p.ticket)}${p.tl?' · '+esc(p.tl):''}</small></td><td>${esc(deptOf(p))}<div class="sm muted">${esc(PLANTS[plantOf(p)])}</div></td><td>${showDetail?esc(m.name):'<span class="muted">Hidden</span>'}<div class="sm muted">${esc(m.cat)}</div></td><td>${tierChip(m.tier)}</td><td>${c.steps.action?esc(c.steps.action.label):'<span class="muted">—</span>'}</td><td class="sm">${L&&L.ref?esc(L.ref):L?'—':'<span class="muted">—</span>'}</td><td>${caseChip(c)}</td></tr>`; }).join('')||'<tr><td colspan="9" class="empty">No cases match.</td></tr>'}
@@ -541,7 +541,7 @@ function vPlantDash(){
  const m12 = act.filter(p=>formsOf(p.id).some(f=>f.cp==='M12') || mo(p)>=11);
  const pipe = [['Due in next 60 days', act.filter(p=>{ const t = addM(d(p.doj),12); return t>TODAY && t<=new Date(TODAY.getTime()+60*DAY); }).length],['With line manager', m12.filter(p=>{ const f = formsOf(p.id).find(x=>x.cp==='M12'); return f && !isDone(f); }).length],['With HoD', m12.filter(p=>{ const f = formsOf(p.id).find(x=>x.cp==='M12'); return f && f.status==='With HoD'; }).length],['With HR', m12.filter(p=>S.decisions[p.id]&&S.decisions[p.id].hod&&!S.decisions[p.id].hr).length],['Finalised', ps.filter(p=>S.decisions[p.id]&&S.decisions[p.id].hr).length]];
  const showScores = USERS[ME].role!=='plant' || vis('plant','scores');
- return `${ph('Overview', (PL?PLANTS[PL]:'All plants')+' · '+fmt(TODAY), plantPick())}
+ return `${ph('Overview', (PL?PLANTS[PL]:Object.keys(PLANTS).length<2?Object.values(PLANTS)[0]:'All plants')+' · '+fmt(TODAY), plantPick())}
  <div class="grid g5">${kpi('Active apprentices', act.length, act.filter(p=>p.type==='TTA').length+' TTA · '+act.filter(p=>p.type==='WILP').length+' WILP','team')}${kpi('Review cycle', pct0(cyc.due?cyc.done/cyc.due*100:100)+'<small>signed</small>', cyc.due+' due in this window · '+cyc.hod+' with HoD · '+cyc.open+' with managers')}${kpi('At risk', risk.length, 'Band C, warning-level conduct or open case')}${kpi('Kaizens implemented', k90.length+'<small>90 days</small>', vis('plant','kaizen')||USERS[ME].role!=='plant'?lakh(sav)+' verified saving / yr':'', 'kzdash')}${kpi('Open conduct cases', S.cases.filter(c=>c.status<5 && inPl(S.people[c.tid])).length, '', 'cases')}</div>
  <section class="card mt24"><div class="card-h"><div><h2>By department</h2><p class="sub">Latest review per apprentice.</p></div></div>
   <div class="tw"><table class="t"><thead><tr><th>Department</th><th>Plant</th><th>HoD</th><th class="r">Apprentices</th><th>Review cycle</th>${showScores?'<th class="r">Avg score</th>':''}<th style="min-width:200px">Band mix</th><th class="r">At risk</th><th class="r">Attendance</th><th class="r">Kaizens / person (90 d)</th></tr></thead><tbody>
@@ -677,7 +677,7 @@ function vMaster(){
  <div class="viewtabs" role="group" aria-label="Saved views">${S.views.map(v=>`<button type="button" data-act="vsel" data-id="${v.id}" aria-pressed="${v.id===V.id}">${esc(v.name)}</button>`).join('')}</div>
  <section class="card" style="padding:18px 20px;margin-bottom:16px">
   <div class="toolbar" style="margin-bottom:0"><div class="fld"><label for="q">Search</label><input id="q" type="search" value="${esc(UI.q||'')}" placeholder="Name, ticket or TeamLease code" style="width:240px"></div>
-   <div class="fld"><label for="mf-plant">Plant</label><select id="mf-plant" data-mf="plant"><option value="">All</option>${Object.entries(PLANTS).map(([k,v])=>`<option value="${k}" ${F.plant===k?'selected':''}>${v}</option>`).join('')}</select></div>
+   ${Object.keys(PLANTS).length>1?`<div class="fld"><label for="mf-plant">Plant</label><select id="mf-plant" data-mf="plant"><option value="">All</option>${Object.entries(PLANTS).map(([k,v])=>`<option value="${k}" ${F.plant===k?'selected':''}>${v}</option>`).join('')}</select></div>`:''}
    <div class="fld"><label for="mf-dept">Department</label><select id="mf-dept" data-mf="dept"><option value="">All</option>${DEPTS.map(x=>`<option ${F.dept===x?'selected':''}>${x}</option>`).join('')}</select></div>
    <div class="fld"><label for="mf-type">Type</label><select id="mf-type" data-mf="type"><option value="">All</option>${['TTA','WILP'].map(x=>`<option ${F.type===x?'selected':''}>${x}</option>`).join('')}</select></div>
    <div class="fld"><label for="mf-band">Band</label><select id="mf-band" data-mf="band"><option value="">All</option>${['A','B','C'].map(x=>`<option ${F.band===x?'selected':''}>${x}</option>`).join('')}</select></div>
