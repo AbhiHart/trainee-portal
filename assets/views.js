@@ -889,7 +889,7 @@ function vFlow(){
   <div class="col"><h3>Decide & act</h3>
    ${node('manager.html',H('Line manager'),'Line manager','Appraises, validates, evaluates kaizens','')}
    ${node('hod.html',H('HoD'),'HoD (skip level)','Summary view; signs and decides','')}
-   ${node('plant.html','','Plant head','Plant summary','')}
+   ${node('plant.html','','Leadership','Overview and conversions','')}
    ${node('hr.html#/m12',H('HR'),'HR','Finalises; owns the rules and views','')}
    ${node('hr.html#/sources',H('PRAGATI','SAP SF/EC Job'),'SAP SF/EC job change','Outbound on finalise','')}
   </div>
