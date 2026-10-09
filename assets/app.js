@@ -28,16 +28,16 @@ const PORTALS = {
   nav:[['home','Home'],['team','My apprentices'],['reviews','Reviews'],['quick','Quick rate'],['kaizen','Kaizen'],['cases','Conduct']]},
  hod:{file:'hod.html',name:'Head of Department',icon:'users',who:'Skip-level managers (reviewing officers)',roles:['hod'],
   pitch:'See each apprentice on one page: the line manager’s appraisal with every record behind it.',
-  points:['Summary per apprentice with the year\u2019s records and agent flags','Sign or return reviews; decide conduct actions','Decide Month 12 conversions with the full record'],
-  nav:[['home','Home'],['reviews','Reviews to sign'],['team','Apprentices'],['cases','Conduct'],['m12','Conversions']]},
+  points:['Summary per apprentice with the year\u2019s records and agent flags','Sign or return reviews; decide conduct actions','Sign Month 12 outcomes with the full record'],
+  nav:[['home','Home'],['reviews','Reviews to sign'],['team','Apprentices'],['cases','Conduct'],['m12','Outcomes']]},
  plant:{file:'plant.html',name:'Leadership',icon:'plant',who:'Plant heads and business leadership',roles:['plant'],
   pitch:'The whole apprentice programme at a glance.',
-  points:['Review cycle, band mix and risk by department','Conversion pipeline','Kaizen activity and verified savings'],
-  nav:[['dash','Overview'],['team','Apprentices'],['kzdash','Kaizen'],['cases','Conduct'],['m12','Conversions']]},
+  points:['Review cycle, band mix and risk by department','Month 12 outcomes by department','Kaizen activity and verified savings'],
+  nav:[['dash','Overview'],['team','Apprentices'],['kzdash','Kaizen'],['cases','Conduct'],['m12','Outcomes']]},
  hr:{file:'hr.html',name:'HR',icon:'shield',who:'HR and Personnel',roles:['hr'],
   pitch:'Own the apprentice record: views, rules, conduct, conversions and data feeds.',
-  points:['Configurable apprentice master and role views','Scoring rules with equal, editable weights','Finalise decisions and send them to SAP SF/EC'],
-  nav:[['home','Home'],['dash','Overview'],['master','Apprentice master'],['cases','Conduct'],['m12','Conversions'],['kzreg','Kaizens'],['sources','Data sources'],['settings','Settings']]},
+  points:['Configurable apprentice master and role views','Scoring rules with equal, editable weights','Record Month 12 outcomes in SAP SF/EC'],
+  nav:[['home','Home'],['dash','Overview'],['master','Apprentice master'],['cases','Conduct'],['m12','Outcomes'],['kzreg','Kaizens'],['sources','Data sources'],['settings','Settings']]},
  tablet:{file:'supervisor.html',name:'Line Tablet',icon:'tablet',who:'Supervisors, security and apprentices at the line',roles:['tablet'],
   pitch:'Capture at the source: incidents and kaizen ideas, straight from the line.',points:['Report an incident in under a minute','Submit a kaizen sheet with photos','Track where each submission is'],
   nav:[['kzsubmit','Submit kaizen'],['report','Report incident'],['sent','My submissions']]},
@@ -117,7 +117,7 @@ function toast(msg){ const n = document.createElement('div'); n.className = 'toa
 function go(path){ location.hash = '#/'+path; }
 
 /* ----- shared store (this browser; all portals) ----- */
-const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v4';
+const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v5';
 let rev = 0, _ptimer = null;
 function persist(){
  rev++;
@@ -142,39 +142,30 @@ const A = {
  logout(){ try{ sessionStorage.removeItem('pragati-sess-'+PORTAL); }catch(e){} ME = null; history.replaceState(null,'',location.pathname); render(); },
  reset(){ S = seed(); seedLog(); initAssess(); UI.drawer = null; UI.tablet = null; UI.kzd = null; persist(); toast('Data reset in all portals'); render(); },
  lk(el){ const f = formOf(el.dataset.f); if(!f || isDone(f)) return; f.ans[el.dataset.k] = Number(el.dataset.v); if(f.status==='Not started') f.status = 'In progress'; render(); },
- mrec(el){ const f = formOf(el.dataset.f); f.mrec = el.dataset.id; if(f.status==='Not started') f.status='In progress'; render(); },
  submitform(el){
   const f = formOf(el.dataset.id), p = S.people[f.tid];
   const miss = ALL_ST.filter(k=>!f.ans[k]).length, errs = [];
   if(miss) errs.push(miss+' statement'+(miss>1?'s':'')+' not rated');
   if(!f.strengths.trim() || !f.improve.trim()) errs.push('fill both comment boxes');
-  if(f.cp==='M12' && !f.mrec) errs.push('give your Month 12 recommendation');
   if(!f.discussed) errs.push('confirm you discussed it with the apprentice');
   if(errs.length){ UI.showMiss = true; BORDER.forEach(b=>{ if(PARAMS.filter(x=>x.b===b).some(x=>x.st.some(s=>!f.ans[s]))) UI.open[f.id+':'+b] = true; }); render(); $('#ff-err').textContent = 'Before submitting: '+errs.join('; ')+'.'; return false; }
   UI.showMiss = false;
   f.status = 'With HoD'; f.submitted = stamp(); delete f.returned;
-  if(f.cp==='M12'){ S.decisions[p.id] = Object.assign(S.decisions[p.id]||{}, {mgr:{choice:f.mrec,by:USER().name,at:stamp()}}); }
   log('wf','Line manager','PRAGATI Review',`${f.id} ${f.cp} for ${p.name} submitted to HoD ${HODS[hodOf(p)].name}.`);
   runAgent(p.id, 'Review submitted');
   toast(p.name+' sent to '+HODS[hodOf(p)].name+'. Agent summary ready.'); go('reviews');
  },
- signform(el){ const f = formOf(el.dataset.id), p = S.people[f.tid]; f.status = 'Completed'; f.signed = stamp(); log('wf','HoD','PRAGATI Review',`${f.id} ${f.cp} for ${p.name} signed by ${USER().name}.`); toast('Review signed'); go('reviews'); },
- returnform(el){ const f = formOf(el.dataset.id), p = S.people[f.tid], n = val('rt-n') || val('dh-r'); if(n.length<5){ $('#dh-e').textContent = 'Add a note for the line manager.'; return false; } f.status = 'In progress'; f.returned = {by:USER().name, note:n, at:stamp()}; f.submitted = ''; log('wf','HoD','Line manager',`${f.id} ${f.cp} for ${p.name} returned: ${n}`); toast('Returned to '+f.by); go('reviews'); },
- hoddecide(el){
-  const f = formOf(el.dataset.id), p = S.people[f.tid], e = evaluate(p,f), c = val('dh-c'), r = val('dh-r');
-  const am = e.rec==='Recommend conversion'?'Convert':(e.rec==='Not recommended'||e.rec==='Training ended')?'Do not convert':null;
-  if((!am || c!==am) && r.length<5){ $('#dh-e').textContent = am ? 'Your decision differs from the agent ('+am+'). Add a reason.' : 'The agent referred this to you. Add a reason for your decision.'; return false; }
-  S.decisions[p.id] = Object.assign(S.decisions[p.id]||{}, {hod:{choice:c,reason:r,by:USER().name,at:stamp()}});
+ signform(el){ const f = formOf(el.dataset.id), p = S.people[f.tid], e = evaluate(p,f), c = val('dh-c') || e.rec, r = val('dh-r');
+  if(c!==e.rec && r.length<5){ $('#dh-e').textContent = 'You changed the outcome from '+e.rec+'. Add a reason.'; return false; }
+  S.decisions[p.id] = Object.assign(S.decisions[p.id]||{}, {hod:{choice:c===e.rec?null:c, reason:c===e.rec?'':r, by:USER().name, at:stamp()}});
   f.status = 'Completed'; f.signed = stamp();
-  log('wf','HoD','PRAGATI Decision',`${p.name}: HoD decided ${c} (agent: ${e.rec})${r?' — '+r:''}.`); toast('Decision recorded; Plant HR will finalise'); render();
- },
+  log('wf','HoD','PRAGATI Review',`${f.id} ${f.cp} for ${p.name} signed by ${USER().name}: ${c}${c!==e.rec?' (agent: '+e.rec+') \u2014 '+r:''}.`); toast('Review signed: '+c); go('reviews'); },
+ returnform(el){ const f = formOf(el.dataset.id), p = S.people[f.tid], n = val('rt-n') || val('dh-r'); if(n.length<5){ $('#dh-e').textContent = 'Add a note for the line manager.'; return false; } f.status = 'In progress'; f.returned = {by:USER().name, note:n, at:stamp()}; f.submitted = ''; log('wf','HoD','Line manager',`${f.id} ${f.cp} for ${p.name} returned: ${n}`); toast('Returned to '+f.by); go('reviews'); },
  hrfinal(el){
-  const p = S.people[el.dataset.id], dc = S.decisions[p.id]; dc.hr = {choice:dc.hod.choice,by:USER().name,at:stamp()};
-  const ev = dc.hod.choice==='Convert'?'Job change: Apprentice → Permanent operator (effective 01 Nov 2026)':dc.hod.choice==='Extend 3 months'?'Contract end date extended by 3 months':'End of apprenticeship: separation recorded';
-  dc.ec = {at:stamp(), event:ev};
-  log('wf','HR','PRAGATI Decision',`${p.name}: final decision ${dc.hod.choice}.`); log('out','PRAGATI','SAP SF/EC Job info',`${p.name}: ${ev}.`);
-  S.sources.sfout = {last:stamp(), rec:(S.sources.sfout.rec||0)+1, status:'ok', note:'Sent: '+p.name};
-  toast('Sent to SAP SF/EC: '+ev); render();
+  const p = S.people[el.dataset.id], dc = S.decisions[p.id], out = hodOutcome(p); dc.hr = {by:USER().name, at:stamp()};
+  log('out','PRAGATI','SAP SF/EC Performance',`${p.name}: Month 12 outcome recorded \u2014 ${out}.`);
+  S.sources.sfout = {last:stamp(), rec:(S.sources.sfout.rec||0)+1, status:'ok', note:'Recorded: '+p.name};
+  toast('Recorded in SAP SF/EC: '+out); render();
  },
  rtab(el){ UI.rtab = el.dataset.id; render(); },
  qb(el){ UI.qb = el.dataset.id; render(); },
@@ -324,7 +315,6 @@ document.addEventListener('change', e=>{
  if(ds.cfg){ const [a,b] = ds.cfg.split('.'); const n = Number(el.value); if(isNaN(n)) return; if(b) S.cfg[a][b] = n; else S.cfg[a] = n; afterDataChange('Rule set changed'); log('sys','HR','Rule set',`${ds.cfg} set to ${n}.`); persist(); render(); return; }
  if(ds.vis){ const [r,k] = ds.vis.split('.'); S.cfg.vis[r][k] = el.checked; log('sys','HR','Role views',`${r}: ${k} ${el.checked?'shown':'hidden'}.`); persist(); render(); toast('View setting saved for all portals'); return; }
  if(ds.ffc){ const f = formOf(ds.ffc); f[ds.k] = el.checked; if(f.status==='Not started') f.status = 'In progress'; persist(); return; }
- if(ds.tr){ const f = formOf(ds.tr); f.train = el.checked ? [...new Set([...f.train, el.value])] : f.train.filter(t=>t!==el.value); persist(); return; }
  if(ds.mf){ UI.mf = Object.assign(UI.mf||{}, {[ds.mf]:el.value}); render(); return; }
  if(ds.vset){ const V = S.views.find(v=>v.id===UI.vid)||S.views[0]; V[ds.vset] = el.value; persist(); render(); return; }
  if(ds.col){ const V = S.views.find(v=>v.id===UI.vid)||S.views[0]; V.cols = el.checked ? Object.keys(COLS).filter(k=>V.cols.includes(k)||k===ds.col) : V.cols.filter(c=>c!==ds.col); if(!V.cols.length) V.cols = ['name']; persist(); render(); return; }

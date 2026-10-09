@@ -15,7 +15,7 @@ const BUCKETS = {
  C:{name:'Cost', hint:'Care of machine, tools and material'},
  D:{name:'Delivery', hint:'Attendance and dependability'},
  S:{name:'Safety', hint:'Safety, 5S and discipline'},
- M:{name:'Morale', hint:'Improvement, skill, teamwork and readiness'}
+ M:{name:'Morale', hint:'Improvement, skill, teamwork and overall performance'}
 };
 const BORDER = ['P','Q','C','D','S','M'];
 
@@ -30,7 +30,7 @@ const PARAMS = [
  {k:'M1',b:'M',name:'Kaizen & improvement',what:'Ideas raised and kaizens implemented',st:['M1a'],data:'kz',src:'Kaizen register',clubbed:'Kaizens · One-point lessons'},
  {k:'M2',b:'M',name:'Skill & multiskilling',what:'Learns new stations and models; stations certified',st:['M2a'],data:'skill',src:'Skill matrix',clubbed:'Multiskilling · Adapting to new procedures · Imparting training'},
  {k:'M3',b:'M',name:'Teamwork & attitude',what:'Cooperation and response to feedback',st:['M3a','M3b'],data:null,clubbed:'Attitude towards work · Interpersonal skills · Extra activities'},
- {k:'M4',b:'M',name:'Readiness for a permanent role',what:'Manager\u2019s overall confidence, read with the comments',st:['M4a'],data:'sent',src:'Agent reads comments',clubbed:'Manager comment'}
+ {k:'M4',b:'M',name:'Overall performance',what:'Manager\u2019s overall view against expectations, read with the comments',st:['M4a'],data:'sent',src:'Agent reads comments',clubbed:'Manager comment'}
 ];
 const PK = Object.fromEntries(PARAMS.map(p=>[p.k,p]));
 const STATEMENTS = {
@@ -49,7 +49,7 @@ const STATEMENTS = {
  M2a:'Learns new stations, models and procedures quickly.',
  M3a:'Cooperates willingly with supervisors and co-workers.',
  M3b:'Accepts feedback and corrects mistakes once they are pointed out.',
- M4a:'I would be confident having this apprentice as a permanent operator on my line.'
+ M4a:'Overall, this apprentice has performed to the expectations of the role.'
 };
 const ALL_ST = PARAMS.flatMap(p=>p.st);
 const LIKERT = [[1,'Strongly disagree'],[2,'Disagree'],[3,'Neutral'],[4,'Agree'],[5,'Strongly agree']];
@@ -64,7 +64,8 @@ const DATA_RULES = {
  skill:'Stations certified on the skill matrix: > 12 = 5 \u00b7 9\u201312 = 4 \u00b7 6\u20138 = 3 \u00b7 3\u20135 = 2 \u00b7 < 3 = 1',
  sent:'Manager comments read positive = 5 \u00b7 neutral or mixed = 3 \u00b7 negative = 1'
 };
-const TRAINING = ['Safety refresher','SOP / work instruction','Quality checks','TPM / JH','Multiskilling','Kaizen writing','Behavioural'];
+const OUTCOME = {A:'Exceeds expectations', B:'Meets expectations', C:'Below expectations', X:'Training ended'};
+const OUTCOMES = ['Exceeds expectations','Meets expectations','Below expectations'];
 
 const MIS = [
  {k:'mob',no:'1',name:'Mobile / earphone use during work',cat:'Work indiscipline',tier:1,lad:[['VC / UR','vcur'],['Warning letter','wl'],['Discontinuation','end']]},
@@ -242,10 +243,10 @@ function seed(){
    let status = 'Completed';
    if(gen && TODAY - cpDate < 21*DAY){ const x = R(); status = x<.4?'With HoD':x<.65?'In progress':'Completed'; }
    const f = {id:'PF-'+(S.seq.form++), tid:id, cp:'M'+n, cpDate:cpDate.toISOString(), launched:new Date(cpDate.getTime()-14*DAY).toISOString(), status,
-    ans: status==='In progress' ? Object.fromEntries(Object.entries(ans).slice(0,7)) : ans, strengths:status==='In progress'?'':cm[0], improve:status==='In progress'?'':cm[1], train:[], discussed:status!=='In progress', mrec:'',
+    ans: status==='In progress' ? Object.fromEntries(Object.entries(ans).slice(0,7)) : ans, strengths:status==='In progress'?'':cm[0], improve:status==='In progress'?'':cm[1], train:'', discussed:status!=='In progress',
     submitted: status==='In progress' ? '' : fmt(cpDate), signed: status==='Completed' ? fmt(new Date(cpDate.getTime()+2*DAY)) : '', by:MANAGERS[mgr].name};
-   if(mu<3.4 && status!=='In progress') f.train = ['Quality checks','SOP / work instruction'];
-   if(n===12 && status!=='In progress') f.mrec = mu>=4 ? 'Convert' : mu>=3 ? 'Extend 3 months' : 'Do not convert';
+   if(mu<3.4 && status!=='In progress') f.train = 'Refresher on station quality checks and the SOP for model change; buddy with a senior operator for two weeks.';
+   else if(mu<4.2 && status!=='In progress') f.train = 'Second-station certification on the line; kaizen writing session.';
    S.forms.push(f);
   });
  };
@@ -270,16 +271,14 @@ function seed(){
  seedKaizens(S);
  seedCases(S);
  // decisions on completed M12s
- S.decisions.t02 = {mgr:{choice:'Convert',by:'R. Joshi',at:'25 Sep 10:12'}};
- S.decisions.t03 = {mgr:{choice:'Extend 3 months',by:'R. Joshi',at:'25 Sep 10:20'}};
- S.decisions.t04 = {mgr:{choice:'Extend 3 months',by:'M. Rao',at:'01 Oct 09:30'},hod:{choice:'Convert',reason:'B overall but steady improvement through the year and a clean conduct record.',by:'P. Iyer',at:'02 Oct 11:05'},hr:{choice:'Convert',by:'N. Sharma',at:'03 Oct 16:40'},ec:{at:'03 Oct 16:41',event:'Job change: Apprentice \u2192 Permanent operator (effective 01 Nov 2026)'}};
- Object.values(S.people).forEach(p=>{ const f = S.forms.find(x=>x.tid===p.id&&x.cp==='M12'&&x.status==='Completed'); if(!f || S.decisions[p.id]) return; const c = f.mrec||'Extend 3 months', at = fmtS(new Date(new Date(f.cpDate).getTime()+3*DAY)); S.decisions[p.id] = {mgr:{choice:c,by:f.by,at}, hod:{choice:c,reason:'',by:HODS[MANAGERS[p.mgr].hod].name,at}, hr:{choice:c,by:'N. Sharma',at}, ec:{at, event: c==='Convert'?'Job change: Apprentice \u2192 Permanent operator':c==='Extend 3 months'?'Contract end date extended by 3 months':'End of apprenticeship: separation recorded'}}; });
+ // completed Month 12 reviews: HoD confirmed the outcome; older ones already recorded in SF/EC
+ Object.values(S.people).forEach(p=>{ const f = S.forms.find(x=>x.tid===p.id&&x.cp==='M12'&&x.status==='Completed'); if(!f) return; const at = fmtS(new Date(new Date(f.cpDate).getTime()+3*DAY)); S.decisions[p.id] = {hod:{choice:null,reason:'',by:HODS[MANAGERS[p.mgr].hod].name,at}}; if(TODAY - new Date(f.cpDate) > 10*DAY) S.decisions[p.id].hr = {by:'N. Sharma',at}; });
  // reg upload rows for September
  Object.values(S.people).forEach((p,i)=>{ const v = S.dev[p.id], R = rng(i*31+5); S.reg.rows.push({ticket:p.ticket, name:p.name, st: v.st==null?null:v.st+(R()<.4?1:0), jh:v.jh, ie: v.ie==null?null:v.ie+(R()<.5?1:0)}); });
  S.reg.rows.push({ticket:'T99999', name:'(not found)', st:3, jh:1, ie:2});
  S.views = [
   {id:'v1',name:'All apprentices',cols:['ticket','name','type','plant','dept','mgr','month','band','overall','att','kz3','conduct','next'],f:{},group:'',sort:'name',sys:true},
-  {id:'v2',name:'Month 12 pipeline',cols:['ticket','name','dept','mgr','month','band','overall','rec','decision'],f:{m12:true},group:'dept',sort:'overall',sys:false},
+  {id:'v2',name:'Month 12 outcomes',cols:['ticket','name','dept','mgr','month','band','overall','rec','decision'],f:{m12:true},group:'dept',sort:'overall',sys:false},
   {id:'v3',name:'At risk',cols:['ticket','name','dept','mgr','band','att','conduct','flags'],f:{risk:true},group:'',sort:'overall',sys:false},
   {id:'v4',name:'WILP (TeamLease)',cols:['ticket','tl','name','dept','month','band','att','next'],f:{type:'WILP'},group:'mgr',sort:'name',sys:false}
  ];
@@ -301,7 +300,7 @@ function autoLaunch(S){
    const cp = 'M'+m; if(have.has(cp)) return;
    const cpDate = addM(d(p.doj), m), launch = new Date(cpDate.getTime()-S.cfg.launchBefore*DAY);
    if(launch<=TODAY){
-    S.forms.push({id:'PF-'+(S.seq.form++), tid:p.id, cp, cpDate:cpDate.toISOString(), launched:launch.toISOString(), status:'Not started', ans:{}, strengths:'', improve:'', train:[], discussed:false, mrec:'', by:MANAGERS[p.mgr].name});
+    S.forms.push({id:'PF-'+(S.seq.form++), tid:p.id, cp, cpDate:cpDate.toISOString(), launched:launch.toISOString(), status:'Not started', ans:{}, strengths:'', improve:'', train:'', discussed:false, by:MANAGERS[p.mgr].name});
     have.add(cp); n.push(p.name+' '+cp);
    }
   });
@@ -508,14 +507,13 @@ function evaluate(p, f, opts={}){
  if(cd.end) fb = 'X'; else if(cd.eff>=C.wlNotRec){ fb='C'; capped = band!=='C'; } else if(cd.eff>=1 && band==='A'){ fb='B'; capped = true; }
  const reasons = ['Overall '+pct(overall)+' \u2192 band '+band+' (A \u2265 '+C.bandA+'%, B \u2265 '+C.bandB+'%).'];
  if(cd.end) reasons.push('Gross misconduct closed with termination: training ended.');
- else if(cd.eff>=C.wlNotRec) reasons.push(cd.eff+' warning-level actions on record (limit '+C.wlNotRec+'): not recommended unless HoD and HR override with a reason.');
+ else if(cd.eff>=C.wlNotRec) reasons.push(cd.eff+' warning-level actions on record (limit '+C.wlNotRec+'): outcome is Below expectations unless the HoD overrides with a reason.');
  else if(cd.eff===1) reasons.push((cd.wl?'1 warning letter / show cause / suspension':cd.vcur+' VC/UR across categories (treated as a warning letter)')+': band capped at B.');
  else if(cd.vcur) reasons.push(cd.vcur+' VC/UR on record (minor).'); else reasons.push('Clean conduct record.');
  if(cd.open) reasons.push(cd.open+' open case(s): not counted until closed.');
  const weak = bk.filter(x=>x.p!=null && x.p<60).map(x=>BUCKETS[x.b].name);
  const strong = bk.filter(x=>x.p!=null && x.p>=85).map(x=>BUCKETS[x.b].name);
- let rec;
- if(cd.end) rec='Training ended'; else if(cd.eff>=C.wlNotRec || fb==='C') rec='Not recommended'; else if(fb==='A' && cd.eff===0 && !cd.open) rec='Recommend conversion'; else rec='Refer to HoD: convert or extend 3 months';
+ const rec = OUTCOME[fb];
  const status = cd.end?'Training ended':(fb==='C'||cd.eff>=1||cd.open)?'At risk':'On track';
  const flags = [];
  const mv = ALL_ST.map(k=>f.ans[k]).filter(Boolean); const avg = mv.reduce((s,v)=>s+v,0)/(mv.length||1);
@@ -575,9 +573,8 @@ function seedLog(){
  L('07 Oct 06:00','in','Time system','PRAGATI Attendance','Daily attendance file for 06 Oct: '+Object.keys(S.people).length+' apprentices, all records accepted.');
  L('07 Oct 05:30','in','SAP SF/EC','PRAGATI Master','Employee master delta: 0 new, 0 changed, 0 exits.');
  L('06 Oct 23:00','sys','Scheduler','PRAGATI Reviews','Nightly checks: Month 12 reviews opened 14 days before the date; reminders sent for overdue reviews.');
- L('03 Oct 16:41','out','PRAGATI','SAP SF/EC Job info','Sneha Patil: job change Apprentice \u2192 Permanent operator (effective 01 Nov 2026).');
- L('03 Oct 16:40','wf','Plant HR','PRAGATI Decision','Sneha Patil: final decision Convert.');
- L('02 Oct 11:05','wf','HoD','PRAGATI Decision','Sneha Patil: HoD decided Convert (agent said Refer to HoD).');
+ L('03 Oct 16:41','out','PRAGATI','SAP SF/EC Performance','Sneha Patil: Month 12 rating recorded (Meets expectations).');
+ L('02 Oct 11:05','wf','HoD','PRAGATI Review','Sneha Patil: Month 12 review signed; outcome Meets expectations confirmed.');
  L('05 Sep 11:20','in','Coordinators','PRAGATI Skills & TPM','August registers uploaded: '+Object.keys(S.people).length+' rows accepted.');
 }
 function snapshot(p, f, e){ return {tid:p.id, formId:f.id, cp:f.cp, overall:e.overall, band:e.band, fb:e.fb, rec:e.rec, status:e.status, sen:e.sen.label, flags:e.flags.map(x=>x[1]), reasons:e.reasons, narrative:e.narrative, rules:RULES_VER}; }
