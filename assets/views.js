@@ -17,6 +17,7 @@ const ICONS = {
  chev:'<path d="m6 9 6 6 6-6"/>',
  arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
  search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/>',
  cog:'<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.2 6.2l2.1 2.1M17.7 15.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 17.8l2.1-2.1M17.7 8.3l2.1-2.1"/>',
  tablet:'<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M11 18h2"/>',
@@ -373,23 +374,39 @@ function vKzVerify(){
 const TIER = {0:['Not scored',''],1:['Tier 1 · Minor','warn'],2:['Tier 2 · Serious','bad'],3:['Tier 3 · Gross','bad']};
 const tierChip = t => `<span class="chip ${TIER[t][1]}">${TIER[t][0]}</span>`;
 const codeChip = m => `<span class="chip mono" style="font-size:12px">${esc(m.no)}</span>`;
-const IMMEDIATE = ['Sent home and marked absent','ID card and punch card collected','Mobile phone confiscated','Mobile returned after shift','Security called','Statement / confession taken','First aid given','Referred to hospital','Supervisor and HR informed'];
+const IMM_GROUPS = [
+ ['Stop and secure',['Stopped from work at the stage','Sent home and marked absent','Escorted off the shop floor','Security called','Line / machine stopped']],
+ ['Items and ID',['Mobile phone confiscated','Mobile returned after shift','ID card collected','Punch card collected','Bus pass collected','Gate pass checked','Material / item recovered']],
+ ['Evidence',['Statement / confession taken','Witness statements taken','Photo / CCTV footage secured','Time-system / punch log extracted','Breath or medical test arranged']],
+ ['Safety and medical',['First aid given','Referred to hospital / OHC','Area made safe','Safety officer informed']],
+ ['Calls and notices',['Call made to apprentice (absence)','Call made to parent / guardian','Supervisor and HR informed','TeamLease HR informed','Internal Committee informed','Counselled on the spot']]
+];
+const IMMEDIATE = IMM_GROUPS.flatMap(g=>g[1]);
+const GROSS_IMM = ['Sent home and marked absent','ID card collected','Punch card collected','Bus pass collected','Statement / confession taken','Supervisor and HR informed'];
+/* what the SOP expects at the point of the incident, by code */
+const IMM_SOP = {mob:['Mobile phone confiscated','Mobile returned after shift'], sho:['Stopped from work at the stage','Counselled on the spot'], ref:['Statement / confession taken','Supervisor and HR informed'], uni:['Sent home and marked absent'], slp:['Statement / confession taken','Witness statements taken'],
+ prx:[...GROSS_IMM,'Time-system / punch log extracted'], phy:[...GROSS_IMM,'Security called','Witness statements taken','First aid given'], hab:['Call made to apprentice (absence)','Time-system / punch log extracted'], cua:['Call made to apprentice (absence)','Call made to parent / guardian','Time-system / punch log extracted'],
+ thf:[...GROSS_IMM,'Security called','Material / item recovered','Photo / CCTV footage secured'], dmg:[...GROSS_IMM,'Photo / CCTV footage secured','Area made safe'], stg:['Counselled on the spot','Supervisor and HR informed'], pho:[...GROSS_IMM,'Mobile phone confiscated'],
+ vrb:['Statement / confession taken','Witness statements taken'], tob:['Statement / confession taken','Material / item recovered'], alc:[...GROSS_IMM,'Breath or medical test arranged','Escorted off the shop floor'], drv:[...GROSS_IMM,'Safety officer informed'],
+ neg:['Supervisor and HR informed','Photo / CCTV footage secured'], brk:['Counselled on the spot'], chg:['Counselled on the spot','Supervisor and HR informed'], reg:['Time-system / punch log extracted'], hyg:['Counselled on the spot','Area made safe'], stop:['Statement / confession taken','Security called','Supervisor and HR informed'],
+ posh:['Internal Committee informed'], acc:['First aid given','Area made safe','Safety officer informed'], oth:['Supervisor and HR informed']};
+const immSop = k => (IMM_SOP[k] || (MISK[k] && MISK[k].imm) || []);
 const CPRESETS = [['all','All cases'],['open','Open'],['chk','Needs attention'],['oth','To classify'],['wl','Warning letters'],['att','Attendance'],['acc','Accidents'],['end','Terminations'],['hist','Imported']];
 const LETTERS = {vcur:'Verbal counselling / underwriting record', wl:'Warning letter', end:'Termination / discontinuation letter', ic:'Internal Committee referral', none:'No letter'};
 const canLog = () => ['manager','hod','hr'].includes(USERS[ME].role);
 const isHR = () => USERS[ME].role==='hr';
 /* POSH complaints are visible to HR only */
 const visCases = () => isHR() ? S.cases : S.cases.filter(c=>c.k!=='posh');
-const codeOpts = (sel, skip=[]) => [...new Set(MIS.map(x=>x.cat))].map(cat=>`<optgroup label="${esc(cat)}">${MIS.filter(x=>x.cat===cat && !skip.includes(x.k)).map(x=>`<option value="${x.k}" ${x.k===sel?'selected':''}>${esc(x.no)} · ${esc(x.name)}</option>`).join('')}</optgroup>`).join('');
+const codeOpts = (sel, skip=[]) => [...new Set(MIS.map(x=>x.cat))].map(cat=>`<optgroup label="${esc(cat)}">${MIS.filter(x=>x.cat===cat && !skip.includes(x.k) && (!x.off || x.k===sel)).map(x=>`<option value="${x.k}" ${x.k===sel?'selected':''}>${esc(x.no)} · ${esc(x.name)}</option>`).join('')}</optgroup>`).join('');
 function conductTabs(cur){
- const T = [['register','Conduct register'],...(canLog()?[['log','Log an incident']]:[]),['framework','Conduct framework'],...(isHR()?[['import','Import history']]:[])];
+ const T = [['register','Conduct register'],...(canLog()?[['log','Log an incident']]:[]),['framework','Conduct framework'],...(isHR()?[['classify','To classify'+(othQueue().length?' ('+othQueue().length+')':'')],['codes','Manage codes'],['import','Import history']]:[])];
  return `<nav class="itabs" style="margin-top:0" aria-label="Conduct">${T.map(([k,l])=>`<a href="#/cases/${k}" ${k===cur?'aria-current="page"':''}>${l}</a>`).join('')}</nav>`;
 }
 function vCases(tab){
- tab = ['register','log','framework','import'].includes(tab) ? tab : 'register';
+ tab = ['register','log','framework','import','classify','codes'].includes(tab) ? tab : 'register';
  if(tab==='log' && !canLog()) tab = 'register';
- if(tab==='import' && !isHR()) tab = 'register';
- return conductTabs(tab) + ({register:cRegister, log:cLog, framework:cFramework, import:cImport})[tab]();
+ if(['import','classify','codes'].includes(tab) && !isHR()) tab = 'register';
+ return conductTabs(tab) + ({register:cRegister, log:cLog, framework:cFramework, import:cImport, classify:cClassify, codes:cCodes})[tab]();
 }
 function caseFilter(cs){
  const F = UI.cf || (UI.cf = {preset:'all',q:'',cat:'',tier:'',st:'',plant:''});
@@ -447,7 +464,10 @@ function cLog(){
   <div class="fgrid mt16"><div class="fld"><label for="lg-oth">Other person involved (if any)</label><input id="lg-oth" value="${esc(G['lg-oth']||'')}" placeholder="Name and ticket no."></div><div class="fld"><label for="lg-wit">Witnesses</label><input id="lg-wit" value="${esc(G['lg-wit']||'')}" placeholder="Names"></div></div>
   ${G.k==='acc'?`<div class="fgrid c3 mt16"><div class="fld"><label for="lg-inj">Injury</label><input id="lg-inj" value="${esc(G['lg-inj']||'')}" placeholder="e.g. cut on left hand"></div><div class="fld"><label for="lg-days">Days lost</label><input id="lg-days" type="number" min="0" value="${esc(G['lg-days']||'0')}"></div><div class="fld"><label for="lg-cause">Violation found?</label><select id="lg-cause"><option>No: record only</option><option>Yes: log as that misconduct</option></select></div></div>`:''}
   <div class="fld mt16"><label for="lg-ev">Evidence (photo, statement, confession)</label><input id="lg-ev" type="file" multiple></div>`)}
- ${sec(3,'Immediate action taken',`<div class="colpick">${IMMEDIATE.map(x=>`<label><input type="checkbox" data-lgimm value="${esc(x)}" ${G.imm.includes(x)?'checked':''}>${esc(x)}</label>`).join('')}</div>`)}
+ ${sec(3,'Immediate action taken',`${m&&immSop(m.k).length?`<div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px"><span class="sm">SOP for ${esc(m.no)}: ${immSop(m.k).map(esc).join(' · ')}</span><button class="btn sm" data-act="lgimmsop" type="button">Tick these</button></div>`:''}
+  ${IMM_GROUPS.map(([g,xs])=>`<div class="sm muted mt12" style="font-weight:600">${esc(g)}</div><div class="colpick mt4">${xs.map(x=>`<label style="${m&&immSop(m.k).includes(x)?'border-color:var(--brand)':''}"><input type="checkbox" data-lgimm value="${esc(x)}" ${G.imm.includes(x)?'checked':''}>${esc(x)}</label>`).join('')}</div>`).join('')}
+  <div class="fld mt16"><label for="lg-immo">Anything else done on the spot</label><input id="lg-immo" value="${esc(G['lg-immo']||'')}" placeholder="e.g. tools taken back from the apprentice"></div>`)}
+ ${G.othSug&&G.k==='oth'?`<div class="note mt16">Your description sounds like <b>${esc(MISK[G.othSug].no)} · ${esc(MISK[G.othSug].name)}</b>. Use that code, or submit again to keep Other.<div class="row mt8"><button class="btn sm pri" data-act="lgpick" data-id="${G.othSug}" type="button">Use ${esc(MISK[G.othSug].no)}</button></div></div>`:''}
  <div class="err mt16" id="lg-err"></div>
  <div class="row mt16"><button class="btn pri lg" data-act="lgsubmit" type="button">Submit incident</button><span class="sm muted">Reported by ${esc(USER().name)} (${esc(USER().title)}). ${G.k==='posh'?'Goes to HR only.':USERS[ME].role==='manager'?'As the line manager, your report is recorded as validated.':'The line manager validates it next.'}</span></div>
  </div>
@@ -466,7 +486,7 @@ function cFramework(){
  <section class="card mt24"><h2>Recording rules</h2><div class="tw mt12"><table class="t"><tbody>${REC_RULES.map((r,i)=>`<tr><td class="nm" style="width:32%">${i+1}. ${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table></div></section>
  <section class="card mt24"><h2>Misconduct code list and ladder</h2><p class="sub">MC-01 to MC-16 follow the SOP for indisciplinary cases. MC-17 onwards were added from the review of the current registers. The ladder counts earlier closed cases of the same code; three VC / URs across any codes count as one warning.</p>
   <div class="tw mt12"><table class="t"><thead><tr><th>Code</th><th>Misconduct</th><th>Tier</th><th>First instance</th><th>Repeat</th><th>Further</th><th>Documents</th></tr></thead><tbody>
-  ${cats.map(cat=>`<tr class="grp"><td colspan="7">${esc(cat)}</td></tr>`+MIS.filter(m=>m.cat===cat).map(m=>`<tr><td class="mono">${esc(m.no)}</td><td class="nm">${esc(m.name)}</td><td>${tierChip(m.tier)}</td><td>${step(m,0)}</td><td>${step(m,1)}</td><td>${step(m,2)}</td><td class="sm">${esc(m.docs)}</td></tr>`).join('')).join('')}
+  ${cats.map(cat=>`<tr class="grp"><td colspan="7">${esc(cat)}</td></tr>`+MIS.filter(m=>m.cat===cat).map(m=>`<tr><td class="mono" style="white-space:nowrap">${esc(m.no)}</td><td class="nm">${esc(m.name)}</td><td>${tierChip(m.tier)}</td><td>${step(m,0)}</td><td>${step(m,1)}</td><td>${step(m,2)}</td><td class="sm">${esc(m.docs)}</td></tr>`).join('')).join('')}
   </tbody></table></div><p class="sm muted mt12">Habitual absenteeism (MC-08): ${S.cfg.habN||3} or more unplanned absences in any 30 days, read from the time system. PRAGATI prompts the line manager to log it.</p></section>
  <section class="card mt24"><h2>Which code? Phrases from the current registers</h2><p class="sub">The log form searches these, so people can type what they would have written before.</p>
   <div class="tw mt12"><table class="t"><thead><tr><th>If the register would say…</th><th>Code</th></tr></thead><tbody>
@@ -483,6 +503,45 @@ function cFramework(){
  <section class="card mt24"><h2>Mapping from the TeamLease incident report</h2><div class="tw mt12"><table class="t"><thead><tr><th>TeamLease tick-box</th><th>Codes here</th></tr></thead><tbody>
   ${[['Unauthorised absenteeism','MC-08 Habitual absenteeism; MC-09 Continuous absence; MC-12 Absent from stage'],['Misappropriation','MC-10 Theft; MC-06 Proxy punching; MC-21 Regularisation misuse'],['Misbehaviour','MC-07 Physical fight; MC-14 Verbal fight / abuse'],['Damage to official property','MC-11 Damage to company property'],['Policy violation','Not a code on its own: pick the specific one (mobile, uniform, PPE, tobacco, alcohol, photo / video, driving, break time, shift change)'],['Accident in premises / on the way','MC-25 Accident (record only unless a violation is found)'],['Any other','MC-18 Work negligence / quality, or MC-99 Other with a description']].map(r=>`<tr>${r.map((x,i)=>`<td class="${i===0?'nm':''}">${esc(x)}</td>`).join('')}</tr>`).join('')}
  </tbody></table></div></section>`;
+}
+/* ----- HR: classify Others, manage the code list ----- */
+const othQueue = () => S.cases.filter(c=>c.k==='oth' && c.status<5).sort((a,b)=>a.date.localeCompare(b.date));
+function cClassify(){
+ const q = othQueue(), sugg = q.map(c=>({c, s:classify(c.desc)})), withS = sugg.filter(x=>x.s && x.s!=='oth');
+ const age = c => Math.round((TODAY-d(c.date))/DAY);
+ return `${ph('To classify', 'Cases logged as MC-99 Other. PRAGATI reads each description and suggests a code; accept it in one click, pick another, or create a new code if the misconduct is genuinely new. The case then moves on to the HoD.', withS.length?`<button class="btn pri" data-act="caccall" type="button">Accept all ${withS.length} suggestion${withS.length>1?'s':''}</button>`:'')}
+ <div class="grid g3">${kpi('Waiting', q.length)}${kpi('With a suggested code', withS.length)}${kpi('Over 7 days', q.filter(c=>age(c)>7).length, 'Target: coded within 7 days')}</div>
+ ${q.length?`<div class="stack mt24">${sugg.map(({c,s})=>{ const p = S.people[c.tid], m = s && s!=='oth' ? MISK[s] : null; return `<section class="card"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap"><div style="flex:1;min-width:280px"><div class="row" style="gap:8px"><a class="mono" href="#/case/${c.id}">${c.id}</a><span class="sm muted">${fmt(d(c.date))} · ${age(c)===0?'today':age(c)+' day'+(age(c)===1?'':'s')+' ago'} · ${esc(p.name)} · ${esc(deptOf(p))}</span></div><p class="mt8" style="margin-bottom:0">“${esc(c.desc)}”</p><p class="sm muted mt4">Reported by ${esc(c.reporter)} · ${CSTATUS[c.status]}</p></div>
+  <div style="width:340px;max-width:100%"><div class="sm muted">Suggested</div>${m?`<div class="row mt4" style="gap:8px">${codeChip(m)}<b>${esc(m.name)}</b></div><button class="btn pri sm mt8" data-act="cacc" data-id="${c.id}" data-k="${m.k}" type="button">Accept ${esc(m.no)}</button>`:'<div class="mt4 muted">No code matches the description.</div>'}
+  <div class="row mt12" style="gap:8px"><select id="cq-${c.id}" aria-label="Code for ${c.id}" style="flex:1;min-width:0"><option value="">Pick another code</option>${codeOpts('',['oth','posh'])}</select><button class="btn sm" data-act="cqpick" data-id="${c.id}" type="button">Assign</button></div>
+  <button class="btn sm mt8" data-act="cnewfrom" data-id="${c.id}" type="button">${ic('plus',14)} New code from this case</button></div></div></section>`; }).join('')}</div>`:'<section class="card mt24"><p class="good">Nothing to classify. Every case has a code.</p></section>'}`;
+}
+const CATS = () => [...new Set(MIS.map(m=>m.cat))];
+function codeForm(){
+ const F = UI.cform; if(!F) return '';
+ const m = F.k ? MISK[F.k] : null, base = m && !m.custom, tier = Number(F.tier ?? 1), lad = F.lad || TIER_LADDER[tier].map(x=>x[0]);
+ return `<section class="card mt24" id="cform" style="border-color:var(--brand)"><h2>${m?'Edit '+esc(m.no)+' · '+esc(m.name):'New code · '+nextCode()}</h2>${F.from?`<p class="sub">From case ${esc(F.from)}: “${esc((S.cases.find(c=>c.id===F.from)||{}).desc||'')}”</p>`:''}
+  ${base?`<p class="sub">Standard codes from the SOP keep their name, tier and ladder. You can add phrases people use for it, or retire it.</p>`:`
+  <div class="fgrid mt12"><div class="fld"><label for="cfm-n">Misconduct name</label><input id="cfm-n" value="${esc(F.name||'')}" placeholder="e.g. Lending ID card to others"></div>
+  <div class="fld"><label for="cfm-c">Category</label><select id="cfm-c">${CATS().filter(x=>!/Separate|classified|non-disc/i.test(x)).map(x=>`<option ${x===(F.cat||'Work indiscipline')?'selected':''}>${esc(x)}</option>`).join('')}</select></div></div>
+  <div class="fld mt16"><label for="cfm-t">Tier</label><select id="cfm-t" data-cft="1">${[1,2,3,0].map(t=>`<option value="${t}" ${t===tier?'selected':''}>${TIER[t][0]} — ${({1:'starts at VC / UR',2:'starts at warning letter',3:'termination on the first instance',0:'record only, not scored'})[t]}</option>`).join('')}</select></div>
+  <div class="fld mt16"><label>Ladder</label>${TIER_LADDER[tier].map((x,i)=>`<div class="mt8" style="display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center"><span class="pq">${i+1}</span><input id="cfm-l${i}" value="${esc(lad[i]||x[0])}" aria-label="Step ${i+1}"><span class="chip" style="white-space:nowrap">${({vcur:'VC / UR level',wl:'Warning level',end:'Termination level',none:'No penalty'})[x[1]]}</span></div>`).join('')}<p class="sm muted mt4">The level of each step is fixed by the tier, so the scoring and conduct cap treat the new code like every other.</p></div>
+  <div class="fld mt16"><label for="cfm-d">Documents needed</label><input id="cfm-d" value="${esc(F.docs||'Incident report')}"></div>
+  <div class="fld mt16"><label>Immediate actions expected</label><div class="colpick mt4">${IMMEDIATE.map(x=>`<label><input type="checkbox" data-cfimm value="${esc(x)}" ${(F.imm||[]).includes(x)?'checked':''}>${esc(x)}</label>`).join('')}</div></div>`}
+  <div class="fld mt16"><label for="cfm-k">Phrases people use for it (comma-separated)</label><input id="cfm-k" value="${esc(F.kwx||'')}" placeholder="e.g. lent ID card, gave his ID, using another's ID"><p class="sm muted mt4">PRAGATI uses these to suggest this code on the log form and in the To classify queue.${base?' Standard phrases: '+esc(m.kw0):''}</p></div>
+  ${m&&!FIXED_CODES.includes(m.k)?`<label class="check mt16"><input type="checkbox" id="cfm-off" ${m.off?'checked':''}> Retired: hide from the log form (cases already on record keep it)</label>`:''}
+  ${F.from?`<label class="check mt16"><input type="checkbox" id="cfm-apply" checked> Assign it to ${esc(F.from)}, and to any other uncoded case whose description matches its phrases</label>`:''}
+  <div class="err" id="cfm-e"></div>
+  <div class="row mt16"><button class="btn pri" data-act="codesave" type="button">${m?'Save changes':'Create '+nextCode()}</button><button class="btn" data-act="codecancel" type="button">Cancel</button></div></section>`;
+}
+function cCodes(){
+ const C = S.codes, n = k => S.cases.filter(c=>c.k===k).length;
+ return `${ph('Manage codes', 'Add a code when a misconduct keeps coming up that the list does not cover, teach PRAGATI the words people use, or retire a code. Changes apply at once on every portal and are logged.', `<button class="btn pri" data-act="codenew" type="button">${ic('plus',16)} New code</button>`)}
+ ${codeForm()}
+ <div class="tw mt24"><table class="t"><thead><tr><th>Code</th><th>Misconduct</th><th>Tier</th><th>Phrases it matches</th><th class="r">Cases</th><th>Status</th><th></th></tr></thead><tbody>
+ ${MIS.map(m=>`<tr ${m.off?'style="opacity:.6"':''}><td class="mono" style="white-space:nowrap">${esc(m.no)}</td><td class="nm">${esc(m.name)}<small>${esc(m.cat)}${m.custom?' · added by HR':''}</small></td><td>${tierChip(m.tier)}</td><td class="sm">${esc(m.kw0||'')}${m.kwx?`${m.kw0?'; ':''}<b>${esc(m.kwx)}</b>`:''}</td><td class="r">${n(m.k)}</td><td>${m.off?'<span class="chip">Retired</span>':'<span class="chip good">Active</span>'}</td><td>${m.k==='oth'?'':`<button class="btn sm" data-act="codeedit" data-id="${m.k}" type="button">Edit</button>`}</td></tr>`).join('')}
+ </tbody></table></div><p class="sm muted mt8">Phrases in bold were added by HR.</p>
+ <section class="card mt24"><h2>Change history</h2>${C.log.length?`<div class="hist mt12">${C.log.slice().reverse().map(x=>`<div><b>${esc(x.what)}</b><span>${esc(x.at)} · ${esc(x.by)}</span></div>`).join('')}</div>`:'<p class="muted mt8">No changes to the code list yet.</p>'}</section>`;
 }
 /* ----- import of earlier registers (HR) ----- */
 const IMP_COLS = ['Ticket no. / TeamLease code','Date (DD-MM-YYYY)','Misconduct as recorded','MC code (if known)','Action taken','Letter ref','Description'];
@@ -547,7 +606,7 @@ function vCase(id){
   <div class="stack">
    <section class="card"><h3>Conduct history</h3>${prior.length?`<div class="list mt8">${prior.map(x=>`<div class="li click" data-go="case/${x.id}" role="button" tabindex="0"><div class="sp"><div class="t1" style="font-size:14px">${esc(MISK[x.k].name)}</div><div class="t2">${x.id} · ${fmtS(d(x.date))} · ${x.steps.action?esc(x.steps.action.label):CSTATUS[x.status]}</div></div></div>`).join('')}</div>`:'<p class="good mt8">No other cases.</p>'}</section>
    ${iss.length?`<section class="card" style="border-color:var(--bad)"><h3>Record check</h3><ul class="sm mt8" style="padding-left:18px;margin:8px 0 0">${iss.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></section>`:''}
-   ${isHR()&&c.k==='oth'&&c.status<5?`<section class="card"><h3>Assign the code</h3><p class="sub">Logged as Other. Pick the code that fits the description; the case then continues on that code's ladder.</p><div class="fld mt12"><label for="cc-k">Misconduct code</label><select id="cc-k"><option value="">Select</option>${codeOpts('',['oth','posh'])}</select></div><div class="err" id="cc-e"></div><button class="btn pri mt12" data-act="cclass" data-id="${c.id}" type="button">Assign code</button></section>`:''}
+   ${isHR()&&c.k==='oth'&&c.status<5?`<section class="card"><h3>Assign the code</h3><p class="sub">Logged as Other. Pick the code that fits the description; the case then continues on that code's ladder.</p>${classify(c.desc)&&classify(c.desc)!=='oth'?`<p class="sm mt8">Suggested from the description: <b>${esc(MISK[classify(c.desc)].no)} · ${esc(MISK[classify(c.desc)].name)}</b></p>`:''}<div class="fld mt12"><label for="cc-k">Misconduct code</label><select id="cc-k"><option value="">Select</option>${codeOpts(classify(c.desc)&&classify(c.desc)!=='oth'?classify(c.desc):'',['oth','posh'])}</select></div><div class="err" id="cc-e"></div><div class="row mt12"><button class="btn pri" data-act="cclass" data-id="${c.id}" type="button">Assign code</button><button class="btn" data-act="cnewfrom" data-id="${c.id}" type="button">New code from this case</button></div></section>`:''}
    ${can==='wait'?'<section class="card"><h3>Waiting for HR</h3><p class="sub">This case is logged as Other. HR assigns a code first; then you decide the action from its ladder.</p></section>':''}
    ${m.tier?`<section class="card"><h3>Misconduct ladder</h3><p class="sub">${c.steps.action?'Action taken: '+esc(c.steps.action.label)+'. ':''}Other closed cases of this type: ${sg.prior}.${c.steps.action?'':' Suggested: step '+sg.step+' of '+sg.of+'.'}</p><div class="list mt8">${m.lad.map((l,i)=>`<div class="li"><span class="pq" style="${i+1===sg.step?'':'background:var(--line-2);color:var(--muted)'}">${i+1}</span><span class="${i+1===sg.step?'ink':''}">${esc(l[0])}</span></div>`).join('')}</div></section>`:''}
    ${can==='validate'?`<section class="card"><h3>Validate</h3><p class="sub">Confirm with the line supervisor and witnesses. Correct the misconduct if it was logged wrongly.</p><div class="fld mt12"><label for="cv-k">Misconduct</label><select id="cv-k">${codeOpts(c.k,['posh'])}</select></div><div class="fld mt12"><label for="cv-r">Remarks</label><textarea id="cv-r" style="min-height:72px"></textarea></div><div class="err" id="cv-e"></div><div class="row mt12"><button class="btn pri" data-act="cvalid" data-id="${c.id}" type="button">Validate</button><button class="btn" data-act="cnot" data-id="${c.id}" type="button">Not substantiated</button></div></section>`:''}

@@ -91,7 +91,7 @@ function renderTop(){
 function renderDrawer(){ $('#drawer-root').innerHTML = UI.drawer && UI.drawer.type==='kz' ? kzDrawer(UI.drawer.id) : ''; }
 let _lastRouteKey = '';
 function render(){
- resetMemo(); UI.pendingRender = false;
+ syncCodes(); resetMemo(); UI.pendingRender = false;
  if(PORTAL==='home'){ ME = null; UI.route = {v:''}; renderTop(); $('#app').innerHTML = vLanding() + footer(); renderDrawer(); document.title = 'PRAGATI · Apprentice record'; return; }
  if(!ME){ UI.route = null; renderTop(); $('#app').innerHTML = vLogin(); renderDrawer(); document.title = 'Sign in · PRAGATI '+P.name; return; }
  let r = parseHash();
@@ -117,7 +117,7 @@ function toast(msg){ const n = document.createElement('div'); n.className = 'toa
 function go(path){ location.hash = '#/'+path; }
 
 /* ----- shared store (this browser; all portals) ----- */
-const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v6';
+const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v7';
 let rev = 0, _ptimer = null;
 function persist(){
  rev++;
@@ -135,7 +135,7 @@ window.addEventListener('storage', e=>{
 
 /* ----- actions ----- */
 const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-const NOSAVE = new Set(['cpreset','lgfor','lgpick','imptpl','impsample','impclear','casecsv','fill','logout','rtab','qb','kzopen','close','kzs','kzcat','colsbtn','pick','kzcsv','mastercsv','vsel']);
+const NOSAVE = new Set(['cpreset','lgfor','lgpick','lgimmsop','codenew','codeedit','codecancel','cnewfrom','imptpl','impsample','impclear','casecsv','fill','logout','rtab','qb','kzopen','close','kzs','kzcat','colsbtn','pick','kzcsv','mastercsv','vsel']);
 const formOf = id => S.forms.find(x=>x.id===id);
 const A = {
  fill(el){ $('#lg-u').value = el.dataset.id; $('#lg-p').value = DEMO_PW; $('#lg-p').focus(); },
@@ -219,8 +219,34 @@ const A = {
  cclose(el){ const c = S.cases.find(x=>x.id===el.dataset.id), p = S.people[c.tid]; c.steps.closed = {by:USER().name,at:stamp()}; c.status = 5; c.closedAt = TODAY.toISOString(); if(c.steps.action.level==='end'){ p.status = 'Training ended'; log('out','PRAGATI','SAP SF/EC Job info',`${p.name}: training ended (${c.id}).`); } log('wf','HR','PRAGATI Conduct',`${c.id} closed; counts in scoring.`); afterDataChange('Conduct case closed',[c.tid]); toast(MISK[c.k].tier ? c.id+' closed. The agent will re-score '+p.name+'.' : c.id+' closed.'); render(); },
  cpreset(el){ UI.cf.preset = el.dataset.id; render(); },
  lgfor(el){ UI.lg = {tid:el.dataset.id, k:el.dataset.k||'', imm:[], q:''}; go('cases/log'); },
- lgpick(el){ keepLg(); UI.lg.k = el.dataset.id; render(); },
- cclass(el){ const c = S.cases.find(x=>x.id===el.dataset.id), k = val('cc-k'); if(!k){ $('#cc-e').textContent = 'Pick a code.'; return false; } (c.steps.coded = {by:USER().name,at:stamp(),label:MISK[k].no+' '+MISK[k].name}); c.k = k; log('wf','HR','PRAGATI Conduct',`${c.id} coded as ${MISK[k].no} ${MISK[k].name}.`); toast(c.id+' coded as '+MISK[k].no); render(); },
+ lgpick(el){ keepLg(); UI.lg.k = el.dataset.id; UI.lg.othSug = null; render(); },
+ lgimmsop(){ keepLg(); const G = UI.lg; G.imm = [...new Set([...G.imm, ...immSop(G.k)])]; render(); },
+ cacc(el){ codeCase(el.dataset.id, el.dataset.k); render(); },
+ caccall(){ const q = othQueue().map(c=>[c, classify(c.desc)]).filter(x=>x[1]&&x[1]!=='oth'); q.forEach(([c,k])=>codeCase(c.id,k,true)); toast(q.length+' case'+(q.length>1?'s':'')+' coded'); render(); },
+ cqpick(el){ const k = val('cq-'+el.dataset.id); if(!k){ toast('Pick a code first'); return false; } codeCase(el.dataset.id, k); render(); },
+ cnewfrom(el){ const c = S.cases.find(x=>x.id===el.dataset.id); UI.cform = {from:c.id, tier:1, kwx:'', imm:[]}; go('cases/codes'); setTimeout(()=>{ const f = document.getElementById('cfm-n'); if(f){ f.scrollIntoView({block:'center'}); f.focus(); } }, 50); },
+ codenew(){ UI.cform = {tier:1, kwx:'', imm:[]}; render(); setTimeout(()=>{ const f = document.getElementById('cform'); if(f) f.scrollIntoView({block:'start'}); }, 30); },
+ codeedit(el){ const m = MISK[el.dataset.id]; UI.cform = {k:m.k, name:m.name, cat:m.cat, tier:m.tier, lad:m.lad.map(x=>x[0]), docs:m.docs, kwx:m.kwx, imm:(m.imm||[]).slice()}; render(); setTimeout(()=>{ const f = document.getElementById('cform'); if(f) f.scrollIntoView({block:'start'}); }, 30); },
+ codecancel(){ UI.cform = null; render(); },
+ codesave(){
+  const F = UI.cform, C = S.codes, m = F.k ? MISK[F.k] : null, base = m && !m.custom, kwx = val('cfm-k').replace(/\s+/g,' ').trim(), who = USER().name, off = $('#cfm-off') ? $('#cfm-off').checked : false;
+  if(base){ const e = C.edit[m.k] || (C.edit[m.k] = {}); const ch = []; if(kwx!==(e.kwx||'')) ch.push('phrases'); if(off!==!!e.off) ch.push(off?'retired':'restored'); e.kwx = kwx; e.off = off;
+   if(ch.length) C.log.push({at:stamp(), by:who, what:`${m.no} ${m.name}: ${ch.join(', ')}`}); }
+  else {
+   const name = val('cfm-n').trim(), tier = Number(val('cfm-t')), cat = val('cfm-c'), docs = val('cfm-d').trim() || 'Incident report';
+   if(name.length<5){ $('#cfm-e').textContent = 'Give the misconduct a clear name.'; return false; }
+   if(MIS.some(x=>x.k!==(m&&m.k) && x.name.toLowerCase()===name.toLowerCase())){ $('#cfm-e').textContent = 'A code with this name already exists.'; return false; }
+   if(!kwx){ $('#cfm-e').textContent = 'Add at least one phrase, so PRAGATI can suggest this code.'; return false; }
+   const lad = TIER_LADDER[tier].map((x,i)=>[val('cfm-l'+i).trim()||x[0], x[1]]), imm = $$('[data-cfimm]').filter(x=>x.checked).map(x=>x.value);
+   if(m){ const a = C.add.find(x=>x.k===m.k); Object.assign(a, {name, cat, tier, lad, docs, kwx, imm}); const e = C.edit[m.k] || (C.edit[m.k] = {}); e.off = off; C.log.push({at:stamp(), by:who, what:`${m.no} ${name}: edited${off?' (retired)':''}`}); }
+   else { const no = nextCode(), k = 'u'+no.slice(3); C.add.push({k, no, name, cat, tier, lad, docs, kw:'', kwx, imm, custom:true, by:who, at:stamp()}); C.log.push({at:stamp(), by:who, what:`${no} ${name} created (${TIER[tier][0]})`}); F.newK = k; }
+  }
+  syncCodes(); log('sys','HR','Code list', C.log[C.log.length-1] ? C.log[C.log.length-1].what : 'Code list saved');
+  let msg = 'Code list saved';
+  if(F.newK){ msg = MISK[F.newK].no+' created'; if(F.from && $('#cfm-apply') && $('#cfm-apply').checked){ const ids = [F.from, ...othQueue().filter(c=>c.id!==F.from && classify(c.desc)===F.newK).map(c=>c.id)]; ids.forEach(id=>codeCase(id, F.newK, true)); msg += ' and assigned to '+ids.join(', '); } }
+  const back = F.from && !UI.cform.k; UI.cform = null; afterDataChange('Code list changed'); toast(msg); if(back) go('cases/classify'); else render();
+ },
+ cclass(el){ const k = val('cc-k'); if(!k){ $('#cc-e').textContent = 'Pick a code.'; return false; } codeCase(el.dataset.id, k); render(); },
  imptpl(){ download('conduct_history_template.csv', [IMP_COLS]); },
  impsample(){ const rows = impSample(); UI.imp = {name:'sample_register.csv', rows:impRows(rows)}; render(); },
  impclear(){ UI.imp = null; render(); },
@@ -239,6 +265,8 @@ const A = {
   if(err.length){ $('#lg-err').textContent = 'Please '+err.join(', ')+'.'; return false; }
   const p = S.people[G.tid], u = USER(), isLM = u.role==='manager' && p.mgr===u.persona, posh = G.k==='posh';
   const files = [...(($('#lg-ev')||{}).files||[])].map(x=>x.name);
+  if(G.k==='oth' && !G.othSeen){ const s = classify(G['lg-desc']); G.othSeen = true; if(s && s!=='oth'){ G.othSug = s; render(); return false; } }
+  const immo = (G['lg-immo']||'').trim(); if(immo) G.imm = [...G.imm, 'Other: '+immo];
   const c = {id:'C-'+(S.seq.case++), tid:p.id, k:G.k, date:G['lg-date'], time:G['lg-time']||'\u2014', place:G['lg-place']||p.line, desc:G['lg-desc'].trim(), other:G['lg-oth']||'', wit:G['lg-wit']||'', imm:G.imm.slice(), evidence:files, reporter:u.name+' ('+u.title+')', status:posh?3:isLM?2:1, channel:'Desktop', steps:{reported:{by:u.name,at:stamp()}}};
   if(posh){ c.steps.action = {by:'PRAGATI',at:stamp(),label:'Refer to Internal Committee',level:'ic',reason:'POSH complaint'}; }
   if(G.k==='acc') c.injury = {what:G['lg-inj']||'\u2014', days:Number(G['lg-days'])||0, cause:G['lg-cause']||'No: record only'};
@@ -303,6 +331,7 @@ const A = {
 function keepLg(){ const G = UI.lg; if(!G) return; $$('[id^="lg-"]').forEach(el=>{ if(el.id!=='lg-tid' && el.id!=='lg-k' && el.type!=='file') G[el.id] = el.value; }); }
 function keepKzd(){ const D = UI.kzd; if(!D) return; ['kd-ti','kd-b','kd-a','kd-r','kd-st','kd-mn','kd-mb','kd-ma','kd-u','kd-s','kd-c'].forEach(id=>{ const el = document.getElementById(id); if(el) D[id] = el.value; }); }
 function restoreKzd(){ const D = UI.kzd; if(!D) return; Object.keys(D).filter(k=>k.startsWith('kd-')).forEach(id=>{ const el = document.getElementById(id); if(el) el.value = D[id]; }); }
+function codeCase(id, k, quiet){ const c = S.cases.find(x=>x.id===id); if(!c || !MISK[k]) return; c.steps.coded = {by:USER().name, at:stamp(), label:MISK[k].no+' '+MISK[k].name}; c.k = k; log('wf','HR','PRAGATI Conduct',`${c.id} coded as ${MISK[k].no} ${MISK[k].name}.`); if(!quiet) toast(c.id+' coded as '+MISK[k].no); }
 function parseCSV(t){ const out = []; let row = [], cur = '', q = false; t = t.replace(/^\ufeff/,''); for(let i=0;i<t.length;i++){ const ch = t[i]; if(q){ if(ch==='"'){ if(t[i+1]==='"'){ cur+='"'; i++; } else q = false; } else cur += ch; } else if(ch==='"') q = true; else if(ch===','){ row.push(cur); cur=''; } else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&t[i+1]==='\n') i++; row.push(cur); out.push(row); row=[]; cur=''; } else cur += ch; } if(cur||row.length){ row.push(cur); out.push(row); } return out; }
 function download(name, rows){
  const csv = rows.map(r=>r.map(v=>{ const s = String(v??''); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }).join(',')).join('\n');
@@ -326,9 +355,10 @@ document.addEventListener('change', e=>{
  if(el.id==='pl-pick'){ UI.plant = el.value; render(); return; }
  if(el.id==='ag-p'){ UI.pipe = {tid:el.value, step:0}; render(); return; }
  if(ds.tb){ UI.tablet[ds.tb] = el.value; if(ds.tb==='tid'||ds.tb==='k'){ UI.tablet.desc = val('tb-x'); UI.tablet.time = val('tb-h'); if(ds.tb==='tid') UI.tablet.place = ''; render(); } return; }
- if(ds.lg){ keepLg(); UI.lg[ds.lg] = el.value; if(ds.lg==='tid') delete UI.lg['lg-place']; render(); return; }
+ if(ds.lg){ keepLg(); UI.lg[ds.lg] = el.value; if(ds.lg==='k'){ UI.lg.othSeen = false; UI.lg.othSug = null; } if(ds.lg==='tid') delete UI.lg['lg-place']; render(); return; }
  if(el.matches('[data-lgimm]')){ const G = UI.lg; G.imm = el.checked ? [...new Set([...G.imm, el.value])] : G.imm.filter(x=>x!==el.value); return; }
  if(ds.cf && el.tagName==='SELECT'){ UI.cf[ds.cf] = el.value; render(); return; }
+ if(ds.cft){ const F = UI.cform; F.name = val('cfm-n'); F.cat = val('cfm-c'); F.docs = val('cfm-d'); F.kwx = val('cfm-k'); F.imm = $$('[data-cfimm]').filter(x=>x.checked).map(x=>x.value); F.tier = Number(el.value); F.lad = null; render(); return; }
  if(ds.imp){ const r = UI.imp.rows.find(x=>x.i===Number(ds.imp)); r.k = el.value; r.auto = false; render(); return; }
  if(ds.cfgchk){ S.cfg[ds.cfgchk] = el.checked ? 1 : 0; afterDataChange('Rule set changed'); log('sys','HR','Rule set',`Imported conduct cases ${el.checked?'count':'do not count'} in evaluation.`); persist(); render(); toast('Setting saved'); return; }
  if(el.id==='imp-f' && el.files && el.files[0]){ const f = el.files[0], rd = new FileReader(); rd.onload = () => { const rows = parseCSV(String(rd.result)).filter(r=>r.some(x=>String(x).trim())); if(rows.length && /ticket|teamlease/i.test(rows[0][0]||'')) rows.shift(); UI.imp = {name:f.name, rows:impRows(rows)}; render(); }; rd.readAsText(f); return; }
@@ -362,5 +392,6 @@ window.addEventListener('hashchange', ()=>{ UI.drawer = null; UI.showMiss = fals
 
 /* ----- boot ----- */
 if(!loadStore()){ S = seed(); seedLog(); initAssess(); persist(); }
+syncCodes();
 try{ const u = sessionStorage.getItem('pragati-sess-'+PORTAL); if(u && USERS[u] && P.roles.includes(USERS[u].role)) ME = u; }catch(e){}
 render();

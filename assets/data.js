@@ -96,6 +96,17 @@ const MIS = [
  {k:'oth',no:'MC-99',name:"Other (describe)",cat:"To be classified by HR",tier:0,docs:"Incident report",kw:"anything not listed; never \"policy violation\" alone",lad:[["HR assigns a code within 7 days","none"]]}
 ];
 const MISK = Object.fromEntries(MIS.map(m=>[m.k,m]));
+MIS.forEach(m=>{ m.kw0 = m.kw; m.kwx = ''; });
+/* codes HR adds or edits in the portal live in S.codes and are merged into the list at every render */
+const FIXED_CODES = ['oth','posh','acc'];
+const TIER_LADDER = {1:[['VC / UR','vcur'],['Warning letter','wl'],['Discontinuation','end']],2:[['Warning letter + confession','wl'],['Discontinuation','end']],3:[['Termination on the day (confession; ID collected)','end']],0:[['Record only; no penalty','none']]};
+function syncCodes(){
+ if(typeof S==='undefined' || !S) return; const C = S.codes || (S.codes = {add:[], edit:{}, log:[]});
+ C.add.forEach(a=>{ let m = MISK[a.k]; if(!m){ m = {}; MIS.push(m); MISK[a.k] = m; } Object.assign(m, a, {kw0:'', lad:a.lad.map(x=>x.slice()), custom:true}); });
+ MIS.forEach(m=>{ const e = C.edit[m.k] || {}; if(!m.custom) m.kwx = e.kwx || ''; m.kw = [m.kw0, m.kwx].filter(Boolean).join(', '); m.off = !!e.off; });
+}
+function nextCode(){ const n = Math.max(25, ...MIS.filter(m=>m.no!=='MC-99').map(m=>Number(m.no.slice(3))||0)) + 1; return 'MC-'+String(n).padStart(2,'0'); }
+const phrases = s => String(s||'').toLowerCase().split(/[,;\n]+/).map(x=>x.trim()).filter(x=>x.length>=3);
 const SAFETY_K = ['sho','drv','hyg'], QUALITY_K = ['neg'];
 const ACTIONS = [['VC / UR','vcur'],['Warning letter','wl'],['Show cause notice','wl'],['Suspension','wl'],['Discontinuation / termination','end'],['Refer to Internal Committee','ic'],['Record only (no penalty)','none']];
 /* how phrases used in the current registers map to a code (first match wins; generic words map to nothing) */
@@ -111,7 +122,8 @@ const CODE_RULES = [
  ['reg',/regulari/],['hyg',/spit|5s|hygien/],['stop',/stopped (the )?line|creating group|instigat/],['acc',/accident|injur|first aid/]
 ];
 const GENERIC_RX = /indiscip|indicip|policy violation|misconduct|act of|warning/;
-function classify(text){ const t = String(text||'').toLowerCase(); if(!t.trim()) return null; if(/absent (on|from) (work )?stage|away from stage|left stage/.test(t)) return 'stg'; const r = CODE_RULES.find(([k,rx])=>rx.test(t)); return r ? r[0] : null; }
+function classify(text){ const t = String(text||'').toLowerCase(); if(!t.trim()) return null; const toks = new Set(t.split(/[^a-z0-9]+/)), STOP = /^(a|an|the|his|her|their|of|in|on|to|at|with|for|and|or|is|was)$/; const fits = ph => { const w = ph.split(/[^a-z0-9]+/).filter(x=>x.length>1 && !STOP.test(x)); return w.length>0 && w.every(x=>toks.has(x) || toks.has(x+'s') || (x.length>4 && t.includes(x))); };
+ const own = MIS.find(m=>!m.off && m.k!=='oth' && phrases(m.kwx).some(fits)); if(own) return own.k; if(/absent (on|from) (work )?stage|away from stage|left stage/.test(t)) return 'stg'; const r = CODE_RULES.find(([k,rx])=>rx.test(t)); return r ? r[0] : null; }
 function codeOf(s){ const t = String(s||'').trim().toUpperCase(); const m = MIS.find(x=>x.no===t || x.no.replace('-','')===t.replace('-','')); return m ? m.k : null; }
 function actLevel(text){ const t = String(text||'').toLowerCase(); if(!t.trim()) return ''; if(/terminat|discontinu/.test(t)) return 'end'; if(/internal committee|\bic\b/.test(t)) return 'ic'; if(/suspension|show cause|warning|letter|latter/.test(t)) return 'wl'; if(/counsel|underwrit|vc|\bur\b/.test(t)) return 'vcur'; if(/no action|record only|not substantiated/.test(t)) return 'none'; return '?'; }
 /* search the code list the way people describe incidents on the floor */
@@ -120,7 +132,7 @@ function findCodes(q){
  const hit = classify(t), words = t.split(/[^a-z0-9]+/).filter(w=>w.length>1);
  if(!hit && GENERIC_RX.test(t)) return [MISK.oth];
  const score = m => { const hay = (m.no+' '+m.name+' '+m.kw+' '+m.cat).toLowerCase(); let s = words.filter(w=>hay.includes(w)).length; if(m.k===hit) s += 5; if(m.no.toLowerCase().replace('-','')===t.replace('-','')) s += 10; return s; };
- return MIS.map(m=>({m,s:score(m)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,5).map(x=>x.m);
+ return MIS.filter(m=>!m.off).map(m=>({m,s:score(m)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,5).map(x=>x.m);
 }
 const CSTATUS = ['','Reported','Validated','Action decided','Letter issued','Closed'];
 
@@ -235,7 +247,7 @@ function ansFor(mu, R, over){
 function profFromMu(mu){ return mu>=4.4?'strong':mu>=3.7?'good':mu>=2.9?'avg':'weak'; }
 
 function seed(){
- const S = {cfg:clone(DEFAULT_CFG), people:{}, sfLen:{}, dev:{}, forms:[], cases:[], kaizens:[], assess:{}, decisions:{}, log:[], triggers:{}, alerts:{}, views:[], tour:{},
+ const S = {codes:{add:[],edit:{},log:[]}, cfg:clone(DEFAULT_CFG), people:{}, sfLen:{}, dev:{}, forms:[], cases:[], kaizens:[], assess:{}, decisions:{}, log:[], triggers:{}, alerts:{}, views:[], tour:{},
   seq:{case:131,form:1,aa:1,p:200,kz:1}, sources:{}, sfDelta:{done:false},
   tl:{file:'TL_Waluj_joiners_2026-10-06.csv', imported:false, rows:[
    {name:'Ajinkya Lokhande',tl:'TR10498812',doj:sh('2026-10-05'),mgr:'m3',line:'Frame Weld 2',course:'B.Voc Manufacturing'},
@@ -413,7 +425,9 @@ function seedCases(S){
  C('C-109','t03','tob','2026-02-09','12:50','Canteen area','Found consuming tobacco on company premises.',5,['Warning letter','wl']);
  C('C-110','t03','cua','2026-05-04','09:00','\u2014','Absent without information for 5 continuous days. Day 4 call made, warning letter issued.',5,['Warning letter','wl']);
  C('C-111','t12','neg','2026-07-15','10:20','E-Line 1','Torque check skipped on two engines; found at end-of-line audit.',5,['VC / UR','vcur'],{rep:'S. Kulkarni (line manager)'});
- C('C-120','t11','oth','2026-10-03','15:40','Scrap yard','Found in the scrap yard during shift without a gate pass; no reason given. Not on the code list as described; HR to classify.',1,null,{rep:'Security (line tablet)'});
+ C('C-120','t11','oth','2026-10-03','15:40','Scrap yard','Found in the scrap yard during shift without a gate pass; no reason given.',1,null,{rep:'Security (line tablet)'});
+ C('C-122','t10','oth','2026-10-06','11:20','Dispatch Bay 1','Chewing gutkha near the loading dock during the shift; spat near the dock.',2,null,{rep:'M. Rao (line manager)',vr:'Confirmed with the dock supervisor.'});
+ C('C-123','t01','oth','2026-10-07','09:05','E-Line 2','Lent his ID card to another trainee to enter the canteen.',1,null,{rep:'Security (line tablet)'});
  C('C-121','t09','brk','2026-08-12','13:35','Packing L1','Came back 25 minutes late from the lunch break; second time this week per the line leader.',5,['VC / UR','vcur'],{rep:'M. Rao (line manager)'});
  // a few on generated apprentices
  const R = rng(77), gs = Object.values(S.people).filter(p=>p.id[0]==='g' && p.mu<3.6);
@@ -462,7 +476,8 @@ function conduct(tid, asOf){
  const disc = closed.filter(c=>MISK[c.k].tier>0);
  const vcur = lvl(disc,'vcur'), wl = lvl(disc,'wl'), end = lvl(disc,'end'), open = cs.filter(c=>c.status<5).length;
  const eff = wl + (vcur>=S.cfg.vcurAsWL ? 1 : 0);
- const saf = closed.filter(c=>SAFETY_K.includes(c.k)), qual = closed.filter(c=>QUALITY_K.includes(c.k)), other = disc.filter(c=>!SAFETY_K.includes(c.k)&&!QUALITY_K.includes(c.k));
+ const isS = c => MISK[c.k].cat==='Safety', isQ = c => MISK[c.k].cat==='Quality';
+ const saf = disc.filter(isS), qual = disc.filter(isQ), other = disc.filter(c=>!isS(c)&&!isQ(c));
  return {vcur,wl,end,open,eff,closed:closed.length,cases:cs,
   saf:{n:saf.length, wl:lvl(saf,'wl')+lvl(saf,'end'), vcur:lvl(saf,'vcur')},
   qual:{n:qual.length},
