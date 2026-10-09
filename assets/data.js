@@ -7,7 +7,7 @@ const SHIFT = Math.round((TODAY - new Date(2026, 9, 7)) / 864e5);
 const sh = s => { const [y,m,dd] = s.split('-').map(Number); const x = new Date(y, m-1, dd + SHIFT); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
 const DAY = 864e5;
 const PLANTS = {WLJ:'Waluj'};
-const RULES_VER = 'Rule set v1.1';
+const RULES_VER = 'Rule set v1.2';
 
 const BUCKETS = {
  P:{name:'Productivity', hint:'Output at the line rate'},
@@ -68,29 +68,60 @@ const OUTCOME = {A:'Exceeds expectations', B:'Meets expectations', C:'Below expe
 const OUTCOMES = ['Exceeds expectations','Meets expectations','Below expectations'];
 
 const MIS = [
- {k:'mob',no:'1',name:'Mobile / earphone use during work',cat:'Work indiscipline',tier:1,lad:[['VC / UR','vcur'],['Warning letter','wl'],['Discontinuation','end']]},
- {k:'uni',no:'4',name:'Not wearing uniform',cat:'Work indiscipline',tier:1,lad:[['VC / UR; sent home, marked absent','vcur']]},
- {k:'ref',no:'3',name:'Refusing to work at stage',cat:'Work indiscipline',tier:2,lad:[['Warning letter + confession','wl'],['Termination after 7 days if unresolved','end']]},
- {k:'slp',no:'5',name:'Sleeping on duty',cat:'Work indiscipline',tier:2,lad:[['Show cause + 5-day suspension','wl'],['Termination','end']]},
- {k:'sho',no:'2',name:'Not wearing safety shoes / PPE',cat:'Safety',tier:1,lad:[['VC / UR','vcur'],['Warning letter','wl'],['Discontinuation','end']]},
- {k:'drv',no:'11',name:'Driving without licence',cat:'Safety',tier:3,lad:[['Termination','end']]},
- {k:'hab',no:'8',name:'Habitual absenteeism',cat:'Attendance',tier:1,lad:[['VC / UR','vcur'],['Warning letter','wl'],['Discontinuation','end']]},
- {k:'stg',no:'12',name:'Absent from stage without approval',cat:'Attendance',tier:1,lad:[['VC / UR','vcur'],['Warning letter','wl'],['Discontinuation','end']]},
- {k:'cua',no:'9',name:'Continuous unauthorised absence (> 3 days)',cat:'Attendance',tier:2,lad:[['Warning letter (Day 4); calls Day 6 and 11','wl'],['Discontinuation if unresolved','end']]},
- {k:'vrb',no:'14',name:'Verbal fight / abusive language',cat:'Behaviour',tier:2,lad:[['VC / UR + warning letter','wl'],['Discontinuation','end']]},
- {k:'phy',no:'7',name:'Physical fight',cat:'Behaviour',tier:3,lad:[['Termination','end']]},
- {k:'tob',no:'15',name:'Tobacco / smoking on premises',cat:'Substance',tier:2,lad:[['VC / UR + warning letter','wl'],['Discontinuation','end']]},
- {k:'alc',no:'16',name:'Alcohol on duty',cat:'Substance',tier:3,lad:[['Discontinuation','end']]},
- {k:'prx',no:'6',name:'Proxy punching',cat:'Integrity & security',tier:3,lad:[['Termination','end']]},
- {k:'thf',no:'10',name:'Theft',cat:'Integrity & security',tier:3,lad:[['Termination','end']]},
- {k:'dmg',no:'11',name:'Damage to company property',cat:'Integrity & security',tier:3,lad:[['Termination','end']]},
- {k:'pho',no:'13',name:'Photo / video on premises',cat:'Integrity & security',tier:3,lad:[['Discontinuation','end']]},
- {k:'neg',no:'New',name:'Work negligence / quality lapse',cat:'Quality',tier:1,lad:[['VC / UR','vcur'],['Warning letter','wl'],['Discontinuation','end']]},
- {k:'acc',no:'New',name:'Accident (no violation found)',cat:'Incident \u2013 non-disciplinary',tier:0,lad:[['Record only; no penalty','none']]}
+ {k:'mob',no:'MC-01',name:"Mobile / earphone use during work",cat:"Work indiscipline",tier:1,docs:"Incident report",kw:"mobile usage, headphones, earbuds, watching IPL / videos on phone",lad:[["VC / UR; confiscate, return after shift (call security if refused)","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
+ {k:'sho',no:'MC-02',name:"Not wearing safety shoes / PPE",cat:"Safety",tier:1,docs:"Incident report",kw:"without safety shoes, saftey shoes, no gloves / goggles",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
+ {k:'ref',no:'MC-03',name:"Refusing to work at stage",cat:"Work indiscipline",tier:2,docs:"Incident report; confession",kw:"refused to work, not working at stage",lad:[["VC / UR + incident report","vcur"],["Warning letter + confession; collect ID; termination after 7 days if unresolved","wl"]]},
+ {k:'uni',no:'MC-04',name:"Not wearing uniform",cat:"Work indiscipline",tier:1,docs:"Incident report",kw:"without uniform, improper dress, not wearing company dress",lad:[["VC / UR; sent home, marked absent","vcur"]]},
+ {k:'slp',no:'MC-05',name:"Sleeping on duty",cat:"Work indiscipline",tier:2,docs:"Incident report; confession",kw:"slept on shop floor, sleeping",lad:[["Show cause + confession; 5-day suspension","wl"],["Termination on the day","end"]]},
+ {k:'prx',no:'MC-06',name:"Proxy punching (machine or TeamLease app)",cat:"Integrity & security",tier:3,docs:"Confession; ID, punch card, bus pass collected",kw:"proxy punching, proxy in TL app, punching for another trainee",lad:[["Termination on the day (confession; ID, punch card, bus pass collected)","end"]]},
+ {k:'phy',no:'MC-07',name:"Physical fight",cat:"Behaviour",tier:3,docs:"Confession; ID, punch card, bus pass collected",kw:"physical fight, fighting, engaged in a fight",lad:[["Termination on the day (confession; ID collected)","end"]]},
+ {k:'hab',no:'MC-08',name:"Habitual absenteeism",cat:"Attendance",tier:1,docs:"Incident report; time-system extract",kw:"absent without intimation, unplanned leave, unauthorised absence (threshold below)",lad:[["VC / UR; entry in habitual record","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
+ {k:'cua',no:'MC-09',name:"Continuous unauthorised absence (> 3 days)",cat:"Attendance",tier:2,docs:"Call log; warning letter",kw:"continuous absence, long absence, absent since <date>",lad:[["Day 4 call + warning letter; Day 6 call; Day 11 call","wl"],["Discontinuation if not resumed by Day 11 (if resumed: HRD meeting + underwriting)","end"]]},
+ {k:'thf',no:'MC-10',name:"Theft",cat:"Integrity & security",tier:3,docs:"Confession; ID, punch card, bus pass collected",kw:"theft, stealing",lad:[["Termination on the day (confession; ID collected)","end"]]},
+ {k:'dmg',no:'MC-11',name:"Damage to company property",cat:"Integrity & security",tier:3,docs:"Incident report; confession; ID collected",kw:"damaged vehicle / property",lad:[["Termination on the day (incident report + confession; ID collected)","end"]]},
+ {k:'stg',no:'MC-12',name:"Absent from work stage without approval",cat:"Attendance",tier:1,docs:"Incident report",kw:"absent on stage, away from stage, punched in but not at stage",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
+ {k:'pho',no:'MC-13',name:"Photo / video in company premises",cat:"Integrity & security",tier:3,docs:"Confession; ID collected",kw:"captured video, recording, photo on shop floor",lad:[["Discontinuation on the day (confession; ID collected)","end"]]},
+ {k:'vrb',no:'MC-14',name:"Verbal fight / abusive language / misbehaviour",cat:"Behaviour",tier:2,docs:"Incident report; confession on repeat",kw:"verbal fight, abusive language, misbehave with supervisor / engineer, insubordination",lad:[["Incident report + VC / UR + warning letter","wl"],["Confession; ID collected; discontinuation on the day","end"]]},
+ {k:'tob',no:'MC-15',name:"Tobacco / smoking in company premises",cat:"Substance",tier:2,docs:"Incident report; confession on repeat",kw:"tobacco, gutkha, smoking",lad:[["Incident report + VC / UR + warning letter","wl"],["Confession; ID collected; discontinuation on the day","end"]]},
+ {k:'alc',no:'MC-16',name:"Alcohol consumption on duty",cat:"Substance",tier:3,docs:"Confession; ID collected",kw:"alcohol, drunk",lad:[["Confession / misconduct report; ID collected; discontinuation on the day","end"]]},
+ {k:'drv',no:'MC-17',name:"Driving without licence",cat:"Safety",tier:3,docs:"Incident report; confession; ID collected",kw:"drove vehicle without driving licence",lad:[["Termination on the day (incident report + confession; ID collected)","end"]]},
+ {k:'neg',no:'MC-18',name:"Work negligence / quality / SOP lapse",cat:"Quality",tier:1,docs:"Incident report",kw:"SOP violation, not following SOPs, wrong part fitted, mistake in work, skipped inspection",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
+ {k:'brk',no:'MC-19',name:"Break-time / shift-timing violation",cat:"Work indiscipline",tier:1,docs:"Incident report",kw:"lunch break time violation, late from break, timepass during working hours",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
+ {k:'chg',no:'MC-20',name:"Unapproved change of shift, stage or department",cat:"Work indiscipline",tier:1,docs:"Incident report",kw:"changed shift without informing, came to general shift, worked in other department without permission",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
+ {k:'reg',no:'MC-21',name:"Attendance regularisation misuse",cat:"Integrity & security",tier:1,docs:"Incident report; system log",kw:"applied regularisation instead of leave, miss punching TL portal",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
+ {k:'hyg',no:'MC-22',name:"Hygiene / 5S breach (e.g. spitting)",cat:"Safety",tier:1,docs:"Incident report",kw:"spitting on shop floor",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
+ {k:'stop',no:'MC-23',name:"Stopping the line / instigating others",cat:"Work indiscipline",tier:2,docs:"Incident report; confession",kw:"stopped line by creating group",lad:[["Warning letter + confession","wl"],["Discontinuation","end"]]},
+ {k:'posh',no:'MC-24',name:"POSH complaint",cat:"Separate route: Internal Committee",tier:0,docs:"Complaint; IC reference no.",kw:"POSH case",lad:[["Refer to the Internal Committee (POSH Act, 2013); restricted access; no conduct action until IC concludes","ic"]]},
+ {k:'acc',no:'MC-25',name:"Accident (no violation found)",cat:"Incident \u2013 non-disciplinary",tier:0,docs:"Accident report; first-aid / medical record",kw:"accident in premises / on the way",lad:[["Record only; no penalty (if a violation caused it, log that misconduct instead)","none"]]},
+ {k:'oth',no:'MC-99',name:"Other (describe)",cat:"To be classified by HR",tier:0,docs:"Incident report",kw:"anything not listed; never \"policy violation\" alone",lad:[["HR assigns a code within 7 days","none"]]}
 ];
 const MISK = Object.fromEntries(MIS.map(m=>[m.k,m]));
-const SAFETY_K = ['sho','drv'], QUALITY_K = ['neg'];
-const ACTIONS = [['VC / UR','vcur'],['Warning letter','wl'],['Show cause notice','wl'],['Suspension','wl'],['Discontinuation / termination','end'],['Record only (no penalty)','none']];
+const SAFETY_K = ['sho','drv','hyg'], QUALITY_K = ['neg'];
+const ACTIONS = [['VC / UR','vcur'],['Warning letter','wl'],['Show cause notice','wl'],['Suspension','wl'],['Discontinuation / termination','end'],['Refer to Internal Committee','ic'],['Record only (no penalty)','none']];
+/* how phrases used in the current registers map to a code (first match wins; generic words map to nothing) */
+const CODE_RULES = [
+ ['posh',/posh|sexual harass/],['prx',/proxy|miss punch|punching for/],['alc',/alcohol|drunk/],['tob',/tobacco|smok|gutkha|cigarette/],
+ ['vrb',/verbal|abus|miss?behav|insubordinat|argu|inappropriate language|rude/],['phy',/physical|engaged in a fight|fighting|\bfight\b|beat/],
+ ['thf',/theft|stole|stealing/],['dmg',/damag|broke/],['drv',/driv\w* .*licen|without driving|licence|license/],['pho',/photo|video|recording|reel/],
+ ['slp',/sleep|slept/],['ref',/refus|not working at stage/],['sho',/safety shoe|saftey shoe|shoes|ppe|gloves|goggle|helmet/],['uni',/uniform|dress/],
+ ['mob',/mobile|headphone|earbud|earphone|\bipl\b|phone/],['brk',/lunch|break time|tea break|late from break|timepass/],
+ ['stg',/absent on stage|absent from (work )?stage|away from stage|left stage|not at stage|instead of reporting/],
+ ['cua',/continuous|continuously absent|long absence|absent since/],['hab',/habit|absent without|unplanned leave|unauthori[sz]ed abs|absenteeism|absent|without intimation/],
+ ['neg',/\bsop\b|wrong|negligen|quality|not following|inspection|mistake|torque|defect/],['chg',/change(d)? (of )?shift|other department|stage change|general shift|without permission/],
+ ['reg',/regulari/],['hyg',/spit|5s|hygien/],['stop',/stopped (the )?line|creating group|instigat/],['acc',/accident|injur|first aid/]
+];
+const GENERIC_RX = /indiscip|indicip|policy violation|misconduct|act of|warning/;
+function classify(text){ const t = String(text||'').toLowerCase(); if(!t.trim()) return null; if(/absent (on|from) (work )?stage|away from stage|left stage/.test(t)) return 'stg'; const r = CODE_RULES.find(([k,rx])=>rx.test(t)); return r ? r[0] : null; }
+function codeOf(s){ const t = String(s||'').trim().toUpperCase(); const m = MIS.find(x=>x.no===t || x.no.replace('-','')===t.replace('-','')); return m ? m.k : null; }
+function actLevel(text){ const t = String(text||'').toLowerCase(); if(!t.trim()) return ''; if(/terminat|discontinu/.test(t)) return 'end'; if(/internal committee|\bic\b/.test(t)) return 'ic'; if(/suspension|show cause|warning|letter|latter/.test(t)) return 'wl'; if(/counsel|underwrit|vc|\bur\b/.test(t)) return 'vcur'; if(/no action|record only|not substantiated/.test(t)) return 'none'; return '?'; }
+/* search the code list the way people describe incidents on the floor */
+function findCodes(q){
+ const t = String(q||'').toLowerCase().trim(); if(t.length<2) return [];
+ const hit = classify(t), words = t.split(/[^a-z0-9]+/).filter(w=>w.length>1);
+ if(!hit && GENERIC_RX.test(t)) return [MISK.oth];
+ const score = m => { const hay = (m.no+' '+m.name+' '+m.kw+' '+m.cat).toLowerCase(); let s = words.filter(w=>hay.includes(w)).length; if(m.k===hit) s += 5; if(m.no.toLowerCase().replace('-','')===t.replace('-','')) s += 10; return s; };
+ return MIS.map(m=>({m,s:score(m)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,5).map(x=>x.m);
+}
 const CSTATUS = ['','Reported','Validated','Action decided','Letter issued','Closed'];
 
 const MANAGERS = {
@@ -146,7 +177,7 @@ const COMMENTS = {
 
 const DEFAULT_CFG = {
  w:{P:10,Q:10,C:10,D:10,S:10,M:10}, blend:50,
- bandA:76.5, bandB:47.1, vcurAsWL:3, wlNotRec:2, leniency:40, launchBefore:14, kzVerifyDays:30,
+ bandA:76.5, bandB:47.1, vcurAsWL:3, wlNotRec:2, leniency:40, launchBefore:14, kzVerifyDays:30, habN:3, histCount:1,
  vis:{
   hod:{agent:true, comments:true, data:true},
   plant:{scores:true, comments:false, conduct:true, kaizen:true},
@@ -365,7 +396,7 @@ function seedCases(S){
   if(status>=2) c.steps.validated = {by:extra.val||MANAGERS[S.people[tid].mgr].name,at:at(1),remarks:extra.vr||'Confirmed with line supervisor.'};
   if(status>=3) c.steps.action = {by:HODS[MANAGERS[S.people[tid].mgr].hod].name,at:at(2),label:action[0],level:action[1],reason:''};
   if(status>=4) c.steps.letter = action[1]==='none' ? {by:'N. Sharma',at:at(3),type:'No letter'} : {by:'N. Sharma',at:at(3),type:{vcur:'Verbal counselling / underwriting record',wl:'Warning letter',end:'Termination / discontinuation letter'}[action[1]],ref:'HR/CON/'+date.slice(0,4)+'/'+id.replace('C-',''),ack:true};
-  c.imm = ({mob:['Mobile phone confiscated'],tob:['Statement / confession taken'],uni:['Sent home and marked absent'],sho:['Supervisor and HR informed'],acc:['First aid given'],vrb:['Statement / confession taken'],neg:['Supervisor and HR informed']})[k]||[];
+  c.imm = ({oth:['Supervisor and HR informed'],brk:['Supervisor and HR informed'],mob:['Mobile phone confiscated','Mobile returned after shift'],tob:['Statement / confession taken'],uni:['Sent home and marked absent'],sho:['Supervisor and HR informed'],acc:['First aid given'],vrb:['Statement / confession taken'],neg:['Supervisor and HR informed']})[k]||[];
   if(k==='acc') c.injury = {what:'Minor cut on hand', days:0, cause:'No: record only'};
   if(extra.wit) c.wit = extra.wit;
   if(status>=5){ c.steps.closed = {by:'N. Sharma',at:at(4)}; c.closedAt = new Date(d(date).getTime()+4*DAY).toISOString(); }
@@ -382,6 +413,8 @@ function seedCases(S){
  C('C-109','t03','tob','2026-02-09','12:50','Canteen area','Found consuming tobacco on company premises.',5,['Warning letter','wl']);
  C('C-110','t03','cua','2026-05-04','09:00','\u2014','Absent without information for 5 continuous days. Day 4 call made, warning letter issued.',5,['Warning letter','wl']);
  C('C-111','t12','neg','2026-07-15','10:20','E-Line 1','Torque check skipped on two engines; found at end-of-line audit.',5,['VC / UR','vcur'],{rep:'S. Kulkarni (line manager)'});
+ C('C-120','t11','oth','2026-10-03','15:40','Scrap yard','Found in the scrap yard during shift without a gate pass; no reason given. Not on the code list as described; HR to classify.',1,null,{rep:'Security (line tablet)'});
+ C('C-121','t09','brk','2026-08-12','13:35','Packing L1','Came back 25 minutes late from the lunch break; second time this week per the line leader.',5,['VC / UR','vcur'],{rep:'M. Rao (line manager)'});
  // a few on generated apprentices
  const R = rng(77), gs = Object.values(S.people).filter(p=>p.id[0]==='g' && p.mu<3.6);
  const opts = [['mob','Mobile phone use at the station during shift.'],['stg','Away from stage for 30 minutes without approval.'],['sho','Working without safety gloves at the station.'],['hab','Absent on 4 Mondays this month without information.'],['neg','Wrong part fitted and not reported; found at quality gate.']];
@@ -424,9 +457,9 @@ function devAsOf(p, asOf){
 function conduct(tid, asOf){
  const lim = asOf ? new Date(asOf) : null;
  const cs = S.cases.filter(c=>c.tid===tid);
- const closed = cs.filter(c=>c.status===5 && (!lim || new Date(c.closedAt)<=lim));
+ const closed = cs.filter(c=>c.status===5 && (!lim || new Date(c.closedAt)<=lim) && (S.cfg.histCount!==0 || !c.hist));
  const lvl = (arr,l) => arr.filter(c=>c.steps.action && c.steps.action.level===l).length;
- const disc = closed.filter(c=>c.k!=='acc');
+ const disc = closed.filter(c=>MISK[c.k].tier>0);
  const vcur = lvl(disc,'vcur'), wl = lvl(disc,'wl'), end = lvl(disc,'end'), open = cs.filter(c=>c.status<5).length;
  const eff = wl + (vcur>=S.cfg.vcurAsWL ? 1 : 0);
  const saf = closed.filter(c=>SAFETY_K.includes(c.k)), qual = closed.filter(c=>QUALITY_K.includes(c.k)), other = disc.filter(c=>!SAFETY_K.includes(c.k)&&!QUALITY_K.includes(c.k));
@@ -563,9 +596,28 @@ function latestEval(p){ const f = lastSubmitted(p.id); return f ? {f, e:evaluate
 function attMonths(p, asOf){ const a = attStats(p.id, asOf), m = {}; a.days.forEach(x=>{ if(x.s==='W') return; const k = x.d.slice(0,7); (m[k] ||= {n:0,p:0}); m[k].n++; if(x.s!=='A') m[k].p++; }); return Object.entries(m).slice(-12).map(([k,v])=>({k, v:v.p/v.n*100})); }
 function trend(p){ return formsOf(p.id).filter(isDone).map(f=>({cp:f.cp, v:evaluate(p,f,{noPrev:true,noLen:true}).overall})); }
 function nextCp(p){ const done = new Set(formsOf(p.id).filter(isDone).map(f=>f.cp)); for(const m of [12]){ if(!done.has('M'+m)) return {cp:'M'+m, date:addM(d(p.doj),m)}; } return null; }
-function suggest(tid,k,excl){ const m = MISK[k]; const prior = S.cases.filter(c=>c.tid===tid&&c.k===k&&c.id!==excl&&c.status===5&&c.steps.action&&c.steps.action.level!=='none').length; const i = Math.min(prior,m.lad.length-1); return {label:m.lad[i][0],level:m.lad[i][1],prior,step:i+1,of:m.lad.length}; }
+function suggest(tid,k,excl){ const m = MISK[k], cur = excl ? S.cases.find(c=>c.id===excl) : null; const prior = S.cases.filter(c=>c.tid===tid&&c.k===k&&c.id!==excl&&c.status===5&&c.steps.action&&!['none','?'].includes(c.steps.action.level)&&(!cur||c.date<cur.date||(c.date===cur.date&&c.id<cur.id))).length; const i = Math.min(prior,m.lad.length-1); return {label:m.lad[i][0],level:m.lad[i][1],prior,step:i+1,of:m.lad.length}; }
 function hodOf(p){ return MANAGERS[p.mgr].hod; }
 function absAlerts(){ return Object.values(S.people).filter(p=>p.status==='Active').map(p=>({p,a:attStats(p.id)})).filter(x=>x.a.cont>=4); }
+/* attendance-driven prompts to log MC-08 / MC-09, from the time system */
+function attPrompts(ps){
+ const since = n => dateKey(new Date(TODAY.getTime()-n*DAY));
+ return ps.filter(p=>p.status==='Active').map(p=>{ const a = attStats(p.id), has = (k,n) => S.cases.some(c=>c.tid===p.id && c.k===k && c.date>=since(n));
+  if(a.cont>=4 && !has('cua',30)) return {p, k:'cua', why:a.cont+' working days absent in a row'};
+  if(a.abs30>=(S.cfg.habN||3) && !has('hab',30)) return {p, k:'hab', why:a.abs30+' unplanned absences in the last 30 days'};
+  return null; }).filter(Boolean);
+}
+/* record-standard checks on one case */
+function caseIssues(c){
+ const out = [], age = Math.round((TODAY - d(c.date))/DAY), a = c.steps.action, L = c.steps.letter;
+ if(c.k==='oth' && c.status<5) out.push(age>7 ? 'Code not assigned in 7 days' : 'HR to assign a code');
+ if((c.desc||'').trim().length<10) out.push('Description missing');
+ if(!c.hist){ const due = {1:[3,'Validation overdue'],2:[6,'Action overdue'],3:[9,'Letter overdue'],4:[10,'Closure overdue']}[c.status]; if(due && age>due[0] && c.k!=='posh') out.push(due[1]); }
+ if(a && a.level==='?') out.push('Action not recorded');
+ if(a && !c.hist && !['none','ic'].includes(a.level) && c.k!=='oth'){ const sg = suggest(c.tid,c.k,c.id); if(sg.level!==a.level && !(a.reason||'').trim()) out.push('Differs from ladder, no reason'); }
+ if(L && a && !c.hist && ['vcur','wl','end'].includes(a.level) && L.type!=='No letter' && (!L.ref || !L.ack)) out.push('Letter ref / acknowledgement missing');
+ return out;
+}
 function log(dir,from,to,what){ S.log.unshift({at:stamp(),dir,from,to,what,ts:Date.now()}); if(S.log.length>120) S.log.length = 120; }
 function seedLog(){
  S.log = [];

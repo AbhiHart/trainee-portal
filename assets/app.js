@@ -73,8 +73,8 @@ function parseHash(){ const h = location.hash.replace(/^#\/?/,'').split('/').fil
 function navCount(k){
  if(!ME) return 0; const u = USER(), ps = ['manager','hod'].includes(u.role) ? myPeople() : Object.values(S.people), has = f => ps.some(p=>p.id===f.tid);
  if(u.role==='manager'){ if(k==='reviews') return S.forms.filter(f=>has(f)&&!isDone(f)).length; if(k==='kaizen') return S.kaizens.filter(x=>x.status==='Submitted'&&ps.some(p=>p.id===x.tid)).length; if(k==='cases') return S.cases.filter(c=>c.status===1&&ps.some(p=>p.id===c.tid)).length; }
- if(u.role==='hod'){ if(k==='reviews') return S.forms.filter(f=>has(f)&&f.status==='With HoD').length; if(k==='cases') return S.cases.filter(c=>c.status===2&&ps.some(p=>p.id===c.tid)).length; }
- if(u.role==='hr'){ if(k==='cases') return S.cases.filter(c=>c.status===3||c.status===4).length; if(k==='m12') return Object.values(S.decisions).filter(x=>x.hod&&!x.hr).length; }
+ if(u.role==='hod'){ if(k==='reviews') return S.forms.filter(f=>has(f)&&f.status==='With HoD').length; if(k==='cases') return S.cases.filter(c=>c.status===2&&c.k!=='oth'&&ps.some(p=>p.id===c.tid)).length; }
+ if(u.role==='hr'){ if(k==='cases') return S.cases.filter(c=>c.status===3||c.status===4||(c.k==='oth'&&c.status<5)).length; if(k==='m12') return Object.values(S.decisions).filter(x=>x.hod&&!x.hr).length; }
  if(u.role==='coordinator' && k==='kzverify') return S.kaizens.filter(x=>x.status==='Implemented' && new Date(d(x.implAt).getTime()+S.cfg.kzVerifyDays*DAY)<=TODAY).length;
  if(u.role==='agent' && k==='console') return queue().length;
  return 0;
@@ -117,7 +117,7 @@ function toast(msg){ const n = document.createElement('div'); n.className = 'toa
 function go(path){ location.hash = '#/'+path; }
 
 /* ----- shared store (this browser; all portals) ----- */
-const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v5';
+const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v6';
 let rev = 0, _ptimer = null;
 function persist(){
  rev++;
@@ -135,7 +135,7 @@ window.addEventListener('storage', e=>{
 
 /* ----- actions ----- */
 const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-const NOSAVE = new Set(['cpreset','lgfor','casecsv','fill','logout','rtab','qb','kzopen','close','kzs','kzcat','colsbtn','pick','kzcsv','mastercsv','vsel']);
+const NOSAVE = new Set(['cpreset','lgfor','lgpick','imptpl','impsample','impclear','casecsv','fill','logout','rtab','qb','kzopen','close','kzs','kzcat','colsbtn','pick','kzcsv','mastercsv','vsel']);
 const formOf = id => S.forms.find(x=>x.id===id);
 const A = {
  fill(el){ $('#lg-u').value = el.dataset.id; $('#lg-p').value = DEMO_PW; $('#lg-p').focus(); },
@@ -210,28 +210,45 @@ const A = {
  },
  cvalid(el){ const c = S.cases.find(x=>x.id===el.dataset.id), r = val('cv-r'), nk = val('cv-k'); if(r.length<5){ $('#cv-e').textContent = 'Add validation remarks.'; return false; } if(nk && nk!==c.k){ c.steps.validated = {by:USER().name,at:stamp(),remarks:r+' (misconduct corrected from '+MISK[c.k].name+')'}; c.k = nk; } else c.steps.validated = {by:USER().name,at:stamp(),remarks:r}; c.status = 2; log('wf','Line manager','PRAGATI Conduct',`${c.id} validated by ${USER().name}; HoD to decide the action.`); render(); },
  cnot(el){ const c = S.cases.find(x=>x.id===el.dataset.id), r = val('cv-r'); if(r.length<5){ $('#cv-e').textContent = 'Add remarks explaining why.'; return false; } const by = USER().name; c.steps.validated = {by,at:stamp(),remarks:r}; c.steps.action = {by,at:stamp(),label:'Not substantiated',level:'none',reason:r}; c.steps.letter = {by:'—',at:stamp()}; c.steps.closed = {by,at:stamp()}; c.status = 5; c.closedAt = TODAY.toISOString(); log('wf','Line manager','PRAGATI Conduct',`${c.id} closed as not substantiated.`); render(); },
- caction(el){ const c = S.cases.find(x=>x.id===el.dataset.id), sg = suggest(c.tid,c.k), label = val('ca-a'), level = ACTIONS.find(a=>a[0]===label)[1], reason = val('ca-r'); if(level!==sg.level && reason.length<5){ $('#ca-e').textContent = 'Differs from the ladder ('+sg.label+'). Add a reason.'; return false; } c.steps.action = {by:USER().name,at:stamp(),label,level,reason}; c.status = 3; log('wf','HoD','PRAGATI Conduct',`${c.id}: action ${label}.`); render(); },
+ caction(el){ const c = S.cases.find(x=>x.id===el.dataset.id), sg = suggest(c.tid,c.k,c.id), label = val('ca-a'), level = ACTIONS.find(a=>a[0]===label)[1], reason = val('ca-r'); if(level!==sg.level && reason.length<5){ $('#ca-e').textContent = 'Differs from the ladder ('+sg.label+'). Add a reason.'; return false; } c.steps.action = {by:USER().name,at:stamp(),label,level,reason}; c.status = 3; log('wf','HoD','PRAGATI Conduct',`${c.id}: action ${label}.`); render(); },
  cletter(el){ const c = S.cases.find(x=>x.id===el.dataset.id), lvl = c.steps.action.level;
+  if(lvl==='ic'){ const ref = val('cl-r'); if(ref.length<3){ $('#cl-e').textContent = 'Add the IC reference no.'; return false; } c.steps.letter = {by:USER().name,at:stamp(),type:'Internal Committee referral',ref}; c.status = 4; log('wf','HR','PRAGATI Conduct',`${c.id}: referred to the Internal Committee.`); render(); return; }
   if(lvl!=='none'){ const ref = val('cl-r'), ack = $('#cl-a').checked; if(ref.length<3){ $('#cl-e').textContent = 'Add the letter reference no.'; return false; } if(!ack){ $('#cl-e').textContent = 'Record the apprentice\u2019s acknowledgement first.'; return false; } c.steps.letter = {by:USER().name,at:stamp(),type:val('cl-t'),ref,ack:true}; }
   else c.steps.letter = {by:USER().name,at:stamp(),type:'No letter'};
   c.status = 4; log('wf','HR','PRAGATI Conduct',`${c.id}: ${lvl==='none'?'no letter needed':c.steps.letter.type+' '+c.steps.letter.ref+' issued and acknowledged'}.`); render(); },
- cclose(el){ const c = S.cases.find(x=>x.id===el.dataset.id), p = S.people[c.tid]; c.steps.closed = {by:USER().name,at:stamp()}; c.status = 5; c.closedAt = TODAY.toISOString(); if(c.steps.action.level==='end'){ p.status = 'Training ended'; log('out','PRAGATI','SAP SF/EC Job info',`${p.name}: training ended (${c.id}).`); } log('wf','HR','PRAGATI Conduct',`${c.id} closed; counts in scoring.`); afterDataChange('Conduct case closed',[c.tid]); toast(c.id+' closed. The agent will re-score '+p.name+'.'); render(); },
+ cclose(el){ const c = S.cases.find(x=>x.id===el.dataset.id), p = S.people[c.tid]; c.steps.closed = {by:USER().name,at:stamp()}; c.status = 5; c.closedAt = TODAY.toISOString(); if(c.steps.action.level==='end'){ p.status = 'Training ended'; log('out','PRAGATI','SAP SF/EC Job info',`${p.name}: training ended (${c.id}).`); } log('wf','HR','PRAGATI Conduct',`${c.id} closed; counts in scoring.`); afterDataChange('Conduct case closed',[c.tid]); toast(MISK[c.k].tier ? c.id+' closed. The agent will re-score '+p.name+'.' : c.id+' closed.'); render(); },
  cpreset(el){ UI.cf.preset = el.dataset.id; render(); },
- lgfor(el){ UI.lg = {tid:el.dataset.id, k:'', imm:[]}; go('cases/log'); },
+ lgfor(el){ UI.lg = {tid:el.dataset.id, k:el.dataset.k||'', imm:[], q:''}; go('cases/log'); },
+ lgpick(el){ keepLg(); UI.lg.k = el.dataset.id; render(); },
+ cclass(el){ const c = S.cases.find(x=>x.id===el.dataset.id), k = val('cc-k'); if(!k){ $('#cc-e').textContent = 'Pick a code.'; return false; } (c.steps.coded = {by:USER().name,at:stamp(),label:MISK[k].no+' '+MISK[k].name}); c.k = k; log('wf','HR','PRAGATI Conduct',`${c.id} coded as ${MISK[k].no} ${MISK[k].name}.`); toast(c.id+' coded as '+MISK[k].no); render(); },
+ imptpl(){ download('conduct_history_template.csv', [IMP_COLS]); },
+ impsample(){ const rows = impSample(); UI.imp = {name:'sample_register.csv', rows:impRows(rows)}; render(); },
+ impclear(){ UI.imp = null; render(); },
+ impgo(){ const I = UI.imp; if(!I) return false; const ok = I.rows.filter(r=>!r.err); const tids = new Set();
+  ok.forEach(r=>{ const lv = r.lv || '?', label = ({vcur:'VC / UR',wl:/show cause/i.test(r.raw[4])?'Show cause notice':/suspen/i.test(r.raw[4])?'Suspension':'Warning letter',end:'Discontinuation / termination',ic:'Refer to Internal Committee',none:'Record only (no penalty)','?':'Not recorded'})[lv];
+   const at = fmt(d(r.date)), by = 'Earlier register';
+   const c = {id:'H-'+(S.seq.hist = (S.seq.hist||1000)+1), tid:r.p.id, k:r.k, date:r.date, time:'\u2014', place:'\u2014', desc:r.raw[6]||r.raw[2]||'', evidence:[], imm:[], reporter:by, status:5, channel:'Import', hist:I.name, raw:r.raw[2],
+    steps:{reported:{by,at}, validated:{by,at,remarks:'Imported; recorded as “'+(r.raw[2]||'')+'”'}, action:{by,at,label,level:lv,reason:''}, letter:r.raw[5]?{by,at,type:LETTERS[lv]||'Letter',ref:r.raw[5],ack:false}:{by,at,type:'No letter'}, closed:{by:USER().name,at:stamp()}}, closedAt:new Date(d(r.date).getTime()+DAY).toISOString()};
+   if(['vcur','wl','end'].includes(lv) && !r.raw[5]) c.steps.letter = {by,at,type:LETTERS[lv]};
+   S.cases.push(c); tids.add(r.p.id); });
+  log('in','HR','PRAGATI Conduct',`${ok.length} case(s) imported from ${I.name}; ${ok.filter(r=>r.k==='oth').length} need a code.`);
+  afterDataChange('Conduct history imported',[...tids]); UI.imp = null; UI.cf = Object.assign(UI.cf||{q:'',cat:'',tier:'',st:'',plant:''}, {preset:'hist'}); toast(ok.length+' cases imported'); go('cases/register'); },
  lgsubmit(){
   const G = UI.lg; keepLg(); const err = [];
   if(!G.tid) err.push('pick the apprentice'); if(!G.k) err.push('choose the misconduct'); if((G['lg-desc']||'').trim().length<10) err.push('describe what happened'); if(!G['lg-date']) err.push('give the date');
   if(err.length){ $('#lg-err').textContent = 'Please '+err.join(', ')+'.'; return false; }
-  const p = S.people[G.tid], u = USER(), isLM = u.role==='manager' && p.mgr===u.persona;
+  const p = S.people[G.tid], u = USER(), isLM = u.role==='manager' && p.mgr===u.persona, posh = G.k==='posh';
   const files = [...(($('#lg-ev')||{}).files||[])].map(x=>x.name);
-  const c = {id:'C-'+(S.seq.case++), tid:p.id, k:G.k, date:G['lg-date'], time:G['lg-time']||'\u2014', place:G['lg-place']||p.line, desc:G['lg-desc'].trim(), other:G['lg-oth']||'', wit:G['lg-wit']||'', imm:G.imm.slice(), evidence:files, reporter:u.name+' ('+u.title+')', status:isLM?2:1, channel:'Desktop', steps:{reported:{by:u.name,at:stamp()}}};
+  const c = {id:'C-'+(S.seq.case++), tid:p.id, k:G.k, date:G['lg-date'], time:G['lg-time']||'\u2014', place:G['lg-place']||p.line, desc:G['lg-desc'].trim(), other:G['lg-oth']||'', wit:G['lg-wit']||'', imm:G.imm.slice(), evidence:files, reporter:u.name+' ('+u.title+')', status:posh?3:isLM?2:1, channel:'Desktop', steps:{reported:{by:u.name,at:stamp()}}};
+  if(posh){ c.steps.action = {by:'PRAGATI',at:stamp(),label:'Refer to Internal Committee',level:'ic',reason:'POSH complaint'}; }
   if(G.k==='acc') c.injury = {what:G['lg-inj']||'\u2014', days:Number(G['lg-days'])||0, cause:G['lg-cause']||'No: record only'};
-  if(isLM) c.steps.validated = {by:u.name,at:stamp(),remarks:'Logged by the line manager.'};
+  if(isLM && !posh) c.steps.validated = {by:u.name,at:stamp(),remarks:'Logged by the line manager.'};
   S.cases.push(c); UI.lg = null;
-  log('in',u.name,'PRAGATI Conduct',`${c.id} logged for ${p.name}: ${MISK[c.k].name}. ${isLM?'Validated; HoD '+HODS[hodOf(p)].name+' to decide the action.':'Waiting for '+MANAGERS[p.mgr].name+' to validate.'}`);
+  if(posh){ log('in',u.name,'PRAGATI Conduct',`${c.id}: POSH complaint sent to HR for Internal Committee referral.`); toast(c.id+' sent to HR'); go(u.role==='hr'?'case/'+c.id:'cases/register'); return; }
+  log('in',u.name,'PRAGATI Conduct',`${c.id} logged for ${p.name}: ${MISK[c.k].no} ${MISK[c.k].name}. ${isLM?'Validated; HoD '+HODS[hodOf(p)].name+' to decide the action.':'Waiting for '+MANAGERS[p.mgr].name+' to validate.'}`);
   toast(c.id+' logged'); go('case/'+c.id);
  },
- casecsv(){ const all = S.cases.filter(c=>myPeople().some(p=>p.id===c.tid)); download('conduct_register.csv', [['Case','Date','Time','Place','Apprentice','Ticket','TeamLease code','Plant','Department','Misconduct','Category','Tier','Description','Witnesses','Immediate action','Reported by','Validated by','Action','Action by','Letter','Letter ref','Acknowledged','Status','Closed on']].concat(caseFilter(all).map(c=>{ const p = S.people[c.tid], m = MISK[c.k], st = c.steps; return [c.id,c.date,c.time,c.place,p.name,p.ticket,p.tl||'',PLANTS[plantOf(p)],deptOf(p),m.name,m.cat,TIER[m.tier][0],c.desc,c.wit||'',(c.imm||[]).join('; '),c.reporter,st.validated?st.validated.by:'',st.action?st.action.label:'',st.action?st.action.by:'',st.letter?st.letter.type||'':'',st.letter?st.letter.ref||'':'',st.letter&&st.letter.ack?'Yes':'',CSTATUS[c.status],st.closed?st.closed.at:'']; }))); },
+ casecsv(){ const all = visCases().filter(c=>myPeople().some(p=>p.id===c.tid)); download('conduct_register.csv', [['Case','Date','Time','Place','Apprentice','Ticket','TeamLease code','Plant','Department','MC code','Misconduct','Category','Tier','Description','Witnesses','Immediate action','Reported by','Validated by','Action','Action by','Letter','Letter ref','Acknowledged','Status','Closed on','Record check','Source']].concat(caseFilter(all).map(c=>{ const p = S.people[c.tid], m = MISK[c.k], st = c.steps; return [c.id,c.date,c.time,c.place,p.name,p.ticket,p.tl||'',PLANTS[plantOf(p)],deptOf(p),m.no,m.name,m.cat,TIER[m.tier][0],c.desc,c.wit||'',(c.imm||[]).join('; '),c.reporter,st.validated?st.validated.by:'',st.action?st.action.label:'',st.action?st.action.by:'',st.letter?st.letter.type||'':'',st.letter?st.letter.ref||'':'',st.letter&&st.letter.ack?'Yes':'',CSTATUS[c.status],st.closed?st.closed.at:'',caseIssues(c).join('; '),c.hist?'Imported':'']; }))); },
  vsel(el){ UI.vid = el.dataset.id; UI.mf = {}; render(); },
  colsbtn(){ UI.cols = !UI.cols; render(); },
  vsave(){ const n = val('v-name'); if(n.length<2){ toast('Give the view a name'); return false; } const V = S.views.find(v=>v.id===UI.vid)||S.views[0]; const nv = {id:'v'+Date.now().toString(36), name:n, cols:V.cols.slice(), f:Object.assign({}, V.f, UI.mf||{}), group:V.group, sort:V.sort, sys:false}; S.views.push(nv); UI.vid = nv.id; UI.mf = {}; toast('View “'+n+'” saved'); render(); },
@@ -286,6 +303,7 @@ const A = {
 function keepLg(){ const G = UI.lg; if(!G) return; $$('[id^="lg-"]').forEach(el=>{ if(el.id!=='lg-tid' && el.id!=='lg-k' && el.type!=='file') G[el.id] = el.value; }); }
 function keepKzd(){ const D = UI.kzd; if(!D) return; ['kd-ti','kd-b','kd-a','kd-r','kd-st','kd-mn','kd-mb','kd-ma','kd-u','kd-s','kd-c'].forEach(id=>{ const el = document.getElementById(id); if(el) D[id] = el.value; }); }
 function restoreKzd(){ const D = UI.kzd; if(!D) return; Object.keys(D).filter(k=>k.startsWith('kd-')).forEach(id=>{ const el = document.getElementById(id); if(el) el.value = D[id]; }); }
+function parseCSV(t){ const out = []; let row = [], cur = '', q = false; t = t.replace(/^\ufeff/,''); for(let i=0;i<t.length;i++){ const ch = t[i]; if(q){ if(ch==='"'){ if(t[i+1]==='"'){ cur+='"'; i++; } else q = false; } else cur += ch; } else if(ch==='"') q = true; else if(ch===','){ row.push(cur); cur=''; } else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&t[i+1]==='\n') i++; row.push(cur); out.push(row); row=[]; cur=''; } else cur += ch; } if(cur||row.length){ row.push(cur); out.push(row); } return out; }
 function download(name, rows){
  const csv = rows.map(r=>r.map(v=>{ const s = String(v??''); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }).join(',')).join('\n');
  const url = URL.createObjectURL(new Blob(['﻿'+csv], {type:'text/csv'})); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 2000);
@@ -311,6 +329,9 @@ document.addEventListener('change', e=>{
  if(ds.lg){ keepLg(); UI.lg[ds.lg] = el.value; if(ds.lg==='tid') delete UI.lg['lg-place']; render(); return; }
  if(el.matches('[data-lgimm]')){ const G = UI.lg; G.imm = el.checked ? [...new Set([...G.imm, el.value])] : G.imm.filter(x=>x!==el.value); return; }
  if(ds.cf && el.tagName==='SELECT'){ UI.cf[ds.cf] = el.value; render(); return; }
+ if(ds.imp){ const r = UI.imp.rows.find(x=>x.i===Number(ds.imp)); r.k = el.value; r.auto = false; render(); return; }
+ if(ds.cfgchk){ S.cfg[ds.cfgchk] = el.checked ? 1 : 0; afterDataChange('Rule set changed'); log('sys','HR','Rule set',`Imported conduct cases ${el.checked?'count':'do not count'} in evaluation.`); persist(); render(); toast('Setting saved'); return; }
+ if(el.id==='imp-f' && el.files && el.files[0]){ const f = el.files[0], rd = new FileReader(); rd.onload = () => { const rows = parseCSV(String(rd.result)).filter(r=>r.some(x=>String(x).trim())); if(rows.length && /ticket|teamlease/i.test(rows[0][0]||'')) rows.shift(); UI.imp = {name:f.name, rows:impRows(rows)}; render(); }; rd.readAsText(f); return; }
  if(ds.kzd){ keepKzd(); UI.kzd[ds.kzd] = el.value; if(ds.kzd==='tid') UI.kzd.team = ''; render(); restoreKzd(); return; }
  if(ds.cfg){ const [a,b] = ds.cfg.split('.'); const n = Number(el.value); if(isNaN(n)) return; if(b) S.cfg[a][b] = n; else S.cfg[a] = n; afterDataChange('Rule set changed'); log('sys','HR','Rule set',`${ds.cfg} set to ${n}.`); persist(); render(); return; }
  if(ds.vis){ const [r,k] = ds.vis.split('.'); S.cfg.vis[r][k] = el.checked; log('sys','HR','Role views',`${r}: ${k} ${el.checked?'shown':'hidden'}.`); persist(); render(); toast('View setting saved for all portals'); return; }
@@ -326,6 +347,7 @@ document.addEventListener('input', e=>{
  if(ds.ff){ const f = formOf(ds.ff); f[ds.k] = el.value; if(f.status==='Not started') f.status = 'In progress'; persistSoon(); return; }
  if(el.id==='q'){ UI.q = el.value; UI.refocus = 'q'; render(); return; }
  if(ds.cf==='q'){ UI.cf.q = el.value; UI.refocus = el.id; render(); return; }
+ if(ds.lgq){ keepLg(); UI.lg.q = el.value; UI.refocus = 'lgq'; render(); return; }
  if(ds.kzf==='q'){ UI.kzf.q = el.value; UI.refocus = el.id; render(); return; }
 });
 document.addEventListener('submit', e=>{
