@@ -22,7 +22,6 @@ const USERS = {
 const DEMO_PW = 'Demo@123';
 const PORTALS = {
  home:{file:'index.html',name:'Portals',roles:[],nav:[]},
- me:{file:'feedback.html',name:'My feedback',roles:[],nav:[]},
  manager:{file:'manager.html',name:'Line Manager',icon:'clip',who:'Line managers on the shop floor (appraisers)',roles:['manager'],
   pitch:'Appraise your apprentices in minutes, evaluate their kaizens and validate incidents from your line.',
   points:['Month 6 learning review (feedback, not scored) and the Month 12 review: 16 plain statements on a 1–5 scale','Attendance, kaizens, skills and conduct pulled in for you','Quick rate the whole team one bucket at a time'],
@@ -41,7 +40,7 @@ const PORTALS = {
   nav:[['home','Home'],['dash','Overview'],['master','Apprentice master'],['cases','Conduct'],['m12','Outcomes'],['kzreg','Kaizens'],['sources','Data sources'],['settings','Settings']]},
  tablet:{file:'supervisor.html',name:'Line Tablet',icon:'tablet',who:'Supervisors, security and apprentices at the line',roles:['tablet'],
   pitch:'Capture at the source: incidents and kaizen ideas, straight from the line.',points:['Report an incident in under a minute','Submit a kaizen sheet with photos','Track where each submission is'],
-  nav:[['kzsubmit','Submit kaizen'],['report','Report incident'],['sent','My submissions'],['myfb','Apprentice feedback']]},
+  nav:[['kzsubmit','Submit kaizen'],['report','Report incident'],['sent','My submissions']]},
  coordinator:{file:'coordinator.html',name:'Coordinator',icon:'bulb',who:'Kaizen, TPM, IE and training coordinators',roles:['coordinator'],
   pitch:'Verify kaizens are sustained and upload the monthly registers.',points:['Sustain checks 30 days after implementation','Skill matrix, JH and IE in one upload','The full digital kaizen register'],
   nav:[['kzverify','Kaizen verification'],['kzreg','Kaizen register'],['upload','Monthly upload']]},
@@ -56,11 +55,11 @@ const VIEWS = {
  home:()=>({manager:vMgrHome,hod:vHodHome,hr:vHrHome})[PORTAL](), team:vTeam, reviews:vReviews, quick:vQuick, kaizen:vKzEval, cases:vCases, m12:vM12,
  dash:vPlantDash, kzdash:vKzDash, master:vMaster, kzreg:vKzReg, rules:vRules, access:vAccess, sources:vSources, log:vLog,
  report:vReport, kzsubmit:vKzSubmit, sent:vSent, kzverify:vKzVerify, upload:vUpload, punches:vPunches, joiners:vJoiners,
- console:vConsole, how:vHow, flow:vFlow, settings:vSettings, person:vPerson, review:vReview, case:vCase, mid:vMid, myfb:vMyFb
+ console:vConsole, how:vHow, flow:vFlow, settings:vSettings, person:vPerson, review:vReview, case:vCase, mid:vMid
 };
 const DETAIL = ['person','review','case','mid'];
 const HR_SET = ['rules','access','log'];
-const PAGE_PORTAL = {myfb:'tablet',punches:'timesystem',joiners:'teamlease',upload:'coordinator',kzverify:'coordinator',report:'tablet',kzsubmit:'tablet',console:'agent',flow:'monitor',quick:'manager',kaizen:'manager',master:'hr',access:'hr',sources:'hr',dash:'plant'};
+const PAGE_PORTAL = {punches:'timesystem',joiners:'teamlease',upload:'coordinator',kzverify:'coordinator',report:'tablet',kzsubmit:'tablet',console:'agent',flow:'monitor',quick:'manager',kaizen:'manager',master:'hr',access:'hr',sources:'hr',dash:'plant'};
 let S = null, ME = null;
 const UI = {open:{}, pipe:{tid:null,step:0,timer:null}, drawer:null, q:'', route:null};
 const USER = () => USERS[ME];
@@ -94,7 +93,6 @@ let _lastRouteKey = '';
 function render(){
  syncCodes(); resetMemo(); UI.pendingRender = false;
  if(PORTAL==='home'){ ME = null; UI.route = {v:''}; renderTop(); $('#app').innerHTML = vLanding() + footer(); renderDrawer(); document.title = 'PRAGATI · Apprentice record'; return; }
- if(PORTAL==='me'){ $('#top').innerHTML = `<div class="hdr-in"><span class="logo"><img src="assets/bajaj-logo.png" alt="Bajaj"></span><div class="appid"><b>PRAGATI</b><span>My feedback</span></div></div>`; $('#app').innerHTML = `<main class="page mepage" id="main">${vMe()}</main>`; document.title = 'My feedback · PRAGATI'; return; }
  if(!ME){ UI.route = null; renderTop(); $('#app').innerHTML = vLogin(); renderDrawer(); document.title = 'Sign in · PRAGATI '+P.name; return; }
  let r = parseHash();
  if(!r.v){ r = {v:P.nav[0][0]}; history.replaceState(null,'','#/'+r.v); }
@@ -119,7 +117,7 @@ function toast(msg){ const n = document.createElement('div'); n.className = 'toa
 function go(path){ location.hash = '#/'+path; }
 
 /* ----- shared store (this browser; all portals) ----- */
-const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v9';
+const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v10';
 let rev = 0, _ptimer = null;
 function persist(){
  rev++;
@@ -137,7 +135,7 @@ window.addEventListener('storage', e=>{
 
 /* ----- actions ----- */
 const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-const NOSAVE = new Set(['melang','tfbdone','rkind','mtab','nfcat','cpreset','lgfor','lgpick','lgimmsop','codenew','codeedit','codecancel','cnewfrom','imptpl','impsample','impclear','casecsv','fill','logout','rtab','qb','kzopen','close','kzs','kzcat','colsbtn','pick','kzcsv','mastercsv','vsel']);
+const NOSAVE = new Set(['rkind','mtab','nfcat','cpreset','lgfor','lgpick','lgimmsop','codenew','codeedit','codecancel','cnewfrom','imptpl','impsample','impclear','casecsv','fill','logout','rtab','qb','kzopen','close','kzs','kzcat','colsbtn','pick','kzcsv','mastercsv','vsel']);
 const formOf = id => S.forms.find(x=>x.id===id);
 const A = {
  fill(el){ $('#lg-u').value = el.dataset.id; $('#lg-p').value = DEMO_PW; $('#lg-p').focus(); },
@@ -178,20 +176,13 @@ const A = {
  midsubmit(el){ const m = S.mids.find(x=>x.id===el.dataset.id), err = [];
   const miss = MID_ITEMS.filter(x=>!m.ans[x.k]).length; if(miss) err.push(miss+' item'+(miss>1?'s':'')+' not answered');
   if(MID_ITEMS.some(x=>m.ans[x.k]&&m.ans[x.k]!=='well') && !m.focus.length) err.push('pick at least one focus area');
+  if((m.well||'').trim().length<5) err.push('say what is going well');
   if(err.length){ UI.showMiss = !!miss; UI.mdErr = 'Please: '+err.join('; ')+'.'; render(); return false; }
   UI.mdErr = '';
-  UI.showMiss = false; const p = S.people[m.tid], st = midSend(m);
+  m.status = 'Completed'; m.submitted = fmt(TODAY); UI.showMiss = false; const p = S.people[m.tid], st = midStatus(m)[0];
+  log('wf',m.by,'PRAGATI Reviews',`${p.name}: Month 6 learning review completed (${st}).`);
   if(st.startsWith('Needs')) log('wf','PRAGATI','HoD '+HODS[hodOf(p)].name,`${p.name} needs a support plan after the Month 6 review.`);
-  toast((p.mobile===false?'Ready on the line tablet for ':'Sent to ')+p.name+' · '+st); window.scrollTo(0,0); render(); },
- midsend1(el){ const m = S.mids.find(x=>x.id===el.dataset.id); midSend(m); toast('Sent to '+S.people[m.tid].name); render(); },
- midsendall(){ const L = midMine().filter(m=>!midDone(m) && MID_ITEMS.every(x=>m.ans[x.k])); L.forEach(midSend); toast(L.length+' Month 6 review'+(L.length>1?'s':'')+' sent'); render(); },
- midresend(el){ const m = S.mids.find(x=>x.id===el.dataset.id); m.share.at = new Date().toISOString(); m.share.resent = (m.share.resent||0)+1; log('out','PRAGATI',m.share.via,`Month 6 feedback sent again to ${S.people[m.tid].name}.`); toast('Sent again'); render(); },
- midtalk(el){ const m = S.mids.find(x=>x.id===el.dataset.id), n = val('tk-n'); m.talk = {doneAt:new Date().toISOString(), note:n, by:USER().name}; log('wf',USER().name,'PRAGATI Reviews',`Talked to ${S.people[m.tid].name} after the Month 6 review.`); toast('Recorded'); render(); },
- melang(el){ UI.lang = el.dataset.id; render(); },
- meopen(){ const tok = location.hash.replace(/^#\/?/,'').toUpperCase(), m = S.mids.find(x=>x.share&&x.share.token===tok), t = val('me-t').trim().toUpperCase(); if(m && S.people[m.tid].ticket.toUpperCase()===t){ (UI.meOk ||= {})[tok] = true; UI.meErr = false; if(!m.share.seenAt){ m.share.seenAt = new Date().toISOString(); log('in','Apprentice','PRAGATI Reviews',`${S.people[m.tid].name} opened the Month 6 feedback.`); } } else UI.meErr = true; render(); },
- meack(el){ const m = S.mids.find(x=>x.id===el.dataset.id), v = el.dataset.v, t = val('me-c').trim(), p = S.people[m.tid]; if(!m.share.seenAt) m.share.seenAt = new Date().toISOString(); m.share.ack = {at:new Date().toISOString(), choice:v, text:t}; log('in','Apprentice','PRAGATI Reviews',`${p.name} ${v==='talk'?'asked to talk to '+m.by:'read and understood'} the Month 6 feedback.`); render(); },
- tfbopen(){ const t = val('tf-t').trim().toUpperCase(), d4 = val('tf-m').trim(), p = Object.values(S.people).find(x=>x.ticket.toUpperCase()===t); if(!p || mob4(p)!==d4){ UI.tfb = {err:'Ticket number and mobile digits do not match our records.'}; render(); return false; } const m = midOf(p.id); if(!midDone(m)){ UI.tfb = {err:'No Month 6 feedback is waiting for this ticket number.'}; render(); return false; } UI.tfb = {tid:p.id}; if(!m.share.seenAt){ m.share.seenAt = new Date().toISOString(); log('in','Line tablet','PRAGATI Reviews',`${p.name} opened the Month 6 feedback on the line tablet.`); } render(); },
- tfbdone(){ UI.tfb = null; UI.lang = null; render(); },
+  toast('Month 6 review completed: '+st); window.scrollTo(0,0); render(); },
  nfcat(el){ keepNf(); UI.nf.cat = el.dataset.id; render(); },
  noteadd(el){ keepNf(); const N = UI.nf, tid = el.dataset.id || N.tid, txt = (N.text||'').trim();
   if(!tid){ $('#nf-e').textContent = 'Pick the apprentice.'; return false; } if(txt.length<10){ $('#nf-e').textContent = 'Write a line or two about what happened.'; return false; }
@@ -347,7 +338,6 @@ const A = {
  },
  runall(){ const q = queue(); q.forEach(x=>runAgent(x.p.id, x.reason)); toast(q.length+' assessment(s) written'); render(); },
  nightly(){
-  (S.mids||[]).filter(m=>m.share && !m.share.seenAt && !m.share.resent && m.share.via!=='Line tablet' && (TODAY-new Date(m.share.at))/DAY>3).forEach(m=>{ m.share.resent = 1; log('out','PRAGATI',m.share.via,`Reminder: Month 6 feedback sent again to ${S.people[m.tid].name}.`); });
   const launched = [...midLaunch(S), ...autoLaunch(S)]; if(launched.length) log('sys','Scheduler','PRAGATI Reviews',`Reviews opened: ${launched.join(', ')}.`);
   const al = absAlerts(); al.forEach(({p,a})=>{ if(!S.alerts[p.id]){ S.alerts[p.id] = true; log('sys','PRAGATI','Line manager / HR',`Absence alert: ${p.name} absent ${a.cont} working days.`); } });
   const od = S.forms.filter(f=>!isDone(f) && new Date(f.cpDate)<TODAY);
@@ -358,16 +348,6 @@ const A = {
   toast('Nightly checks done'); render();
  }
 };
-function midSend(m){
- const p = S.people[m.tid];
- if(!m.focus.length){ m.focus = MID_ITEMS.map(x=>x.k).filter(k=>m.ans[k]&&m.ans[k]!=='well').sort((a,b)=>(m.ans[a]==='focus'?0:1)-(m.ans[b]==='focus'?0:1)).slice(0,3); }
- m.status = 'Completed'; m.submitted = fmt(TODAY); midShare(m, p, m.by); if(m.lang) m.share.lang = m.lang;
- const st = midStatus(m)[0];
- log('wf',m.by,'PRAGATI Reviews',`${p.name}: Month 6 learning review completed (${st}).`);
- log('out','PRAGATI',m.share.via,`Month 6 feedback ${m.share.via==='Line tablet'?'waiting on the line tablet for':'sent to'} ${p.name} (${LANGS.find(x=>x[0]===m.share.lang)[1]}).`);
- if(st.startsWith('Needs')) log('wf','PRAGATI','HoD '+HODS[hodOf(p)].name,`${p.name} needs a support plan after the Month 6 review.`);
- return st;
-}
 function keepNf(){ const N = UI.nf || (UI.nf = {cat:'good'}); const t = $('#nf-t'), x = $('#nf-x'); if(t) N.tid = t.value; if(x) N.text = x.value; }
 function keepLg(){ const G = UI.lg; if(!G) return; $$('[id^="lg-"]').forEach(el=>{ if(el.id!=='lg-tid' && el.id!=='lg-k' && el.type!=='file') G[el.id] = el.value; }); }
 function keepKzd(){ const D = UI.kzd; if(!D) return; ['kd-ti','kd-b','kd-a','kd-r','kd-st','kd-mn','kd-mb','kd-ma','kd-u','kd-s','kd-c'].forEach(id=>{ const el = document.getElementById(id); if(el) D[id] = el.value; }); }
@@ -401,7 +381,6 @@ document.addEventListener('change', e=>{
  if(ds.cf && el.tagName==='SELECT'){ UI.cf[ds.cf] = el.value; render(); return; }
  if(ds.cft){ const F = UI.cform; F.name = val('cfm-n'); F.cat = val('cfm-c'); F.docs = val('cfm-d'); F.kwx = val('cfm-k'); F.imm = $$('[data-cfimm]').filter(x=>x.checked).map(x=>x.value); F.tier = Number(el.value); F.lad = null; render(); return; }
  if(ds.md){ const m = S.mids.find(x=>x.id===ds.md); m[ds.k] = el.value; persistSoon(); return; }
- if(ds.mg){ const m = S.mids.find(x=>x.id===ds.mg), k = ds.k, v = el.value; if(v) m.ans[k] = v; else delete m.ans[k]; if(m.status==='Not started') m.status = 'In progress'; if(v!=='focus') m.focus = m.focus.filter(x=>x!==k); persistSoon(); const y = window.scrollY; render(); window.scrollTo(0,y); return; }
  if(ds.mdf){ const m = S.mids.find(x=>x.id===ds.mdf); if(el.checked){ if(m.focus.length>=3){ el.checked = false; toast('Keep it to three focus areas'); return; } m.focus.push(el.value); } else m.focus = m.focus.filter(x=>x!==el.value); persistSoon(); return; }
  if(ds.mds){ const m = S.mids.find(x=>x.id===ds.mds); m.support = el.checked ? [...new Set([...m.support, el.value])] : m.support.filter(x=>x!==el.value); persistSoon(); return; }
  if(el.id==='nf-t'){ keepNf(); return; }

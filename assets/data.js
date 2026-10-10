@@ -276,7 +276,6 @@ function seed(){
   const R = rng(i*977+31);
   S.people[id] = {id,name,type,mgr,doj,line,prof,mu,kzRate:kz,ck,ticket:'T'+(48200+i*37),tl:type==='WILP'?'TR10'+(496500+i*113):'',status:'Active',
    empClass:type==='WILP'?'Contingent worker (TeamLease)':'Apprentice (TTA)', course:COURSES[type][Math.floor(R()*COURSES[type].length)], gen:{ab,la,streak,s:i+7}};
-  { const q = rng(i*131+3)(); S.people[id].lang = q<.5 ? 'mr' : q<.85 ? 'hi' : 'en'; S.people[id].mobile = rng(i*57+11)() >= .08; }
   S.sfLen[id] = rawOf(id, S).length - 1;
   S.dev[id] = {...dev, month:'Aug 2026', by:'Coordinator upload'};
   const cms = COMMENTS[ck] || COMMENTS[profFromMu(mu)];
@@ -377,37 +376,6 @@ const NOTEK = Object.fromEntries(NOTE_CATS.map(x=>[x[0],x]));
 /* festival periods (± 2 days) used to flag leave taken around them; HR maintains the list */
 const FESTIVALS = [['Dussehra','2025-10-02'],['Diwali','2025-10-21'],['Holi','2026-03-04'],['Ganesh Chaturthi','2026-09-14'],['Dussehra','2026-10-20'],['Diwali','2026-11-08'],['Holi','2027-03-22']];
 function festAbs(days){ return FESTIVALS.map(([n,dt])=>{ const c = d(dt).getTime(); const k = days.filter(x=>x.s==='A' && Math.abs(d(x.d).getTime()-c)<=2*DAY).length; return k?{n,dt,k}:null; }).filter(Boolean); }
-/* apprentice-facing feedback card: English, Hindi, Marathi */
-const LANGS = [['en','English'],['hi','हिंदी'],['mr','मराठी']];
-const MID_I18N = {
- hi:{name:{own:'दिए गए स्टेज पर खुद से काम करना',know:'स्टेज के काम की समझ',qown:'क्वालिटी की ज़िम्मेदारी',care:'मशीन, टूल और मटीरियल की देखभाल',dep:'लगन और भरोसेमंद काम',safe:'सुरक्षा',disc:'अनुशासन',learn:'सीखने और बदलाव के प्रति रवैया',speak:'समस्या पर आवाज़ उठाना'},
-  good:{own:'स्टेज को अकेले, लाइन की रफ़्तार से चलाना।',know:'यह बता पाना कि स्टेज क्या करता है, उसके चेक क्या हैं और वे क्यों ज़रूरी हैं।',qown:'खराब पार्ट न लेना, न बनाना, न आगे भेजना; उसे अलग रखकर ग्रुप लीडर को बुलाना।',care:'बिना याद दिलाए सफ़ाई और जाँच के चेक करना।',dep:'दिया गया काम ध्यान से, बिना फ़ॉलो-अप के पूरा करना।',safe:'हर बार PPE पहनना और सुरक्षित तरीके से काम करना।',disc:'SOP, शिफ़्ट के समय और प्लांट के नियमों का पालन करना।',learn:'सवाल पूछना, फ़ीडबैक लेना और नया तरीका अपनाना।',speak:'समस्या या गलत/असुरक्षित तरीका दिखे तो खुद बताना।'},
-  support:{'Buddy on the line':'लाइन पर एक साथी (बडी)','SOP refresher at the stage':'स्टेज पर SOP रिफ्रेशर','Second-stage training':'दूसरे स्टेज की ट्रेनिंग','Safety and PPE refresher':'सुरक्षा और PPE रिफ्रेशर','Quality: defect identification':'क्वालिटी: खराबी पहचानना','Attendance counselling':'हाज़िरी पर काउंसलिंग','JH / TPM basics':'JH / TPM की बुनियादी बातें'},
-  targets:'2–3 स्टेज पर काम; कम से कम एक सुधार का आइडिया या वन-पॉइंट लेसन; साफ़ अनुशासन और सुरक्षा रिकॉर्ड; 95% या उससे ज़्यादा हाज़िरी।',
-  ui:{title:'आपका 6 महीने का फ़ीडबैक',hello:'नमस्ते',from:'आपके लाइन मैनेजर {m} की ओर से',intro:'यह सीखने में मदद के लिए फ़ीडबैक है। यह कोई स्कोर नहीं है।',well:'आप इनमें अच्छा कर रहे हैं',focus:'अगले छह महीनों में इन पर काम करें',good:'अच्छा काम ऐसा दिखता है',note:'मैनेजर का संदेश',support:'आपको यह मदद मिलेगी',by12:'महीना 12 तक',ok:'मैंने समझ लिया',talk:'मुझे अपने मैनेजर से बात करनी है',cmt:'कुछ कहना हो तो लिखें (वैकल्पिक)',tok:'धन्यवाद। आपके मैनेजर देख सकते हैं कि आपने यह पढ़ लिया है।',ttalk:'धन्यवाद। आपके मैनेजर आपसे बात करने का समय निकालेंगे।',ticket:'खोलने के लिए अपना टिकट नंबर डालें',open:'खोलें',wrong:'यह टिकट नंबर इस लिंक से मेल नहीं खाता।',nofocus:'अभी कोई खास बात नहीं; ऐसे ही अच्छा काम करते रहें।'}},
- mr:{name:{own:'दिलेल्या स्टेजवर स्वतः काम करणे',know:'स्टेजवरील कामाची समज',qown:'गुणवत्तेची जबाबदारी',care:'मशीन, टूल आणि मटेरियलची काळजी',dep:'प्रामाणिकपणा आणि विश्वासार्हता',safe:'सुरक्षितता',disc:'शिस्त',learn:'शिकण्याचा आणि बदलाचा दृष्टिकोन',speak:'अडचण मोकळेपणाने सांगणे'},
-  good:{own:'स्टेज एकट्याने, लाइनच्या वेगाने चालवणे.',know:'स्टेज काय करतो, त्याचे चेक कोणते आणि ते का महत्त्वाचे आहेत हे सांगता येणे.',qown:'सदोष पार्ट न घेणे, न बनवणे, पुढे न पाठवणे; तो बाजूला ठेवून ग्रुप लीडरला बोलावणे.',care:'आठवण करून न देता स्वच्छता आणि तपासणीचे चेक करणे.',dep:'दिलेले काम काळजीपूर्वक, पाठपुराव्याशिवाय पूर्ण करणे.',safe:'प्रत्येक वेळी PPE घालणे आणि सुरक्षित पद्धतीने काम करणे.',disc:'SOP, शिफ्टच्या वेळा आणि प्लांटचे नियम पाळणे.',learn:'प्रश्न विचारणे, फीडबॅक घेणे आणि नवी पद्धत स्वीकारणे.',speak:'अडचण किंवा चुकीची/असुरक्षित पद्धत दिसली तर स्वतःहून सांगणे.'},
-  support:{'Buddy on the line':'लाइनवर एक सोबती (बडी)','SOP refresher at the stage':'स्टेजवर SOP उजळणी','Second-stage training':'दुसऱ्या स्टेजचे प्रशिक्षण','Safety and PPE refresher':'सुरक्षा आणि PPE उजळणी','Quality: defect identification':'गुणवत्ता: दोष ओळखणे','Attendance counselling':'उपस्थितीबाबत समुपदेशन','JH / TPM basics':'JH / TPM ची मूलतत्त्वे'},
-  targets:'2–3 स्टेजवर काम; किमान एक सुधारणा कल्पना किंवा वन-पॉइंट लेसन; स्वच्छ शिस्त आणि सुरक्षा रेकॉर्ड; 95% किंवा अधिक उपस्थिती.',
-  ui:{title:'तुमचा 6 महिन्यांचा फीडबॅक',hello:'नमस्कार',from:'तुमचे लाइन मॅनेजर {m} यांच्याकडून',intro:'हा शिकण्यासाठी मदत करणारा फीडबॅक आहे. हा गुण (स्कोअर) नाही.',well:'तुम्ही यात चांगले करत आहात',focus:'पुढच्या सहा महिन्यांत यावर काम करा',good:'चांगले काम असे दिसते',note:'मॅनेजरचा संदेश',support:'तुम्हाला ही मदत मिळेल',by12:'महिना 12 पर्यंत',ok:'मला समजले',talk:'मला माझ्या मॅनेजरशी बोलायचे आहे',cmt:'काही सांगायचे असल्यास लिहा (ऐच्छिक)',tok:'धन्यवाद. तुम्ही हे वाचले आहे हे तुमच्या मॅनेजरला दिसेल.',ttalk:'धन्यवाद. तुमचे मॅनेजर तुमच्याशी बोलण्यासाठी वेळ काढतील.',ticket:'उघडण्यासाठी तुमचा टिकट नंबर टाका',open:'उघडा',wrong:'हा टिकट नंबर या लिंकशी जुळत नाही.',nofocus:'सध्या विशेष काही नाही; असेच चांगले काम करत रहा.'}},
- en:{ui:{title:'Your Month 6 feedback',hello:'Hello',from:'from {m}, your line manager',intro:'This feedback is to help you learn. It is not a score.',well:'You are doing well at',focus:'Work on these in the next six months',good:'What good looks like',note:'Message from your manager',support:'Support you will get',by12:'By Month 12',ok:'I understand',talk:'I want to talk to my manager',cmt:'Anything you want to say (optional)',tok:'Thank you. Your manager can see that you have read this.',ttalk:'Thank you. Your manager will find time to talk to you.',ticket:'Enter your ticket number to open',open:'Open',wrong:'That ticket number does not match this link.',nofocus:'Nothing special for now; keep up the good work.'}}
-};
-const tr = (lang, kind, k) => { const L = MID_I18N[lang] || {}; if(kind==='ui') return (L.ui||{})[k] || MID_I18N.en.ui[k]; if(lang==='en' || !L[kind]) return kind==='name' ? MIDK[k].name : kind==='good' ? MIDK[k].a.well : k; return L[kind][k] || (kind==='name' ? MIDK[k].name : kind==='good' ? MIDK[k].a.well : k); };
-const mob4 = p => String(p.ticket).replace(/\D/g,'').slice(-4).padStart(4,'7');
-/* delivery: sent → read → understood / asked to talk → talked */
-function midDelivery(m){
- const s = m && m.share; if(!s) return ['Not sent',''];
- if(m.talk && m.talk.doneAt) return ['Talked','good'];
- if(s.ack && s.ack.choice==='talk') return ['Asked to talk','warn'];
- if(s.ack) return ['Understood','good'];
- if(s.seenAt) return ['Read','info'];
- return [((TODAY - new Date(s.at))/DAY > 3 ? 'Not opened' : 'Sent'), (TODAY - new Date(s.at))/DAY > 3 ? 'bad' : ''];
-}
-const needsTalk = m => midDone(m) && !(m.talk && m.talk.doneAt) && ((m.share && m.share.ack && m.share.ack.choice==='talk') || midStatus(m)[0].startsWith('Needs'));
-function midShare(m, p, by){ m.share = {at:new Date().toISOString(), via: p.mobile===false ? 'Line tablet' : 'WhatsApp', lang: p.lang || 'en', token: (m.id+'-'+Math.random().toString(36).slice(2,8)).toUpperCase(), by}; }
-/* default praise when the manager writes nothing */
-const midWellAuto = m => MID_ITEMS.filter(it=>m.ans[it.k]==='well').map(it=>it.k);
-
 function midOf(tid){ return (S.mids||[]).find(m=>m.tid===tid); }
 function midDate(p){ return addM(d(p.doj), 6); }
 /* what the records say for the first six months */
@@ -434,7 +402,7 @@ function midLaunch(S){
   if(S.mids.some(m=>m.tid===p.id)) return;
   const cp = addM(d(p.doj), 6), open = new Date(cp.getTime()-S.cfg.midBefore*DAY);
   if(open<=TODAY && addM(d(p.doj),12) > new Date(TODAY.getTime()+S.cfg.launchBefore*DAY)){
-   S.mids.push({id:'LR-'+(S.seq.mid = (S.seq.mid||100)+1), tid:p.id, cpDate:cp.toISOString(), launched:open.toISOString(), status:'Not started', ans:{}, well:'', focus:[], focusTxt:'', support:[], supportTxt:'', targets:MID_TARGETS, discussedOn:'', apComment:'', by:MANAGERS[p.mgr].name});
+   S.mids.push({id:'LR-'+(S.seq.mid = (S.seq.mid||100)+1), tid:p.id, cpDate:cp.toISOString(), launched:open.toISOString(), status:'Not started', ans:{}, well:'', focus:[], focusTxt:'', support:[], supportTxt:'', targets:MID_TARGETS, by:MANAGERS[p.mgr].name});
    n.push(p.name+' M6');
   }
  });
@@ -513,12 +481,7 @@ function seedMids(S){
   const order = MID_ITEMS.map(x=>x.k).filter(k=>ans[k]!=='well').sort((a,b)=>(ans[a]==='focus'?0:1)-(ans[b]==='focus'?0:1));
   const focus = order.slice(0,3), disc = new Date(cp.getTime()+(2+Math.floor(R()*8))*DAY);
   const support = focus.length ? [MID_SUPPORT[Math.floor(R()*MID_SUPPORT.length)]] : [];
-  const m = {id:'LR-'+(S.seq.mid = (S.seq.mid||100)+1), tid:p.id, cpDate:cp.toISOString(), launched:new Date(cp.getTime()-S.cfg.midBefore*DAY).toISOString(), status:'Completed', ans, well:WELL[i%WELL.length], focus, focusTxt:focus.length?focus.map(k=>FOC[k]).join(' '):'', support, supportTxt:'', targets:MID_TARGETS, by:MANAGERS[p.mgr].name, submitted:fmt(disc)};
-  const u = R(), sent = disc.getTime(), at = n => new Date(sent+n*3600*1000).toISOString();
-  m.share = {at:new Date(sent).toISOString(), via: p.mobile===false ? 'Line tablet' : 'WhatsApp', lang:p.lang, token:(m.id+'-X'+i).toUpperCase(), by:m.by};
-  if(u<.86){ m.share.seenAt = at(5); m.share.ack = {at:at(6), choice: u<.12 ? 'talk' : 'ok', text: u<.12 ? 'I want help on the second stage.' : (u<.3 ? 'Understood. Will work on it.' : '')}; if(u<.12 && u<.08) m.talk = {doneAt:at(60), note:'Spoke at shift start; buddy assigned for two weeks.', by:m.by}; }
-  else if(u<.93) m.share.seenAt = at(20);
-  S.mids.push(m);
+  S.mids.push({id:'LR-'+(S.seq.mid = (S.seq.mid||100)+1), tid:p.id, cpDate:cp.toISOString(), launched:new Date(cp.getTime()-S.cfg.midBefore*DAY).toISOString(), status:'Completed', ans, well:WELL[i%WELL.length], focus, focusTxt:focus.map(k=>FOC[k]).join(' '), support, supportTxt:'', targets:MID_TARGETS, by:MANAGERS[p.mgr].name, submitted:fmt(disc)});
  });
  midLaunch(S);
  S.mids.filter(m=>m.status==='Not started').slice(0,2).forEach((m,j)=>{ if(j===0){ m.status = 'In progress'; m.ans = {own:'well',know:'dev',qown:'well'}; } });
