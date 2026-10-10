@@ -453,3 +453,24 @@ details.map table{margin-top:8px}
 .mstmt{padding:14px 0;border-bottom:1px solid var(--line-2)}
 .mstmt:last-child{border-bottom:0}
 .mstmt.miss{background:var(--bad-50);margin:0 -12px;padding:14px 12px;border-radius:var(--r-sm)}
+/* apprentice feedback card (phone link, line tablet, preview) */
+.mepage{max-width:560px;margin:0 auto;padding:16px}
+.mecard{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:20px;max-width:520px}
+.mecard h2{font-size:20px}
+.mecard h3{font-size:14px;margin-bottom:6px}
+.mecard ul{margin:0;padding-left:18px}
+.mecard li{margin:2px 0}
+.melang{display:flex;gap:6px;margin-bottom:14px}
+.melang button{border:1px solid #D3DAE3;background:#fff;border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--text)}
+.melang button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff}
+.mesec{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-2)}
+.mewell h3{color:var(--good)}
+.mefocus{padding:8px 0}
+.mefocus b{color:var(--ink)}
+.meact{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.meact .btn{width:100%;justify-content:center}
+.mgrid td,.mgrid th{padding:8px 6px;vertical-align:top}
+.mgrid select{height:34px;padding:0 6px;font-size:13px;min-width:104px}
+.mgrid select.mg-well{background:var(--good-50);border-color:var(--good)}
+.mgrid select.mg-dev{background:var(--warn-50);border-color:var(--warn)}
+.mgrid select.mg-focus{background:var(--bad-50);border-color:var(--bad)}

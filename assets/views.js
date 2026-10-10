@@ -114,6 +114,7 @@ function vMgrHome(){
    <div class="list">${mids.map(m=>{ const p = S.people[m.tid], n = MID_ITEMS.filter(x=>m.ans[x.k]).length; return `<div class="li click" data-go="mid/${m.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · M6 learning review</div><div class="t2">${esc(p.line)} · Month 6 on ${fmt(new Date(m.cpDate))} · ${midDueTxt(m)}</div></div><div style="width:140px">${bar(n,MID_ITEMS.length)}<div class="t2 mt8">${n} of ${MID_ITEMS.length} answered</div></div>${midChip(m)}</div>`; }).join('')}${due.map(f=>{ const p = S.people[f.tid]; const n = ALL_ST.filter(k=>f.ans[k]).length; return `<div class="li click" data-go="review/${f.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · ${f.cp}</div><div class="t2">${esc(p.line)} · checkpoint ${fmt(f.cpDate)} · ${dueTxt(f.cpDate)}</div></div><div style="width:140px">${bar(n,ALL_ST.length)}<div class="t2 mt8">${n} of ${ALL_ST.length} rated</div></div>${formChip(f)}</div>`; }).join('') || (mids.length?'':'<div class="empty-s">No reviews due. The Month 6 review opens '+S.cfg.midBefore+' days before Month 6; the Month 12 review '+S.cfg.launchBefore+' days before Month 12.</div>')}</div>
   </section>
   <section class="stack">
+   ${talkList(midMine())}
    <div class="card"><h2>Add a note</h2><p class="sub">Saw something good, or a concern? Two lines go on the apprentice’s record and show up at review time.</p>${noteForm()}</div>
    <div class="card"><h2>Kaizens waiting for you</h2><div class="list mt8">${kzE.slice(0,5).map(k=>`<div class="li click" data-act="kzopen" data-id="${k.seq}" role="button" tabindex="0"><span class="pq">${k.cat}</span><div class="sp"><div class="t1">${esc(k.title)}</div><div class="t2">${esc(S.people[k.tid].name)} · ${fmtS(d(k.date))}</div></div>${kzChip(k)}</div>`).join('')||'<div class="empty-s">Nothing waiting.</div>'}</div>${kzE.length>5?`<button class="btn ghost sm mt8" data-go="kaizen" type="button">All ${kzE.length} →</button>`:''}</div>
    <div class="card"><h2>Incidents to validate</h2><div class="list mt8">${cs.map(c=>`<div class="li click" data-go="case/${c.id}" role="button" tabindex="0"><span class="ico bad">${ic('alert')}</span><div class="sp"><div class="t1">${esc(S.people[c.tid].name)}</div><div class="t2">${esc(MISK[c.k].name)} · ${fmtS(d(c.date))}</div></div></div>`).join('')||'<div class="empty-s">Nothing to validate.</div>'}</div></div>
@@ -135,8 +136,8 @@ function vReviews(){
  const role = USERS[ME].role, ps = myPeople();
  const mids = midMine(), kind = UI.rk || (role==='manager' && mids.some(m=>!midDone(m)) ? 'm6' : 'm12');
  const sw = `<div class="viewtabs" role="group" aria-label="Review" style="margin-bottom:8px"><button type="button" data-act="rkind" data-id="m6" aria-pressed="${kind==='m6'}">Month 6 · learning review</button><button type="button" data-act="rkind" data-id="m12" aria-pressed="${kind==='m12'}">Month 12 · performance review</button></div>`;
- if(kind==='m6'){ const T = [['open','To complete',m=>!midDone(m)],['done','Completed',midDone],['plan','Needs a support plan',m=>midDone(m)&&midStatus(m)[0].startsWith('Needs')]]; const t = UI.mtab && T.some(x=>x[0]===UI.mtab) ? UI.mtab : (role==='manager'?'open':'done'); const F = T.find(x=>x[0]===t)[2];
-  return `${ph('Reviews', 'The Month 6 review is a short learning conversation: how the apprentice is doing against the six-month expectation, two or three focus areas and the support agreed. It is not scored and does not go to SF/EC. It opens '+S.cfg.midBefore+' days before Month 6 and is due within '+S.cfg.midDue+' days after.')}${sw}<div class="viewtabs" role="group" aria-label="Filter">${T.map(([k,l,f])=>`<button type="button" data-act="mtab" data-id="${k}" aria-pressed="${k===t}">${l} (${mids.filter(f).length})</button>`).join('')}</div>${midRows(mids.filter(F).sort((a,b)=>t==='open'?a.cpDate.localeCompare(b.cpDate):b.cpDate.localeCompare(a.cpDate)), {mgr:role!=='manager'})}`; }
+ if(kind==='m6'){ const T = [['open','To complete',m=>!midDone(m)],['done','Sent',midDone],['talk','To talk to',needsTalk],['unread','Not opened',m=>midDone(m)&&midDelivery(m)[0]==='Not opened']]; const t = UI.mtab && T.some(x=>x[0]===UI.mtab) ? UI.mtab : (role==='manager'?'open':'done'); const F = T.find(x=>x[0]===t)[2];
+  return `${ph('Reviews', 'The Month 6 review is short learning feedback: how the apprentice is doing against the six-month expectation, two or three focus areas and the support agreed. It is not scored and does not go to SF/EC. It opens '+S.cfg.midBefore+' days before Month 6 and is due within '+S.cfg.midDue+' days after. The apprentice reads it on his phone or the line tablet and replies.')}${sw}${((done)=>`<div class="grid g4" style="margin:8px 0 16px">${kpi('Sent', done.length, mids.filter(m=>!midDone(m)).length+' still to complete')}${kpi('Read by the apprentice', done.filter(m=>m.share&&m.share.seenAt).length, pct0(done.length?done.filter(m=>m.share&&m.share.seenAt).length/done.length*100:0)+' of sent')}${kpi('Understood', done.filter(m=>m.share&&m.share.ack&&m.share.ack.choice==='ok').length, '')}${kpi('To talk to', done.filter(needsTalk).length, 'Asked to talk, or needs a support plan')}</div>`)(mids.filter(midDone))}${role==='manager'&&t==='open'&&mids.some(m=>!midDone(m))?midTeamGrid(mids.filter(m=>!midDone(m)).sort((a,b)=>a.cpDate.localeCompare(b.cpDate))):''}${t==='open'?'<h2 class="mt24" style="margin-bottom:12px">Reviews to complete</h2>':''}<div class="viewtabs" role="group" aria-label="Filter">${T.map(([k,l,f])=>`<button type="button" data-act="mtab" data-id="${k}" aria-pressed="${k===t}">${l} (${mids.filter(f).length})</button>`).join('')}</div>${midRows(mids.filter(F).sort((a,b)=>t==='open'?a.cpDate.localeCompare(b.cpDate):b.cpDate.localeCompare(a.cpDate)), {mgr:role!=='manager'})}`; }
  let fs = S.forms.filter(f=>ps.some(p=>p.id===f.tid));
  const tabs = role==='hod' ? [['sign','To sign'],['done','Signed'],['open','With managers']] : [['open','To complete'],['sent','Sent to HoD'],['done','Completed']];
  const t = UI.rtab && tabs.some(x=>x[0]===UI.rtab) ? UI.rtab : tabs[0][0];
@@ -303,20 +304,21 @@ function vMid(id){
   <div class="mlk mt8" role="radiogroup" aria-label="${esc(it.name)}">${MID_LEVELS.map(([v,l,c])=>`<button type="button" class="${c}" data-act="midset" data-id="${m.id}" data-k="${it.k}" data-v="${v}" role="radio" aria-checked="${m.ans[it.k]===v}" aria-pressed="${m.ans[it.k]===v}"><b>${l}</b><span>${esc(it.a[v])}</span></button>`).join('')}</div></div>`).join('');
  const cand = MID_ITEMS.filter(it=>m.ans[it.k] && m.ans[it.k]!=='well').sort((a,b)=>(m.ans[a.k]==='focus'?0:1)-(m.ans[b.k]==='focus'?0:1));
  return `${head}
- <div class="note" style="margin-bottom:16px"><b>A learning conversation, not a rating.</b> ${esc(MID_EXPECT)} Nothing here is scored or sent to SAP SF/EC. About 5 minutes, then talk it through with the apprentice.</div>
+ <div class="note" style="margin-bottom:16px"><b>Learning feedback, not a rating.</b> ${esc(MID_EXPECT)} Nothing here is scored or sent to SAP SF/EC. About 5 minutes. The apprentice gets it on his phone (or the line tablet) and replies; you only meet the ones who ask to talk or need a support plan.</div>
  <div class="grid rvg">
   <div>
    <section class="card"><h2>1 · How is it going?</h2><p class="sub">Pick the line that fits best. Judge what you have seen at his stage, not classroom knowledge.</p><div class="mt12">${ask}</div>
     <div class="note mt16"><b>Not expected yet at Month 6:</b> ${MID_NOT_YET.map(esc).join(' · ')}. These come into the Month 12 review; if he has started already, note it below.</div></section>
    <section class="card mt16"><h2>2 · Feedback</h2>
-    <div class="fld mt12"><label for="md-w">What is going well</label><textarea id="md-w" data-md="${m.id}" data-k="well" style="min-height:64px" placeholder="One or two lines he should hear">${esc(m.well)}</textarea></div>
+    <div class="fld mt12"><label for="md-w">What is going well (optional)</label><textarea id="md-w" data-md="${m.id}" data-k="well" style="min-height:64px" placeholder="Leave blank and the items marked Doing well are shown to him">${esc(m.well)}</textarea></div>
     <div class="fld mt16"><label>Focus areas for the next six months (up to 3)</label>${cand.length?`<div class="list mt4">${cand.map(it=>`<label class="li" style="cursor:pointer;align-items:flex-start"><input type="checkbox" data-mdf="${m.id}" value="${it.k}" ${m.focus.includes(it.k)?'checked':''} style="margin-top:3px"><div class="sp"><div class="t1" style="font-size:14px">${esc(it.name)} ${lvChip(m.ans[it.k])}</div><div class="t2">What good looks like: ${esc(it.a.well)}</div></div></label>`).join('')}</div>`:'<p class="sm muted mt4">Items you mark Developing or Needs focus appear here.</p>'}</div>
-    <div class="fld mt16"><label for="md-ft">In his words: what to work on</label><textarea id="md-ft" data-md="${m.id}" data-k="focusTxt" style="min-height:64px" placeholder="e.g. Keep any doubtful part aside and call the group leader; never pass it on.">${esc(m.focusTxt)}</textarea></div>
+    <div class="fld mt16"><label for="md-ft">Your note to the apprentice (optional)</label><textarea id="md-ft" data-md="${m.id}" data-k="focusTxt" style="min-height:64px" placeholder="e.g. Keep any doubtful part aside and call the group leader; never pass it on.">${esc(m.focusTxt)}</textarea></div>
     <div class="fld mt16"><label>Support we will give</label><div class="colpick mt4">${MID_SUPPORT.map(x=>`<label><input type="checkbox" data-mds="${m.id}" value="${esc(x)}" ${m.support.includes(x)?'checked':''}>${esc(x)}</label>`).join('')}</div><input class="mt8" id="md-st" data-md="${m.id}" data-k="supportTxt" value="${esc(m.supportTxt)}" placeholder="Anything else, e.g. two weeks with the group leader on Stn 4"></div>
     <div class="fld mt16"><label for="md-tg">What we expect by Month 12</label><textarea id="md-tg" data-md="${m.id}" data-k="targets" style="min-height:64px">${esc(m.targets)}</textarea></div>
    </section>
-   <section class="card mt16"><h2>3 · Talk it through</h2><p class="sub">Share this with the apprentice face to face. He sees the focus areas and the support; there is no score to share.</p>
-    <div class="fgrid mt12"><div class="fld"><label for="md-dd">Discussed on</label><input id="md-dd" type="date" data-md="${m.id}" data-k="discussedOn" value="${esc(m.discussedOn)}" max="${dateKey(TODAY)}"></div><div class="fld"><label for="md-ap">Apprentice’s response (optional)</label><input id="md-ap" data-md="${m.id}" data-k="apComment" value="${esc(m.apComment)}" placeholder="What he said, or what he asked for"></div></div>
+   <section class="card mt16"><h2>3 · Send to the apprentice</h2><p class="sub">${p.mobile===false?'No mobile number on record, so the feedback waits on the line tablet: he opens it there with his ticket number.':'Sent as a WhatsApp message (SMS if WhatsApp fails) to the mobile number on his SF/EC record, ending '+mob4(p)+'. He opens the link with his ticket number.'} He sees what is going well, the focus areas, the support and the Month 12 expectation: no score. He replies <b>I understand</b> or <b>I want to talk to my manager</b>.</p>
+    <div class="fld mt12" style="max-width:260px"><label for="md-lg">Language</label><select id="md-lg" data-md="${m.id}" data-k="lang">${LANGS.map(([k,l])=>`<option value="${k}" ${(m.lang||p.lang||'en')===k?'selected':''}>${l}</option>`).join('')}</select><p class="sm muted mt4">From his record; he can switch on the phone.</p></div>
+    <details class="map mt12"><summary>Preview what he will see</summary><div class="mt12">${meCard(m, m.lang||p.lang||'en', {preview:true})}</div></details>
    </section>
   </div>
   <aside class="stack rva">
@@ -324,7 +326,18 @@ function vMid(id){
    <div class="card"><h3>Progress</h3><div class="mt8">${bar(n, MID_ITEMS.length, n===MID_ITEMS.length?'good':'')}</div><p class="sub mt8">${n} of ${MID_ITEMS.length} answered${n?' · reads: '+midStatus(m)[0]:''}</p></div>
   </aside>
  </div>
- <div class="formbar"><div class="formbar-in"><span class="sm muted">Saved automatically</span><span class="sp"></span><span class="err" id="md-err">${esc(UI.mdErr||'')}</span><button class="btn pri lg" data-act="midsubmit" data-id="${m.id}" type="button">Complete Month 6 review ${ic('check',16)}</button></div></div>`;
+ <div class="formbar"><div class="formbar-in"><span class="sm muted">Saved automatically</span><span class="sp"></span><span class="err" id="md-err">${esc(UI.mdErr||'')}</span><button class="btn pri lg" data-act="midsubmit" data-id="${m.id}" type="button">Complete and send ${ic('arrow',16)}</button></div></div>`;
+}
+function midDeliveryCard(m, p){
+ const s = m.share; if(!s) return '';
+ const role = USERS[ME].role, ack = s.ack, st = [['Sent', fmt(new Date(s.at))+' · '+s.via+(s.via==='WhatsApp'?' to ••••• '+mob4(p):'')], ['Read', s.seenAt?fmt(new Date(s.seenAt)):'Not yet'], ['Reply', ack?(ack.choice==='talk'?'Wants to talk':'Understood')+' · '+fmt(new Date(ack.at)):'—']];
+ return `<section class="card"><div class="between"><h2>With the apprentice</h2>${delivChip(m)}</div>
+  <div class="grid g3 mt12">${st.map(([a,b])=>`<div class="kpi" style="padding:12px 14px"><div class="l">${a}</div><div class="ink" style="font-weight:600;margin-top:4px">${esc(b)}</div></div>`).join('')}</div>
+  ${ack&&ack.text?`<div class="mt12"><div class="section-t">He wrote</div><div class="quote">${esc(ack.text)}</div></div>`:''}
+  ${m.talk&&m.talk.doneAt?`<div class="note good mt12"><b>Talked on ${fmt(new Date(m.talk.doneAt))}.</b> ${esc(m.talk.note||'')}</div>`:''}
+  ${role==='manager'&&needsTalk(m)?`<div class="mt16"><div class="section-t">${ack&&ack.choice==='talk'?'He asked to talk':'Needs a support plan: talk to him'}</div><div class="fld mt8"><label for="tk-n">What you agreed</label><input id="tk-n" placeholder="e.g. Buddy on Stn 4 for two weeks; check again at the end of the month"></div><button class="btn pri mt12" data-act="midtalk" data-id="${m.id}" type="button">Mark as talked</button></div>`:''}
+  ${role==='manager'&&!ack?`<div class="row mt16"><button class="btn sm" data-act="midresend" data-id="${m.id}" type="button">Send again</button><span class="sm muted">${s.via==='Line tablet'?'Waiting on the line tablet.':'PRAGATI resends once by itself after 3 days if it is not opened.'}</span></div>`:''}
+  <details class="map mt16"><summary>What he sees</summary><div class="mt12">${meCard(m, s.lang||p.lang||'en', {preview:true})}</div></details></section>`;
 }
 function midSummary(m, p){
  if(!midDone(m)) return `<section class="card"><p class="muted">With the line manager (${esc(m.by)}). ${MID_ITEMS.filter(x=>m.ans[x.k]).length} of ${MID_ITEMS.length} answered; ${midDueTxt(m)}.</p></section>`;
@@ -338,23 +351,75 @@ function midSummary(m, p){
     <div class="mt16"><div class="section-t">Focus areas</div>${m.focus.length?m.focus.map(k=>`<div class="mt8"><b class="ink">${esc(MIDK[k].name)}</b> ${lvChip(m.ans[k])}<div class="sm muted">What good looks like: ${esc(MIDK[k].a.well)}</div></div>`).join(''):'<p class="good mt8">No focus areas: keep going.</p>'}${m.focusTxt?`<div class="quote mt8">${esc(m.focusTxt)}</div>`:''}</div>
     <div class="mt16"><div class="section-t">Support agreed</div><div>${[...m.support, m.supportTxt].filter(Boolean).map(esc).join(' · ')||'—'}</div></div>
     <div class="mt16"><div class="section-t">Expected by Month 12</div><div>${esc(m.targets||'—')}</div></div>
-    <p class="sm muted mt16">${esc(m.by)} · discussed with the apprentice on ${m.discussedOn?fmt(d(m.discussedOn)):'—'}${m.apComment?' · he said: “'+esc(m.apComment)+'”':''}</p></section>
+    <p class="sm muted mt16">${esc(m.by)} · completed ${esc(m.submitted||'—')}</p></section>
+   ${midDeliveryCard(m, p)}
   </div>
   <aside class="stack"><div class="card"><h3>First six months on record</h3>${midRecords(p, m.cpDate)}</div></aside>
  </div>`;
 }
 function midRows(list, opt={}){
- return `<div class="tw"><table class="t"><thead><tr><th>Apprentice</th><th>Month 6 date</th>${opt.mgr?'<th>Line manager</th>':''}<th>Progress</th><th>Focus areas</th><th>Status</th></tr></thead><tbody>
- ${list.map(m=>{ const p = S.people[m.tid], n = MID_ITEMS.filter(x=>m.ans[x.k]).length; return `<tr class="click" data-go="mid/${m.id}"><td class="nm">${esc(p.name)}<small>${esc(deptOf(p))} · ${esc(p.line)}</small></td><td>${fmt(new Date(m.cpDate))}<div class="sm muted">${midDone(m)?'Discussed '+(m.discussedOn?fmtS(d(m.discussedOn)):'—'):midDueTxt(m)}</div></td>${opt.mgr?`<td>${esc(m.by)}</td>`:''}<td style="min-width:110px">${bar(n,MID_ITEMS.length)}<div class="sm muted mt8">${n}/${MID_ITEMS.length}</div></td><td class="sm">${midDone(m)?(m.focus.map(k=>esc(MIDK[k].name)).join(', ')||'None'):'—'}</td><td>${midChip(m)}</td></tr>`; }).join('')||`<tr><td colspan="${opt.mgr?6:5}" class="empty">Nothing here.</td></tr>`}
+ return `<div class="tw"><table class="t"><thead><tr><th>Apprentice</th><th>Month 6 date</th>${opt.mgr?'<th>Line manager</th>':''}<th>Progress</th><th>Focus areas</th><th>Status</th><th>Apprentice</th></tr></thead><tbody>
+ ${list.map(m=>{ const p = S.people[m.tid], n = MID_ITEMS.filter(x=>m.ans[x.k]).length; return `<tr class="click" data-go="mid/${m.id}"><td class="nm">${esc(p.name)}<small>${esc(deptOf(p))} · ${esc(p.line)}</small></td><td>${fmt(new Date(m.cpDate))}<div class="sm muted">${midDone(m)?'Sent '+(m.share?fmtS(new Date(m.share.at)):'—'):midDueTxt(m)}</div></td>${opt.mgr?`<td>${esc(m.by)}</td>`:''}<td style="min-width:110px">${bar(n,MID_ITEMS.length)}<div class="sm muted mt8">${n}/${MID_ITEMS.length}</div></td><td class="sm">${midDone(m)?(m.focus.map(k=>esc(MIDK[k].name)).join(', ')||'None'):'—'}</td><td>${midChip(m)}</td><td>${midDone(m)?delivChip(m):'—'}</td></tr>`; }).join('')||`<tr><td colspan="${opt.mgr?7:6}" class="empty">Nothing here.</td></tr>`}
  </tbody></table></div>`;
 }
 function midMine(){ const ps = myPeople(); return (S.mids||[]).filter(m=>ps.some(p=>p.id===m.tid)); }
+/* ----- what the apprentice sees (phone link or line tablet) ----- */
+const delivChip = m => { const d0 = midDelivery(m); return `<span class="chip ${d0[1]}">${esc(d0[0])}</span>`; };
+function meCard(m, lang, opt={}){
+ const p = S.people[m.tid], u = k => esc(tr(lang,'ui',k)), well = midWellAuto(m), s = m.share || {}, ack = s.ack;
+ const first = esc(p.name.split(' ')[0]);
+ return `<div class="mecard" lang="${lang}">
+  <div class="melang" role="group" aria-label="Language">${LANGS.map(([k,l])=>`<button type="button" data-act="melang" data-id="${k}" aria-pressed="${k===lang}">${l}</button>`).join('')}</div>
+  <h2>${u('title')}</h2><p class="mt4"><b>${u('hello')} ${first},</b> ${esc(tr(lang,'ui','from').replace('{m}', m.by))}.</p><p class="sm muted mt4">${u('intro')}</p>
+  ${well.length?`<div class="mesec mewell"><h3>${u('well')}</h3><ul>${well.map(k=>`<li>${esc(tr(lang,'name',k))}</li>`).join('')}</ul></div>`:''}
+  <div class="mesec"><h3>${u('focus')}</h3>${m.focus.length?m.focus.map(k=>`<div class="mefocus"><b>${esc(tr(lang,'name',k))}</b><div><span class="muted">${u('good')}:</span> ${esc(tr(lang,'good',k))}</div></div>`).join(''):`<p>${u('nofocus')}</p>`}</div>
+  ${(m.well||m.focusTxt)?`<div class="mesec"><h3>${u('note')}</h3><p>${esc([m.well,m.focusTxt].filter(Boolean).join(' '))}</p></div>`:''}
+  ${(m.support.length||m.supportTxt)?`<div class="mesec"><h3>${u('support')}</h3><ul>${m.support.map(x=>`<li>${esc(tr(lang,'support',x))}</li>`).join('')}${m.supportTxt?`<li>${esc(m.supportTxt)}</li>`:''}</ul></div>`:''}
+  <div class="mesec"><h3>${u('by12')}</h3><p>${esc(m.targets===MID_TARGETS && lang!=='en' ? MID_I18N[lang].targets : m.targets)}</p></div>
+  ${opt.preview?'':ack?`<div class="note ${ack.choice==='talk'?'warn':'good'} mt16">${u(ack.choice==='talk'?'ttalk':'tok')}</div>`:`<div class="fld mt16"><label for="me-c">${u('cmt')}</label><textarea id="me-c" style="min-height:64px"></textarea></div>
+   <div class="meact"><button class="btn pri lg" data-act="meack" data-id="${m.id}" data-v="ok" type="button">${u('ok')}</button><button class="btn lg" data-act="meack" data-id="${m.id}" data-v="talk" type="button">${u('talk')}</button></div>`}
+ </div>`;
+}
+function meGate(lang, err){
+ const u = k => esc(tr(lang,'ui',k));
+ return `<div class="mecard"><div class="melang" role="group" aria-label="Language">${LANGS.map(([k,l])=>`<button type="button" data-act="melang" data-id="${k}" aria-pressed="${k===lang}">${l}</button>`).join('')}</div><h2>${u('title')}</h2>
+  <div class="fld mt16"><label for="me-t">${u('ticket')}</label><input id="me-t" inputmode="text" autocomplete="off" placeholder="T48459"></div><div class="err mt8">${err?u('wrong'):''}</div><button class="btn pri lg mt12" data-act="meopen" type="button">${u('open')}</button></div>`;
+}
+/* phone page: feedback.html#/<link code> */
+function vMe(){
+ const tok = (location.hash.replace(/^#\/?/,'')||'').toUpperCase(), m = (S.mids||[]).find(x=>x.share && x.share.token===tok);
+ const lang = UI.lang || (m ? (m.share.lang || S.people[m.tid].lang || 'en') : 'mr');
+ if(!m) return `<div class="mecard"><h2>PRAGATI</h2><p class="mt8">This link is not valid or has expired. Ask your line manager or HR.</p></div>`;
+ if(!(UI.meOk||{})[tok]) return meGate(lang, UI.meErr);
+ return meCard(m, lang);
+}
+/* line tablet: apprentices without a phone open their feedback here */
+function vMyFb(){
+ const F = UI.tfb || {}, p = F.tid ? S.people[F.tid] : null, m = p ? midOf(p.id) : null, lang = UI.lang || (p&&p.lang) || 'mr';
+ if(p && midDone(m)) return `${ph('Apprentice feedback', 'Showing the Month 6 feedback for '+esc(p.name)+'. Press Done when finished so the next person can use the tablet.', `<button class="btn" data-act="tfbdone" type="button">Done</button>`)}${meCard(m, lang)}`;
+ return `${ph('Apprentice feedback', 'For apprentices without a phone on record. The apprentice enters his ticket number and the last 4 digits of the mobile number on his record (or of his Aadhaar-linked number, as HR sets).')}
+ <section class="card" style="max-width:520px"><div class="fld"><label for="tf-t">Ticket number</label><input id="tf-t" autocomplete="off"></div><div class="fld mt12"><label for="tf-m">Last 4 digits of mobile number</label><input id="tf-m" inputmode="numeric" maxlength="4" autocomplete="off"></div>
+  <div class="err mt8">${F.err?esc(F.err):''}</div><button class="btn pri lg mt12" data-act="tfbopen" type="button">Open my feedback</button></section>`;
+}
+function midTeamGrid(list){
+ const opts = v => `<option value="">—</option>${MID_LEVELS.map(([k,l])=>`<option value="${k}" ${v===k?'selected':''}>${l}</option>`).join('')}`;
+ return `<section class="card mt16"><div class="card-h"><div><h2>Rate the team</h2><p class="sub">One row per apprentice. Pick a level for each item; open a row to add a note or change the focus areas. Rows with every item answered can be sent in one go: focus areas are taken from the items marked Needs focus, then Developing.</p></div>${(n=>n?`<button class="btn pri" data-act="midsendall" type="button">Send ${n} complete review${n>1?'s':''}</button>`:'')(list.filter(m=>MID_ITEMS.every(x=>m.ans[x.k])).length)}</div>
+  <div class="tw mt12"><table class="t mgrid"><thead><tr><th>Apprentice</th>${MID_ITEMS.map(it=>`<th title="${esc(it.name)}"><span class="pq" style="width:22px;height:22px;font-size:11px">${it.b}</span><div class="sm" style="white-space:normal;font-weight:500;min-width:92px">${esc(it.name)}</div></th>`).join('')}<th></th></tr></thead><tbody>
+  ${list.map(m=>{ const p = S.people[m.tid], full = MID_ITEMS.every(x=>m.ans[x.k]); return `<tr><td class="nm"><a href="#/mid/${m.id}">${esc(p.name)}</a><small>${esc(p.line)} · ${midDueTxt(m)}</small></td>${MID_ITEMS.map(it=>`<td><select data-mg="${m.id}" data-k="${it.k}" aria-label="${esc(p.name)}: ${esc(it.name)}" class="mg-${m.ans[it.k]||'none'}">${opts(m.ans[it.k])}</select></td>`).join('')}<td>${full?`<button class="btn sm" data-act="midsend1" data-id="${m.id}" type="button">Send</button>`:`<span class="sm muted">${MID_ITEMS.filter(x=>m.ans[x.k]).length}/${MID_ITEMS.length}</span>`}</td></tr>`; }).join('')}
+  </tbody></table></div></section>`;
+}
+function talkList(ms){
+ const L = ms.filter(needsTalk); if(!L.length) return '';
+ return `<section class="card mt16"><h2>Conversations to have (${L.length})</h2><p class="sub">Only these need a one-to-one: apprentices who asked to talk, and those whose review reads Needs a support plan. Everyone else has read the feedback on their phone or the line tablet.</p>
+  <div class="list mt8">${L.map(m=>{ const p = S.people[m.tid], s = m.share||{}; return `<div class="li click" data-go="mid/${m.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)}</div><div class="t2">${s.ack&&s.ack.choice==='talk'?'Asked to talk'+(s.ack.text?': “'+esc(s.ack.text)+'”':''):'Needs a support plan'} · ${m.focus.map(k=>esc(MIDK[k].name)).join(' · ')}</div></div>${delivChip(m)}</div>`; }).join('')}</div></section>`;
+}
+
 /* Month 6 focus areas carried into the Month 12 review */
 function sinceM6(p, mode, e){
  const m = midOf(p.id); if(!midDone(m)) return '';
- if(mode==='aside') return `<div class="card"><h3>From the Month 6 review</h3><p class="sub">${esc(midStatus(m)[0])} · discussed ${m.discussedOn?fmtS(d(m.discussedOn)):'—'}</p>${m.focus.length?`<div class="list mt8">${m.focus.map(k=>`<div class="li"><div class="sp"><div class="t1" style="font-size:14px">${esc(MIDK[k].name)}</div><div class="t2">Was: ${MID_LEVELS.find(x=>x[0]===m.ans[k])[1]} · rate where he is now</div></div></div>`).join('')}</div>`:'<p class="good mt8">No focus areas were set.</p>'}${m.support.length||m.supportTxt?`<p class="sm muted mt8">Support agreed: ${[...m.support,m.supportTxt].filter(Boolean).map(esc).join(' · ')}</p>`:''}</div>`;
+ if(mode==='aside') return `<div class="card"><h3>From the Month 6 review</h3><p class="sub">${esc(midStatus(m)[0])} · sent ${m.share?fmtS(new Date(m.share.at)):'—'} · ${esc(midDelivery(m)[0].toLowerCase())}</p>${m.focus.length?`<div class="list mt8">${m.focus.map(k=>`<div class="li"><div class="sp"><div class="t1" style="font-size:14px">${esc(MIDK[k].name)}</div><div class="t2">Was: ${MID_LEVELS.find(x=>x[0]===m.ans[k])[1]} · rate where he is now</div></div></div>`).join('')}</div>`:'<p class="good mt8">No focus areas were set.</p>'}${m.support.length||m.supportTxt?`<p class="sm muted mt8">Support agreed: ${[...m.support,m.supportTxt].filter(Boolean).map(esc).join(' · ')}</p>`:''}</div>`;
  const rows = m.focus.map(k=>{ const it = MIDK[k], r = e && e.rows.find(x=>x.par.k===it.m12), sc = r && r.score!=null ? r.score : null; const verdict = sc==null ? '—' : sc>=3.5 ? '<span class="chip good">Improved</span>' : sc>=2.5 ? '<span class="chip warn">Some progress</span>' : '<span class="chip bad">Not yet</span>'; return `<tr><td class="nm">${esc(it.name)}</td><td>${lvChip(m.ans[k])}</td><td>${esc(PK[it.m12].name)}</td><td class="r">${sc!=null?sc.toFixed(1):'—'}</td><td>${verdict}</td></tr>`; }).join('');
- return `<section class="card mt24"><div class="card-h"><div><h2>Since the Month 6 review</h2><p class="sub">Focus areas agreed at Month 6, read against the matching Month 12 parameter. ${esc(midStatus(m)[0])}; discussed on ${m.discussedOn?fmt(d(m.discussedOn)):'—'}.</p></div><button class="btn sm" data-go="mid/${m.id}" type="button">Open Month 6 review</button></div>
+ return `<section class="card mt24"><div class="card-h"><div><h2>Since the Month 6 review</h2><p class="sub">Focus areas agreed at Month 6, read against the matching Month 12 parameter. ${esc(midStatus(m)[0])}; sent ${m.share?fmt(new Date(m.share.at)):'—'}; apprentice: ${esc(midDelivery(m)[0].toLowerCase())}.</p></div><button class="btn sm" data-go="mid/${m.id}" type="button">Open Month 6 review</button></div>
   ${m.focus.length?`<div class="tw mt12"><table class="t"><thead><tr><th>Focus area</th><th>At Month 6</th><th>Month 12 parameter</th><th class="r">Now</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="good mt12">No focus areas were set at Month 6.</p>'}</section>`;
 }
 /* ----- notes: the apprentice's running history card ----- */
@@ -858,7 +923,7 @@ function pTimeline(p){
  const ev = [];
  ev.push({t:d(p.doj), w:'Joined '+PLANTS[MANAGERS[p.mgr].plant]+' as '+p.type+' apprentice ('+p.course+')', s:'sf'});
  formsOf(p.id).forEach(f=>{ if(f.submitted && isDone(f)) ev.push({t:new Date(f.cpDate), w:f.cp+' review submitted by '+f.by+(f.status==='Completed'?'; signed '+f.signed:'; with HoD'), s:'app'}); });
- { const m = midOf(p.id); if(midDone(m)) ev.push({t:d(m.discussedOn||dateKey(new Date(m.cpDate))), w:'Month 6 learning review discussed: '+midStatus(m)[0]+(m.focus.length?' · focus on '+m.focus.map(k=>MIDK[k].name.toLowerCase()).join(', '):''), s:'app'}); }
+ { const m = midOf(p.id); if(midDone(m)) ev.push({t:new Date(m.share?m.share.at:m.cpDate), w:'Month 6 learning review sent ('+midDelivery(m)[0].toLowerCase()+'): '+midStatus(m)[0]+(m.focus.length?' · focus on '+m.focus.map(k=>MIDK[k].name.toLowerCase()).join(', '):''), s:'app'}); }
  (S.notes||[]).filter(n=>n.tid===p.id).forEach(n=>ev.push({t:d(n.date), w:'Note · '+NOTEK[n.cat][1]+': '+n.text, s:'app'}));
  kzOf(p.id).forEach(k=>{ ev.push({t:d(k.date), w:'Kaizen submitted: '+k.title, s:'kz'}); if(k.verify) ev.push({t:new Date(d(k.implAt).getTime()+30*DAY), w:'Kaizen '+(k.verify.sustained?'verified as sustained':'not sustained')+': '+k.title, s:'kz'}); });
  visCases().filter(c=>c.tid===p.id).forEach(c=>ev.push({t:d(c.date), w:'Conduct case '+c.id+' reported'+(c.steps.action?' → '+c.steps.action.label:''), s:'case'}));
