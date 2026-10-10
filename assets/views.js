@@ -106,14 +106,15 @@ function vMgrHome(){
  const kzE = S.kaizens.filter(k=>ps.some(p=>p.id===k.tid) && (k.status==='Submitted'||k.status==='Approved')).sort((a,b)=>(a.status==='Submitted'?0:1)-(b.status==='Submitted'?0:1)||b.date.localeCompare(a.date));
  const cs = visCases().filter(c=>ps.some(p=>p.id===c.tid) && c.status===1);
  const m12 = ps.filter(p=>formsOf(p.id).some(f=>f.cp==='M12'));
- const me = USERS[ME];
+ const me = USERS[ME], mids = midMine().filter(m=>!midDone(m)).sort((a,b)=>a.cpDate.localeCompare(b.cpDate));
  return `${ph('Good morning, '+esc(me.name), esc(me.title)+' · '+ps.length+' apprentices in your team')}
- <div class="grid g4">${kpi('Reviews to complete', due.length, due.filter(f=>new Date(f.cpDate)<TODAY).length+' overdue','reviews')}${kpi('Kaizens to evaluate', kzE.filter(k=>k.status==='Submitted').length, kzE.filter(k=>k.status==='Approved').length+' approved, awaiting implementation','kaizen')}${kpi('Incidents to validate', cs.length, 'Reported from the line tablet','cases')}${kpi('Month 12 in next 60 days', ps.filter(p=>{ const t = addM(d(p.doj),12); return t>TODAY && t<=new Date(TODAY.getTime()+60*DAY); }).length, 'Review opens 14 days before')}</div>
+ <div class="grid g4">${kpi('Reviews to complete', due.length+mids.length, mids.length+' Month 6 · '+due.length+' Month 12','reviews')}${kpi('Kaizens to evaluate', kzE.filter(k=>k.status==='Submitted').length, kzE.filter(k=>k.status==='Approved').length+' approved, awaiting implementation','kaizen')}${kpi('Incidents to validate', cs.length, 'Reported from the line tablet','cases')}${kpi('Month 12 in next 60 days', ps.filter(p=>{ const t = addM(d(p.doj),12); return t>TODAY && t<=new Date(TODAY.getTime()+60*DAY); }).length, 'Review opens 14 days before')}</div>
  <div class="grid g21 mt24">
-  <section class="card"><div class="card-h"><div><h2>Reviews due</h2><p class="sub">One review per apprentice, at Month 12, to check performance against expectations. About 3 minutes: 16 statements on a 1–5 scale in six PQCDSM buckets.</p></div><button class="btn sm" data-go="quick" type="button">Quick rate the team</button></div>
-   <div class="list">${due.map(f=>{ const p = S.people[f.tid]; const n = ALL_ST.filter(k=>f.ans[k]).length; return `<div class="li click" data-go="review/${f.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · ${f.cp}</div><div class="t2">${esc(p.line)} · checkpoint ${fmt(f.cpDate)} · ${dueTxt(f.cpDate)}</div></div><div style="width:140px">${bar(n,ALL_ST.length)}<div class="t2 mt8">${n} of ${ALL_ST.length} rated</div></div>${formChip(f)}</div>`; }).join('') || '<div class="empty-s">No reviews due. A review opens automatically 14 days before an apprentice reaches Month 12.</div>'}</div>
+  <section class="card"><div class="card-h"><div><h2>Reviews due</h2><p class="sub">Two per apprentice: a short Month 6 learning review (feedback, not scored) and the Month 12 review of performance against expectations.</p></div><button class="btn sm" data-go="quick" type="button">Quick rate the team</button></div>
+   <div class="list">${mids.map(m=>{ const p = S.people[m.tid], n = MID_ITEMS.filter(x=>m.ans[x.k]).length; return `<div class="li click" data-go="mid/${m.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · M6 learning review</div><div class="t2">${esc(p.line)} · Month 6 on ${fmt(new Date(m.cpDate))} · ${midDueTxt(m)}</div></div><div style="width:140px">${bar(n,MID_ITEMS.length)}<div class="t2 mt8">${n} of ${MID_ITEMS.length} answered</div></div>${midChip(m)}</div>`; }).join('')}${due.map(f=>{ const p = S.people[f.tid]; const n = ALL_ST.filter(k=>f.ans[k]).length; return `<div class="li click" data-go="review/${f.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · ${f.cp}</div><div class="t2">${esc(p.line)} · checkpoint ${fmt(f.cpDate)} · ${dueTxt(f.cpDate)}</div></div><div style="width:140px">${bar(n,ALL_ST.length)}<div class="t2 mt8">${n} of ${ALL_ST.length} rated</div></div>${formChip(f)}</div>`; }).join('') || (mids.length?'':'<div class="empty-s">No reviews due. The Month 6 review opens '+S.cfg.midBefore+' days before Month 6; the Month 12 review '+S.cfg.launchBefore+' days before Month 12.</div>')}</div>
   </section>
   <section class="stack">
+   <div class="card"><h2>Add a note</h2><p class="sub">Saw something good, or a concern? Two lines go on the apprentice’s record and show up at review time.</p>${noteForm()}</div>
    <div class="card"><h2>Kaizens waiting for you</h2><div class="list mt8">${kzE.slice(0,5).map(k=>`<div class="li click" data-act="kzopen" data-id="${k.seq}" role="button" tabindex="0"><span class="pq">${k.cat}</span><div class="sp"><div class="t1">${esc(k.title)}</div><div class="t2">${esc(S.people[k.tid].name)} · ${fmtS(d(k.date))}</div></div>${kzChip(k)}</div>`).join('')||'<div class="empty-s">Nothing waiting.</div>'}</div>${kzE.length>5?`<button class="btn ghost sm mt8" data-go="kaizen" type="button">All ${kzE.length} →</button>`:''}</div>
    <div class="card"><h2>Incidents to validate</h2><div class="list mt8">${cs.map(c=>`<div class="li click" data-go="case/${c.id}" role="button" tabindex="0"><span class="ico bad">${ic('alert')}</span><div class="sp"><div class="t1">${esc(S.people[c.tid].name)}</div><div class="t2">${esc(MISK[c.k].name)} · ${fmtS(d(c.date))}</div></div></div>`).join('')||'<div class="empty-s">Nothing to validate.</div>'}</div></div>
   </section>
@@ -132,12 +133,16 @@ function vTeam(){
 }
 function vReviews(){
  const role = USERS[ME].role, ps = myPeople();
+ const mids = midMine(), kind = UI.rk || (role==='manager' && mids.some(m=>!midDone(m)) ? 'm6' : 'm12');
+ const sw = `<div class="viewtabs" role="group" aria-label="Review" style="margin-bottom:8px"><button type="button" data-act="rkind" data-id="m6" aria-pressed="${kind==='m6'}">Month 6 · learning review</button><button type="button" data-act="rkind" data-id="m12" aria-pressed="${kind==='m12'}">Month 12 · performance review</button></div>`;
+ if(kind==='m6'){ const T = [['open','To complete',m=>!midDone(m)],['done','Completed',midDone],['plan','Needs a support plan',m=>midDone(m)&&midStatus(m)[0].startsWith('Needs')]]; const t = UI.mtab && T.some(x=>x[0]===UI.mtab) ? UI.mtab : (role==='manager'?'open':'done'); const F = T.find(x=>x[0]===t)[2];
+  return `${ph('Reviews', 'The Month 6 review is a short learning conversation: how the apprentice is doing against the six-month expectation, two or three focus areas and the support agreed. It is not scored and does not go to SF/EC. It opens '+S.cfg.midBefore+' days before Month 6 and is due within '+S.cfg.midDue+' days after.')}${sw}<div class="viewtabs" role="group" aria-label="Filter">${T.map(([k,l,f])=>`<button type="button" data-act="mtab" data-id="${k}" aria-pressed="${k===t}">${l} (${mids.filter(f).length})</button>`).join('')}</div>${midRows(mids.filter(F).sort((a,b)=>t==='open'?a.cpDate.localeCompare(b.cpDate):b.cpDate.localeCompare(a.cpDate)), {mgr:role!=='manager'})}`; }
  let fs = S.forms.filter(f=>ps.some(p=>p.id===f.tid));
  const tabs = role==='hod' ? [['sign','To sign'],['done','Signed'],['open','With managers']] : [['open','To complete'],['sent','Sent to HoD'],['done','Completed']];
  const t = UI.rtab && tabs.some(x=>x[0]===UI.rtab) ? UI.rtab : tabs[0][0];
  const F = {open:f=>f.status==='Not started'||f.status==='In progress', sent:f=>f.status==='With HoD', sign:f=>f.status==='With HoD', done:f=>f.status==='Completed'};
  const list = fs.filter(F[t]).sort((a,b)=>t==='done'?new Date(b.cpDate)-new Date(a.cpDate):new Date(a.cpDate)-new Date(b.cpDate));
- return `${ph(role==='hod'?'Reviews to sign':'Reviews', role==='hod'?'Line managers appraise; you see a summary of each apprentice with the records PRAGATI pulls in, then sign or return.':'One review per apprentice, at Month 12, to check whether the apprentice performed as per expectations. It opens automatically '+S.cfg.launchBefore+' days before the Month 12 date.')}
+ return `${ph(role==='hod'?'Reviews to sign':'Reviews', role==='hod'?'Line managers appraise; you see a summary of each apprentice with the records PRAGATI pulls in, then sign or return.':'The Month 12 review checks whether the apprentice performed as per expectations. It opens automatically '+S.cfg.launchBefore+' days before the Month 12 date.')}${sw}
  <div class="viewtabs" role="group" aria-label="Filter reviews">${tabs.map(([k,l])=>`<button type="button" data-act="rtab" data-id="${k}" aria-pressed="${k===t}">${l} (${fs.filter(F[k]).length})</button>`).join('')}</div>
  <div class="tw"><table class="t"><thead><tr><th>Apprentice</th><th>Review</th><th>Month 12 date</th><th>Line manager</th><th>Progress</th><th class="r">Score</th><th>Band</th><th>Status</th></tr></thead><tbody>
  ${list.map(f=>{ const p = S.people[f.tid], n = ALL_ST.filter(k=>f.ans[k]).length, e = isDone(f) ? evaluate(p,f) : null; return `<tr class="click" data-go="review/${f.id}"><td class="nm">${esc(p.name)}<small>${esc(deptOf(p))} · ${esc(p.line)}</small></td><td><b class="ink">${f.cp}</b></td><td>${fmt(f.cpDate)}<div class="sm muted">${isDone(f)?'Submitted '+esc(f.submitted):dueTxt(f.cpDate)}</div></td><td>${esc(f.by)}</td><td style="min-width:120px">${bar(n,ALL_ST.length)}<div class="sm muted mt8">${n}/${ALL_ST.length}</div></td><td class="r">${e?pct(e.overall):'—'}</td><td>${e?bandChip(e.fb):bandChip()}</td><td>${formChip(f)}</td></tr>`; }).join('')||'<tr><td colspan="8" class="empty">Nothing here.</td></tr>'}
@@ -192,6 +197,7 @@ function vReviewForm(f){
      <div class="li"><div class="sp"><div class="t2">Conduct</div><div class="t1">${cdTxt(cd)}</div></div>${srcTag('case')}</div>
      <div class="li"><div class="sp"><div class="t2">Months in programme</div><div class="t1">${mo(p)} of 12</div></div>${srcTag('sf')}</div>
     </div></div>
+   ${sinceM6(p,'aside')}
    <div class="card"><h3>Progress</h3><div class="mt8">${bar(n,ALL_ST.length, n===ALL_ST.length?'good':'')}</div><p class="sub mt8">${n} of ${ALL_ST.length} statements rated</p></div>
   </aside>
  </div>
@@ -233,6 +239,7 @@ function vOverview(f){
    </div></section>
   </div>
  </div>
+ ${sinceM6(p,'full',e)}
  <div class="grid g2 mt24" style="align-items:start">
   <section class="card"><div class="between"><h2>Line manager’s input</h2>${srcTag('app')}</div>
    ${showCmt?`<div class="mt16"><div class="section-t">Strengths</div><div class="quote">${highlight(f.strengths||'—', e.sen.hits)}</div></div>
@@ -266,6 +273,103 @@ function vReview(id){
  if(USERS[ME].role==='manager' && (f.status==='Not started'||f.status==='In progress')) return vReviewForm(f);
  if(!isDone(f)) return `${crumb([['Reviews','reviews'],[p.name,'']])}${ph(esc(p.name)+' · '+f.cp, 'This review is still with the line manager ('+esc(f.by)+'). '+ALL_ST.filter(k=>f.ans[k]).length+' of '+ALL_ST.length+' statements rated; '+dueTxt(f.cpDate)+'.', `<button class="btn" data-go="person/${p.id}" type="button">Full record</button>`)}`;
  return vOverview(f);
+}
+
+/* ======================= MONTH 6 LEARNING REVIEW ======================= */
+const midChip = m => !m ? '<span class="chip">Not open yet</span>' : m.status==='Completed' ? (s=>`<span class="chip ${s[1]}">${esc(s[0])}</span>`)(midStatus(m)) : m.status==='In progress' ? '<span class="chip info">In progress</span>' : `<span class="chip ${new Date(m.cpDate).getTime()+S.cfg.midDue*DAY<TODAY.getTime()?'bad':'warn'}">${new Date(m.cpDate).getTime()+S.cfg.midDue*DAY<TODAY.getTime()?'Overdue':'To do'}</span>`;
+const midDueTxt = m => { const due = new Date(new Date(m.cpDate).getTime()+S.cfg.midDue*DAY), n = Math.round((due-TODAY)/DAY); return n<0 ? Math.abs(n)+' days overdue' : n===0 ? 'due today' : 'due in '+n+' day'+(n===1?'':'s'); };
+const lvChip = v => { const L = MID_LEVELS.find(x=>x[0]===v); return L ? `<span class="chip ${L[2]}">${L[1]}</span>` : '<span class="muted">—</span>'; };
+function midRecords(p, asOf){
+ const r = midData(p, asOf);
+ const li = (t, v, src) => `<div class="li"><div class="sp"><div class="t2">${t}</div><div class="t1">${v}</div></div>${srcTag(src)}</div>`;
+ return `<div class="list mt8">
+  ${li('Attendance', pct(r.att)+' · '+r.abs+' absence'+(r.abs===1?'':'s')+' · '+r.late+' late-in'+(r.late===1?'':'s'), 'time')}
+  ${r.fest.length?li('Leave around festivals', r.fest.map(x=>esc(x.n)+' ('+x.k+' day'+(x.k>1?'s':'')+')').join(', '), 'time'):''}
+  ${li('Conduct and safety', r.cases ? r.cases+' case'+(r.cases>1?'s':'')+(r.safety?' · '+r.safety+' safety':'')+(r.open?' · '+r.open+' open':'') : 'Clean, no incidents', 'case')}
+  ${li('Stations certified · JH step', (r.st??'—')+' · '+(r.jh!=null?'Step '+r.jh:'—'), 'coord')}
+  ${li('Kaizens so far', r.kz ? r.kz+' (ahead of expectation)' : 'None yet (not expected by Month 6)', 'kz')}
+  ${li('Notes on record', r.notes.length ? r.good+' positive · '+r.concern+' concern'+(r.concern===1?'':'s') : 'None', 'app')}
+ </div>${r.notes.length?`<div class="mt12">${r.notes.slice(-3).reverse().map(n=>`<div class="sm" style="padding:6px 0;border-top:1px solid var(--line-2)"><span class="chip ${NOTEK[n.cat][2]}" style="height:20px;font-size:11px">${NOTEK[n.cat][1]}</span> ${esc(n.text)} <span class="muted">· ${fmtS(d(n.date))}</span></div>`).join('')}</div>`:''}`;
+}
+function vMid(id){
+ const m = (S.mids||[]).find(x=>x.id===id); if(!m) return notFound();
+ const p = S.people[m.tid]; if(!canSee(p)) return notFound();
+ const role = USERS[ME].role, edit = role==='manager' && !midDone(m), n = MID_ITEMS.filter(x=>m.ans[x.k]).length;
+ const head = `${crumb([['Reviews','reviews'],[p.name+' · Month 6','']])}
+ <div class="ph"><div class="hero">${av(p.name)}<div><h1>${esc(p.name)} · Month 6 learning review</h1><div class="meta"><span>${esc(deptOf(p))} · ${esc(p.line)}</span><span>Joined ${fmt(d(p.doj))}</span><span>Month 6 on ${fmt(new Date(m.cpDate))}${midDone(m)?'':' ('+midDueTxt(m)+')'}</span></div><div class="idrow">${ids(p)}${midChip(m)}</div></div></div>
+  <div class="row"><button class="btn" data-go="person/${p.id}" type="button">${ic('eye',16)} Full record</button></div></div>`;
+ if(!edit) return head + midSummary(m, p);
+ const ask = MID_ITEMS.map(it=>`<div class="mstmt ${UI.showMiss&&!m.ans[it.k]?'miss':''}"><div class="row" style="gap:8px"><span class="pq">${it.b}</span><p style="margin:0"><b>${esc(it.name)}</b></p></div>
+  <div class="mlk mt8" role="radiogroup" aria-label="${esc(it.name)}">${MID_LEVELS.map(([v,l,c])=>`<button type="button" class="${c}" data-act="midset" data-id="${m.id}" data-k="${it.k}" data-v="${v}" role="radio" aria-checked="${m.ans[it.k]===v}" aria-pressed="${m.ans[it.k]===v}"><b>${l}</b><span>${esc(it.a[v])}</span></button>`).join('')}</div></div>`).join('');
+ const cand = MID_ITEMS.filter(it=>m.ans[it.k] && m.ans[it.k]!=='well').sort((a,b)=>(m.ans[a.k]==='focus'?0:1)-(m.ans[b.k]==='focus'?0:1));
+ return `${head}
+ <div class="note" style="margin-bottom:16px"><b>A learning conversation, not a rating.</b> ${esc(MID_EXPECT)} Nothing here is scored or sent to SAP SF/EC. About 5 minutes, then talk it through with the apprentice.</div>
+ <div class="grid rvg">
+  <div>
+   <section class="card"><h2>1 · How is it going?</h2><p class="sub">Pick the line that fits best. Judge what you have seen at his stage, not classroom knowledge.</p><div class="mt12">${ask}</div>
+    <div class="note mt16"><b>Not expected yet at Month 6:</b> ${MID_NOT_YET.map(esc).join(' · ')}. These come into the Month 12 review; if he has started already, note it below.</div></section>
+   <section class="card mt16"><h2>2 · Feedback</h2>
+    <div class="fld mt12"><label for="md-w">What is going well</label><textarea id="md-w" data-md="${m.id}" data-k="well" style="min-height:64px" placeholder="One or two lines he should hear">${esc(m.well)}</textarea></div>
+    <div class="fld mt16"><label>Focus areas for the next six months (up to 3)</label>${cand.length?`<div class="list mt4">${cand.map(it=>`<label class="li" style="cursor:pointer;align-items:flex-start"><input type="checkbox" data-mdf="${m.id}" value="${it.k}" ${m.focus.includes(it.k)?'checked':''} style="margin-top:3px"><div class="sp"><div class="t1" style="font-size:14px">${esc(it.name)} ${lvChip(m.ans[it.k])}</div><div class="t2">What good looks like: ${esc(it.a.well)}</div></div></label>`).join('')}</div>`:'<p class="sm muted mt4">Items you mark Developing or Needs focus appear here.</p>'}</div>
+    <div class="fld mt16"><label for="md-ft">In his words: what to work on</label><textarea id="md-ft" data-md="${m.id}" data-k="focusTxt" style="min-height:64px" placeholder="e.g. Keep any doubtful part aside and call the group leader; never pass it on.">${esc(m.focusTxt)}</textarea></div>
+    <div class="fld mt16"><label>Support we will give</label><div class="colpick mt4">${MID_SUPPORT.map(x=>`<label><input type="checkbox" data-mds="${m.id}" value="${esc(x)}" ${m.support.includes(x)?'checked':''}>${esc(x)}</label>`).join('')}</div><input class="mt8" id="md-st" data-md="${m.id}" data-k="supportTxt" value="${esc(m.supportTxt)}" placeholder="Anything else, e.g. two weeks with the group leader on Stn 4"></div>
+    <div class="fld mt16"><label for="md-tg">What we expect by Month 12</label><textarea id="md-tg" data-md="${m.id}" data-k="targets" style="min-height:64px">${esc(m.targets)}</textarea></div>
+   </section>
+   <section class="card mt16"><h2>3 · Talk it through</h2><p class="sub">Share this with the apprentice face to face. He sees the focus areas and the support; there is no score to share.</p>
+    <div class="fgrid mt12"><div class="fld"><label for="md-dd">Discussed on</label><input id="md-dd" type="date" data-md="${m.id}" data-k="discussedOn" value="${esc(m.discussedOn)}" max="${dateKey(TODAY)}"></div><div class="fld"><label for="md-ap">Apprentice’s response (optional)</label><input id="md-ap" data-md="${m.id}" data-k="apComment" value="${esc(m.apComment)}" placeholder="What he said, or what he asked for"></div></div>
+   </section>
+  </div>
+  <aside class="stack rva">
+   <div class="card"><h3>First six months on record</h3><p class="sub">Pulled in automatically.</p>${midRecords(p)}</div>
+   <div class="card"><h3>Progress</h3><div class="mt8">${bar(n, MID_ITEMS.length, n===MID_ITEMS.length?'good':'')}</div><p class="sub mt8">${n} of ${MID_ITEMS.length} answered${n?' · reads: '+midStatus(m)[0]:''}</p></div>
+  </aside>
+ </div>
+ <div class="formbar"><div class="formbar-in"><span class="sm muted">Saved automatically</span><span class="sp"></span><span class="err" id="md-err">${esc(UI.mdErr||'')}</span><button class="btn pri lg" data-act="midsubmit" data-id="${m.id}" type="button">Complete Month 6 review ${ic('check',16)}</button></div></div>`;
+}
+function midSummary(m, p){
+ if(!midDone(m)) return `<section class="card"><p class="muted">With the line manager (${esc(m.by)}). ${MID_ITEMS.filter(x=>m.ans[x.k]).length} of ${MID_ITEMS.length} answered; ${midDueTxt(m)}.</p></section>`;
+ const st = midStatus(m);
+ return `<div class="grid g21" style="align-items:start">
+  <div class="stack">
+   <section class="card"><div class="between"><h2>How it is going</h2><span class="chip ${st[1]}">${esc(st[0])}</span></div><p class="sub">${esc(MID_EXPECT)}</p>
+    <div class="mt12">${MID_ITEMS.map(it=>`<div class="between" style="padding:10px 0;border-bottom:1px solid var(--line-2);gap:16px"><span><span class="pq" style="width:22px;height:22px;font-size:11.5px;margin-right:8px">${it.b}</span><b class="ink">${esc(it.name)}</b><div class="sm muted" style="margin-left:30px">${esc(it.a[m.ans[it.k]]||'')}</div></span>${lvChip(m.ans[it.k])}</div>`).join('')}</div></section>
+   <section class="card"><h2>Feedback given</h2>
+    <div class="mt12"><div class="section-t">Going well</div><div class="quote">${esc(m.well||'—')}</div></div>
+    <div class="mt16"><div class="section-t">Focus areas</div>${m.focus.length?m.focus.map(k=>`<div class="mt8"><b class="ink">${esc(MIDK[k].name)}</b> ${lvChip(m.ans[k])}<div class="sm muted">What good looks like: ${esc(MIDK[k].a.well)}</div></div>`).join(''):'<p class="good mt8">No focus areas: keep going.</p>'}${m.focusTxt?`<div class="quote mt8">${esc(m.focusTxt)}</div>`:''}</div>
+    <div class="mt16"><div class="section-t">Support agreed</div><div>${[...m.support, m.supportTxt].filter(Boolean).map(esc).join(' · ')||'—'}</div></div>
+    <div class="mt16"><div class="section-t">Expected by Month 12</div><div>${esc(m.targets||'—')}</div></div>
+    <p class="sm muted mt16">${esc(m.by)} · discussed with the apprentice on ${m.discussedOn?fmt(d(m.discussedOn)):'—'}${m.apComment?' · he said: “'+esc(m.apComment)+'”':''}</p></section>
+  </div>
+  <aside class="stack"><div class="card"><h3>First six months on record</h3>${midRecords(p, m.cpDate)}</div></aside>
+ </div>`;
+}
+function midRows(list, opt={}){
+ return `<div class="tw"><table class="t"><thead><tr><th>Apprentice</th><th>Month 6 date</th>${opt.mgr?'<th>Line manager</th>':''}<th>Progress</th><th>Focus areas</th><th>Status</th></tr></thead><tbody>
+ ${list.map(m=>{ const p = S.people[m.tid], n = MID_ITEMS.filter(x=>m.ans[x.k]).length; return `<tr class="click" data-go="mid/${m.id}"><td class="nm">${esc(p.name)}<small>${esc(deptOf(p))} · ${esc(p.line)}</small></td><td>${fmt(new Date(m.cpDate))}<div class="sm muted">${midDone(m)?'Discussed '+(m.discussedOn?fmtS(d(m.discussedOn)):'—'):midDueTxt(m)}</div></td>${opt.mgr?`<td>${esc(m.by)}</td>`:''}<td style="min-width:110px">${bar(n,MID_ITEMS.length)}<div class="sm muted mt8">${n}/${MID_ITEMS.length}</div></td><td class="sm">${midDone(m)?(m.focus.map(k=>esc(MIDK[k].name)).join(', ')||'None'):'—'}</td><td>${midChip(m)}</td></tr>`; }).join('')||`<tr><td colspan="${opt.mgr?6:5}" class="empty">Nothing here.</td></tr>`}
+ </tbody></table></div>`;
+}
+function midMine(){ const ps = myPeople(); return (S.mids||[]).filter(m=>ps.some(p=>p.id===m.tid)); }
+/* Month 6 focus areas carried into the Month 12 review */
+function sinceM6(p, mode, e){
+ const m = midOf(p.id); if(!midDone(m)) return '';
+ if(mode==='aside') return `<div class="card"><h3>From the Month 6 review</h3><p class="sub">${esc(midStatus(m)[0])} · discussed ${m.discussedOn?fmtS(d(m.discussedOn)):'—'}</p>${m.focus.length?`<div class="list mt8">${m.focus.map(k=>`<div class="li"><div class="sp"><div class="t1" style="font-size:14px">${esc(MIDK[k].name)}</div><div class="t2">Was: ${MID_LEVELS.find(x=>x[0]===m.ans[k])[1]} · rate where he is now</div></div></div>`).join('')}</div>`:'<p class="good mt8">No focus areas were set.</p>'}${m.support.length||m.supportTxt?`<p class="sm muted mt8">Support agreed: ${[...m.support,m.supportTxt].filter(Boolean).map(esc).join(' · ')}</p>`:''}</div>`;
+ const rows = m.focus.map(k=>{ const it = MIDK[k], r = e && e.rows.find(x=>x.par.k===it.m12), sc = r && r.score!=null ? r.score : null; const verdict = sc==null ? '—' : sc>=3.5 ? '<span class="chip good">Improved</span>' : sc>=2.5 ? '<span class="chip warn">Some progress</span>' : '<span class="chip bad">Not yet</span>'; return `<tr><td class="nm">${esc(it.name)}</td><td>${lvChip(m.ans[k])}</td><td>${esc(PK[it.m12].name)}</td><td class="r">${sc!=null?sc.toFixed(1):'—'}</td><td>${verdict}</td></tr>`; }).join('');
+ return `<section class="card mt24"><div class="card-h"><div><h2>Since the Month 6 review</h2><p class="sub">Focus areas agreed at Month 6, read against the matching Month 12 parameter. ${esc(midStatus(m)[0])}; discussed on ${m.discussedOn?fmt(d(m.discussedOn)):'—'}.</p></div><button class="btn sm" data-go="mid/${m.id}" type="button">Open Month 6 review</button></div>
+  ${m.focus.length?`<div class="tw mt12"><table class="t"><thead><tr><th>Focus area</th><th>At Month 6</th><th>Month 12 parameter</th><th class="r">Now</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="good mt12">No focus areas were set at Month 6.</p>'}</section>`;
+}
+/* ----- notes: the apprentice's running history card ----- */
+function noteForm(tid){
+ const N = UI.nf || (UI.nf = {cat:'good'}), ps = tid ? null : myPeople().filter(p=>p.status==='Active').sort((a,b)=>a.name.localeCompare(b.name));
+ return `<div class="mt8">${ps?`<div class="fld"><label for="nf-t">Apprentice</label><select id="nf-t"><option value="">Select</option>${ps.map(x=>`<option value="${x.id}" ${x.id===N.tid?'selected':''}>${esc(x.name)} · ${x.ticket}</option>`).join('')}</select></div>`:''}
+  <div class="viewtabs mt12" role="group" aria-label="Note type" style="margin-bottom:0">${NOTE_CATS.map(([k,l])=>`<button type="button" data-act="nfcat" data-id="${k}" aria-pressed="${N.cat===k}">${l}</button>`).join('')}</div>
+  <div class="fld mt12"><label for="nf-x">What happened (two lines is enough)</label><textarea id="nf-x" style="min-height:64px" placeholder="e.g. Stopped a part with a missing dowel from the previous stage and called the group leader.">${esc(N.text||'')}</textarea></div>
+  <div class="err" id="nf-e"></div><button class="btn pri mt12" data-act="noteadd" data-id="${tid||''}" type="button">Add to record</button></div>`;
+}
+function pNotes(p){
+ const ns = (S.notes||[]).filter(n=>n.tid===p.id).sort((a,b)=>b.date.localeCompare(a.date)), can = ['manager','hod','hr'].includes(USERS[ME].role);
+ return `<div class="grid g21" style="align-items:start"><section class="card"><h2>Notes</h2><p class="sub">Good work and concerns noted during the year, so reviews rest on the whole year and not only on recent weeks.</p>
+  ${ns.length?`<div class="hist mt12">${ns.map(n=>`<div><b><span class="chip ${NOTEK[n.cat][2]}" style="height:20px;font-size:11px">${NOTEK[n.cat][1]}</span> ${esc(n.text)}</b><span>${fmt(d(n.date))} · ${esc(n.by)}</span></div>`).join('')}</div>`:'<p class="muted mt12">No notes yet.</p>'}</section>
+  ${can?`<section class="card"><h3>Add a note</h3>${noteForm(p.id)}</section>`:''}</div>`;
 }
 
 /* ----- quick rate ----- */
@@ -637,12 +741,13 @@ function vHodHome(){
  const ev = ps.map(latestEval).filter(Boolean), risk = ev.filter(x=>x.e.status==='At risk');
  const me = USERS[ME];
  return `${ph('Good morning, '+esc(me.name), esc(me.title)+' · '+ps.length+' apprentices across '+[...new Set(ps.map(deptOf))].length+' departments')}
- <div class="grid g4">${kpi('Reviews to sign', sign.length, 'Appraised by line managers','reviews')}${kpi('Conduct actions to decide', cs.length,'Validated by line managers','cases')}${kpi('At risk', risk.length, 'Band C, warning-level conduct or open case','team')}${kpi('Month 12 decisions', ps.filter(p=>{ const f = formsOf(p.id).find(x=>x.cp==='M12'); return f && f.status==='With HoD'; }).length, 'Waiting for you','m12')}</div>
+ <div class="grid g4">${kpi('Reviews to sign', sign.length, ((m=>m.length?m.length+' Month 6 support plan'+(m.length>1?'s':'')+' to note':'Appraised by line managers'))(midMine().filter(m=>midDone(m)&&midStatus(m)[0].startsWith('Needs'))),'reviews')}${kpi('Conduct actions to decide', cs.length,'Validated by line managers','cases')}${kpi('At risk', risk.length, 'Band C, warning-level conduct or open case','team')}${kpi('Month 12 decisions', ps.filter(p=>{ const f = formsOf(p.id).find(x=>x.cp==='M12'); return f && f.status==='With HoD'; }).length, 'Waiting for you','m12')}</div>
  <div class="grid g21 mt24" style="align-items:start">
   <section class="card"><h2>Waiting for your sign-off</h2><p class="sub">Open one to see the summary: scores, records, agent flags and the manager’s comments on one page.</p>
    <div class="list mt12">${sign.map(f=>{ const p = S.people[f.tid], e = evaluate(p,f); return `<div class="li click" data-go="review/${f.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · ${f.cp}</div><div class="t2">${esc(deptOf(p))} · ${esc(f.by)} · submitted ${esc(f.submitted)}</div></div>${e.flags.filter(x=>x[0]!=='info').length?`<span class="chip warn">${e.flags.filter(x=>x[0]!=='info').length} flag(s)</span>`:''}<b class="ink" style="width:60px;text-align:right">${pct0(e.overall)}</b>${bandChip(e.fb)}</div>`; }).join('')||'<div class="empty-s">All signed.</div>'}</div></section>
+  <section class="stack" style="gap:16px"><section class="card"><h2>Month 6 learning reviews</h2>${((ms)=>{ const done = ms.filter(midDone), plan = done.filter(m=>midStatus(m)[0].startsWith('Needs')), open = ms.filter(m=>!midDone(m)); return `<p class="sub">${done.length} completed · ${open.length} with line managers. Feedback only; nothing to sign.</p>${plan.length?`<div class="section-t mt12">Needs a support plan</div><div class="list">${plan.slice(0,5).map(m=>{ const p = S.people[m.tid]; return `<div class="li click" data-go="mid/${m.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)}</div><div class="t2">${m.focus.map(k=>esc(MIDK[k].name)).join(' · ')}</div></div></div>`; }).join('')}</div>`:'<p class="good mt8">No apprentice needs a support plan.</p>'}`; })(midMine())}<button class="btn ghost sm mt12" data-act="rkind" data-id="m6" data-goto="reviews" type="button">All Month 6 reviews →</button></section>
   <section class="card"><h2>Band mix</h2><p class="sub">Latest review per apprentice</p>${bandMix(ev.map(x=>x.e.fb))}
-   <div class="mt24"><div class="section-t">By line manager</div>${Object.entries(MANAGERS).filter(([k,m])=>HODS[me.persona].divs.includes(m.div)).map(([k,m])=>{ const l = leniency()[k], es = ev.filter(x=>x.f && S.people[x.f.tid].mgr===k); return `<div class="li"><div class="sp"><div class="t1">${esc(m.name)}</div><div class="t2">${esc(m.dept)} · ${es.length} reviewed</div></div>${l.flag?'<span class="chip warn">Lenient</span>':''}<div style="width:120px">${bandMix(es.map(x=>x.e.fb)).split('<div class="legend')[0]}</div></div>`; }).join('')}</div></section>
+   <div class="mt24"><div class="section-t">By line manager</div>${Object.entries(MANAGERS).filter(([k,m])=>HODS[me.persona].divs.includes(m.div)).map(([k,m])=>{ const l = leniency()[k], es = ev.filter(x=>x.f && S.people[x.f.tid].mgr===k); return `<div class="li"><div class="sp"><div class="t1">${esc(m.name)}</div><div class="t2">${esc(m.dept)} · ${es.length} reviewed</div></div>${l.flag?'<span class="chip warn">Lenient</span>':''}<div style="width:120px">${bandMix(es.map(x=>x.e.fb)).split('<div class="legend')[0]}</div></div>`; }).join('')}</div></section></section>
  </div>`;
 }
 function cycleStats(ps){
@@ -679,12 +784,12 @@ function vHrHome(){
  const ps = Object.values(S.people);
  const hrCases = S.cases.filter(c=>c.status===3||c.status===4);
  const fin = ps.filter(p=>S.decisions[p.id]&&S.decisions[p.id].hod&&!S.decisions[p.id].hr);
- const od = S.forms.filter(f=>!isDone(f) && new Date(f.cpDate)<TODAY);
+const od = S.forms.filter(f=>!isDone(f) && new Date(f.cpDate)<TODAY), odm = (S.mids||[]).filter(m=>!midDone(m) && new Date(m.cpDate).getTime()+S.cfg.midDue*DAY<TODAY.getTime());
  const warnS = Object.entries(S.sources).filter(([k,v])=>v.status==='warn');
  return `${ph('HR', 'Everything about apprentices across plants in one place.')}
- <div class="grid g4">${kpi('Letters to issue / cases to close', hrCases.length, '', 'cases')}${kpi('Outcomes to record', fin.length, 'Signed by HoD; record in SAP SF/EC', 'm12')}${kpi('Overdue reviews', od.length, 'Past the checkpoint date', 'master')}${kpi('Data feeds needing attention', warnS.length, warnS.map(([k])=>SOURCES.find(s=>s.k===k).short).join(', ')||'All feeds on time', 'sources')}</div>
+ <div class="grid g4">${kpi('Letters to issue / cases to close', hrCases.length, '', 'cases')}${kpi('Outcomes to record', fin.length, 'Signed by HoD; record in SAP SF/EC', 'm12')}${kpi('Overdue reviews', od.length+odm.length, odm.length+' Month 6 · '+od.length+' Month 12', 'master')}${kpi('Data feeds needing attention', warnS.length, warnS.map(([k])=>SOURCES.find(s=>s.k===k).short).join(', ')||'All feeds on time', 'sources')}</div>
  <div class="grid g2 mt24" style="align-items:start">
-  <section class="card"><h2>Overdue reviews</h2><div class="list mt8">${od.slice(0,8).map(f=>{ const p = S.people[f.tid]; return `<div class="li click" data-go="review/${f.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · ${f.cp}</div><div class="t2">${esc(f.by)} · ${dueTxt(f.cpDate)}</div></div>${formChip(f)}</div>`; }).join('')||'<div class="empty-s">None overdue.</div>'}</div></section>
+  <section class="card"><h2>Overdue reviews</h2><div class="list mt8">${odm.slice(0,6).map(m=>{ const p = S.people[m.tid]; return `<div class="li click" data-go="mid/${m.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · M6 learning review</div><div class="t2">${esc(m.by)} · ${midDueTxt(m)}</div></div>${midChip(m)}</div>`; }).join('')}${od.slice(0,8).map(f=>{ const p = S.people[f.tid]; return `<div class="li click" data-go="review/${f.id}" role="button" tabindex="0">${av(p.name)}<div class="sp"><div class="t1">${esc(p.name)} · ${f.cp}</div><div class="t2">${esc(f.by)} · ${dueTxt(f.cpDate)}</div></div>${formChip(f)}</div>`; }).join('')||'<div class="empty-s">None overdue.</div>'}</div></section>
   <section class="card"><h2>Recent data movements</h2>${logTable(7)}<button class="btn ghost sm mt12" data-go="log" type="button">Audit log →</button></section>
  </div>`;
 }
@@ -693,9 +798,9 @@ function vHrHome(){
 function vPerson(id, tab){
  const p = S.people[id]; if(!p || !canSee(p)) return notFound();
  tab = tab || 'overview';
- const T = [['overview','Overview'],['reviews','Reviews'],['attendance','Attendance'],['kaizens','Kaizens'],['skills','Skills & TPM'],['conduct','Conduct'],['timeline','Timeline']];
+ const T = [['overview','Overview'],['reviews','Reviews'],['attendance','Attendance'],['kaizens','Kaizens'],['skills','Skills & TPM'],['conduct','Conduct'],['notes','Notes'],['timeline','Timeline']];
  const le = latestEval(p), role = USERS[ME].role, showScores = role!=='plant' || vis('plant','scores');
- const body = ({overview:pOverview, reviews:pReviews, attendance:pAtt, kaizens:pKz, skills:pSkills, conduct:pConduct, timeline:pTimeline})[tab](p, le);
+ const body = ({overview:pOverview, reviews:pReviews, attendance:pAtt, kaizens:pKz, skills:pSkills, conduct:pConduct, notes:pNotes, timeline:pTimeline})[tab](p, le);
  return `${crumb([[role==='manager'?'My apprentices':'Apprentices', role==='hr'?'master':'team'],[p.name,'']])}
  <section class="card"><div class="between" style="align-items:flex-start"><div class="hero">${av(p.name)}<div><h1>${esc(p.name)}</h1><div class="meta"><span>${esc(deptOf(p))} · ${esc(p.line)}</span><span>Line manager ${esc(MANAGERS[p.mgr].name)} · HoD ${esc(HODS[hodOf(p)].name)}</span><span>Joined ${fmt(d(p.doj))} · Month ${mo(p)} of 12</span></div><div class="idrow">${ids(p)}<span class="chip">${esc(p.course)}</span>${p.status!=='Active'?`<span class="chip bad">${esc(p.status)}</span>`:le?statusChip(le.e.status):''}</div></div></div>
   <div class="row" style="gap:20px">${le&&showScores?`<div style="text-align:right"><div class="muted sm">Latest · ${le.f.cp}</div><div style="font-size:30px;font-weight:600;color:var(--ink);line-height:1.1">${pct(le.e.overall)}</div></div>`:''}${le?bandChip(le.e.fb,true):''}</div></div>
@@ -720,10 +825,10 @@ function pOverview(p, le){
  </div>`;
 }
 function pReviews(p){
- const fs = formsOf(p.id);
- return `<div class="tw"><table class="t"><thead><tr><th>Review</th><th>Date</th><th>Line manager</th><th>Status</th>${BORDER.map(b=>`<th class="r">${b}</th>`).join('')}<th class="r">Overall</th><th>Band</th></tr></thead><tbody>
+ const fs = formsOf(p.id), m = midOf(p.id);
+ return `<section class="card" style="margin-bottom:16px"><div class="between"><div><h2>Month 6 learning review</h2><p class="sub">${m?'Month 6 on '+fmt(new Date(m.cpDate))+' · '+esc(m.by):'Opens '+S.cfg.midBefore+' days before '+fmt(midDate(p))}</p></div><div class="row">${midChip(m)}${m?`<button class="btn sm" data-go="mid/${m.id}" type="button">Open</button>`:''}</div></div>${midDone(m)&&m.focus.length?`<p class="mt8"><b class="ink">Focus areas:</b> ${m.focus.map(k=>esc(MIDK[k].name)).join(' · ')}</p>`:''}</section><div class="tw"><table class="t"><thead><tr><th>Review</th><th>Date</th><th>Line manager</th><th>Status</th>${BORDER.map(b=>`<th class="r">${b}</th>`).join('')}<th class="r">Overall</th><th>Band</th></tr></thead><tbody>
  ${fs.map(f=>{ const e = isDone(f)?evaluate(p,f):null; return `<tr class="click" data-go="review/${f.id}"><td><b class="ink">${f.cp}</b></td><td>${fmt(f.cpDate)}</td><td>${esc(f.by)}</td><td>${formChip(f)}</td>${BORDER.map(b=>{ const x = e&&e.bk.find(y=>y.b===b); return `<td class="r">${x&&x.v!=null?x.v.toFixed(1):'—'}</td>`; }).join('')}<td class="r">${e?pct(e.overall):'—'}</td><td>${e?bandChip(e.fb):bandChip()}</td></tr>`; }).join('')||'<tr><td colspan="12" class="empty">No reviews yet.</td></tr>'}
- </tbody></table></div><p class="sm muted mt12">Bucket scores out of 5. One review per apprentice, at Month 12.</p>`;
+ </tbody></table></div><p class="sm muted mt12">Month 12 bucket scores out of 5. The Month 6 review is feedback only and is not scored.</p>`;
 }
 function pAtt(p){
  const a = attStats(p.id), last = a.days.slice(-91);
@@ -753,6 +858,8 @@ function pTimeline(p){
  const ev = [];
  ev.push({t:d(p.doj), w:'Joined '+PLANTS[MANAGERS[p.mgr].plant]+' as '+p.type+' apprentice ('+p.course+')', s:'sf'});
  formsOf(p.id).forEach(f=>{ if(f.submitted && isDone(f)) ev.push({t:new Date(f.cpDate), w:f.cp+' review submitted by '+f.by+(f.status==='Completed'?'; signed '+f.signed:'; with HoD'), s:'app'}); });
+ { const m = midOf(p.id); if(midDone(m)) ev.push({t:d(m.discussedOn||dateKey(new Date(m.cpDate))), w:'Month 6 learning review discussed: '+midStatus(m)[0]+(m.focus.length?' · focus on '+m.focus.map(k=>MIDK[k].name.toLowerCase()).join(', '):''), s:'app'}); }
+ (S.notes||[]).filter(n=>n.tid===p.id).forEach(n=>ev.push({t:d(n.date), w:'Note · '+NOTEK[n.cat][1]+': '+n.text, s:'app'}));
  kzOf(p.id).forEach(k=>{ ev.push({t:d(k.date), w:'Kaizen submitted: '+k.title, s:'kz'}); if(k.verify) ev.push({t:new Date(d(k.implAt).getTime()+30*DAY), w:'Kaizen '+(k.verify.sustained?'verified as sustained':'not sustained')+': '+k.title, s:'kz'}); });
  visCases().filter(c=>c.tid===p.id).forEach(c=>ev.push({t:d(c.date), w:'Conduct case '+c.id+' reported'+(c.steps.action?' → '+c.steps.action.label:''), s:'case'}));
  const dc = S.decisions[p.id]; if(dc&&dc.hod) ev.push({t:TODAY, w:'HoD decision: '+dc.hod.choice, s:'app'}); if(dc&&dc.ec) ev.push({t:TODAY, w:'Sent to SAP SF/EC: '+dc.ec.event, s:'sf'});

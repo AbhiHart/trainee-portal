@@ -439,3 +439,17 @@ details.map table{margin-top:8px}
 .rvg{grid-template-columns:minmax(0,1fr) 340px;align-items:start}
 .rva{position:sticky;top:92px}
 @media (max-width:1000px){.rvg{grid-template-columns:minmax(0,1fr)}.rva{position:static}.formbar{margin:24px -16px -56px;padding:12px 16px}.lk{flex-wrap:wrap}.lk button{min-width:56px}.lk button span{display:none}}
+/* Month 6 learning review: three anchored choices */
+.mlk{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mlk button{border:1px solid #D3DAE3;border-radius:var(--r-sm);background:#fff;cursor:pointer;text-align:left;padding:10px 12px;display:flex;flex-direction:column;gap:3px;color:var(--text);min-height:64px}
+.mlk button b{font-size:13.5px;color:var(--ink);font-weight:600}
+.mlk button span{font-size:12.5px;line-height:1.35}
+.mlk button:hover{border-color:var(--brand);background:var(--brand-50)}
+.mlk button.good[aria-pressed=true]{background:var(--good-50);border-color:var(--good)}
+.mlk button.warn[aria-pressed=true]{background:var(--warn-50);border-color:var(--warn)}
+.mlk button.bad[aria-pressed=true]{background:var(--bad-50);border-color:var(--bad)}
+.mlk button[aria-pressed=true] b::before{content:'\2713  '}
+@media (max-width:720px){.mlk{grid-template-columns:1fr}}
+.mstmt{padding:14px 0;border-bottom:1px solid var(--line-2)}
+.mstmt:last-child{border-bottom:0}
+.mstmt.miss{background:var(--bad-50);margin:0 -12px;padding:14px 12px;border-radius:var(--r-sm)}

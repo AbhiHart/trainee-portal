@@ -24,7 +24,7 @@ const PORTALS = {
  home:{file:'index.html',name:'Portals',roles:[],nav:[]},
  manager:{file:'manager.html',name:'Line Manager',icon:'clip',who:'Line managers on the shop floor (appraisers)',roles:['manager'],
   pitch:'Appraise your apprentices in minutes, evaluate their kaizens and validate incidents from your line.',
-  points:['One review per apprentice, at Month 12: 16 plain statements on a 1–5 scale','Attendance, kaizens, skills and conduct pulled in for you','Quick rate the whole team one bucket at a time'],
+  points:['Month 6 learning review (feedback, not scored) and the Month 12 review: 16 plain statements on a 1–5 scale','Attendance, kaizens, skills and conduct pulled in for you','Quick rate the whole team one bucket at a time'],
   nav:[['home','Home'],['team','My apprentices'],['reviews','Reviews'],['quick','Quick rate'],['kaizen','Kaizen'],['cases','Conduct']]},
  hod:{file:'hod.html',name:'Head of Department',icon:'users',who:'Skip-level managers (reviewing officers)',roles:['hod'],
   pitch:'See each apprentice on one page: the line manager’s appraisal with every record behind it.',
@@ -55,9 +55,9 @@ const VIEWS = {
  home:()=>({manager:vMgrHome,hod:vHodHome,hr:vHrHome})[PORTAL](), team:vTeam, reviews:vReviews, quick:vQuick, kaizen:vKzEval, cases:vCases, m12:vM12,
  dash:vPlantDash, kzdash:vKzDash, master:vMaster, kzreg:vKzReg, rules:vRules, access:vAccess, sources:vSources, log:vLog,
  report:vReport, kzsubmit:vKzSubmit, sent:vSent, kzverify:vKzVerify, upload:vUpload, punches:vPunches, joiners:vJoiners,
- console:vConsole, how:vHow, flow:vFlow, settings:vSettings, person:vPerson, review:vReview, case:vCase
+ console:vConsole, how:vHow, flow:vFlow, settings:vSettings, person:vPerson, review:vReview, case:vCase, mid:vMid
 };
-const DETAIL = ['person','review','case'];
+const DETAIL = ['person','review','case','mid'];
 const HR_SET = ['rules','access','log'];
 const PAGE_PORTAL = {punches:'timesystem',joiners:'teamlease',upload:'coordinator',kzverify:'coordinator',report:'tablet',kzsubmit:'tablet',console:'agent',flow:'monitor',quick:'manager',kaizen:'manager',master:'hr',access:'hr',sources:'hr',dash:'plant'};
 let S = null, ME = null;
@@ -72,7 +72,7 @@ function parseHash(){ const h = location.hash.replace(/^#\/?/,'').split('/').fil
 /* ----- header ----- */
 function navCount(k){
  if(!ME) return 0; const u = USER(), ps = ['manager','hod'].includes(u.role) ? myPeople() : Object.values(S.people), has = f => ps.some(p=>p.id===f.tid);
- if(u.role==='manager'){ if(k==='reviews') return S.forms.filter(f=>has(f)&&!isDone(f)).length; if(k==='kaizen') return S.kaizens.filter(x=>x.status==='Submitted'&&ps.some(p=>p.id===x.tid)).length; if(k==='cases') return S.cases.filter(c=>c.status===1&&ps.some(p=>p.id===c.tid)).length; }
+ if(u.role==='manager'){ if(k==='reviews') return S.forms.filter(f=>has(f)&&!isDone(f)).length + (S.mids||[]).filter(m=>has(m)&&!midDone(m)).length; if(k==='kaizen') return S.kaizens.filter(x=>x.status==='Submitted'&&ps.some(p=>p.id===x.tid)).length; if(k==='cases') return S.cases.filter(c=>c.status===1&&ps.some(p=>p.id===c.tid)).length; }
  if(u.role==='hod'){ if(k==='reviews') return S.forms.filter(f=>has(f)&&f.status==='With HoD').length; if(k==='cases') return S.cases.filter(c=>c.status===2&&c.k!=='oth'&&ps.some(p=>p.id===c.tid)).length; }
  if(u.role==='hr'){ if(k==='cases') return S.cases.filter(c=>c.status===3||c.status===4||(c.k==='oth'&&c.status<5)).length; if(k==='m12') return Object.values(S.decisions).filter(x=>x.hod&&!x.hr).length; }
  if(u.role==='coordinator' && k==='kzverify') return S.kaizens.filter(x=>x.status==='Implemented' && new Date(d(x.implAt).getTime()+S.cfg.kzVerifyDays*DAY)<=TODAY).length;
@@ -117,7 +117,7 @@ function toast(msg){ const n = document.createElement('div'); n.className = 'toa
 function go(path){ location.hash = '#/'+path; }
 
 /* ----- shared store (this browser; all portals) ----- */
-const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v7';
+const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v8';
 let rev = 0, _ptimer = null;
 function persist(){
  rev++;
@@ -135,7 +135,7 @@ window.addEventListener('storage', e=>{
 
 /* ----- actions ----- */
 const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-const NOSAVE = new Set(['cpreset','lgfor','lgpick','lgimmsop','codenew','codeedit','codecancel','cnewfrom','imptpl','impsample','impclear','casecsv','fill','logout','rtab','qb','kzopen','close','kzs','kzcat','colsbtn','pick','kzcsv','mastercsv','vsel']);
+const NOSAVE = new Set(['rkind','mtab','nfcat','cpreset','lgfor','lgpick','lgimmsop','codenew','codeedit','codecancel','cnewfrom','imptpl','impsample','impclear','casecsv','fill','logout','rtab','qb','kzopen','close','kzs','kzcat','colsbtn','pick','kzcsv','mastercsv','vsel']);
 const formOf = id => S.forms.find(x=>x.id===id);
 const A = {
  fill(el){ $('#lg-u').value = el.dataset.id; $('#lg-p').value = DEMO_PW; $('#lg-p').focus(); },
@@ -168,6 +168,27 @@ const A = {
   toast('Recorded in SAP SF/EC: '+out); render();
  },
  rtab(el){ UI.rtab = el.dataset.id; render(); },
+ rkind(el){ UI.rk = el.dataset.id; if(el.dataset.goto) go(el.dataset.goto); else render(); },
+ mtab(el){ UI.mtab = el.dataset.id; render(); },
+ midset(el){ const m = S.mids.find(x=>x.id===el.dataset.id), k = el.dataset.k, v = el.dataset.v; m.ans[k] = v; if(m.status==='Not started') m.status = 'In progress';
+  if(v==='well') m.focus = m.focus.filter(x=>x!==k); else if(v==='focus' && !m.focus.includes(k) && m.focus.length<3) m.focus.push(k);
+  const y = window.scrollY; render(); window.scrollTo(0,y); },
+ midsubmit(el){ const m = S.mids.find(x=>x.id===el.dataset.id), err = [];
+  const miss = MID_ITEMS.filter(x=>!m.ans[x.k]).length; if(miss) err.push(miss+' item'+(miss>1?'s':'')+' not answered');
+  if(MID_ITEMS.some(x=>m.ans[x.k]&&m.ans[x.k]!=='well') && !m.focus.length) err.push('pick at least one focus area');
+  if((m.well||'').trim().length<5) err.push('say what is going well');
+  if(!m.discussedOn) err.push('add the date you discussed it with the apprentice');
+  if(err.length){ UI.showMiss = !!miss; UI.mdErr = 'Please: '+err.join('; ')+'.'; render(); return false; }
+  UI.mdErr = '';
+  m.status = 'Completed'; m.submitted = fmt(TODAY); UI.showMiss = false; const p = S.people[m.tid], st = midStatus(m)[0];
+  log('wf',m.by,'PRAGATI Reviews',`${p.name}: Month 6 learning review completed (${st}).`);
+  if(st.startsWith('Needs')) log('wf','PRAGATI','HoD '+HODS[hodOf(p)].name,`${p.name} needs a support plan after the Month 6 review.`);
+  toast('Month 6 review completed: '+st); window.scrollTo(0,0); render(); },
+ nfcat(el){ keepNf(); UI.nf.cat = el.dataset.id; render(); },
+ noteadd(el){ keepNf(); const N = UI.nf, tid = el.dataset.id || N.tid, txt = (N.text||'').trim();
+  if(!tid){ $('#nf-e').textContent = 'Pick the apprentice.'; return false; } if(txt.length<10){ $('#nf-e').textContent = 'Write a line or two about what happened.'; return false; }
+  const p = S.people[tid]; S.notes.push({id:'N-'+(S.seq.note = (S.seq.note||500)+1), tid, cat:N.cat, date:dateKey(TODAY), text:txt, by:USER().name});
+  log('in',USER().name,'PRAGATI Record',`Note on ${p.name}: ${NOTEK[N.cat][1]}.`); UI.nf = {cat:'good'}; toast('Note added to '+p.name+'’s record'); render(); },
  qb(el){ UI.qb = el.dataset.id; render(); },
  kzopen(el){ UI.drawer = {type:'kz', id:el.dataset.id}; UI.kze = {}; renderDrawer(); const x = document.querySelector('.drawer .x'); if(x) x.focus(); },
  close(el, e){ if(el.dataset.self && e.target!==el) return; UI.drawer = null; renderDrawer(); },
@@ -318,7 +339,7 @@ const A = {
  },
  runall(){ const q = queue(); q.forEach(x=>runAgent(x.p.id, x.reason)); toast(q.length+' assessment(s) written'); render(); },
  nightly(){
-  const launched = autoLaunch(S); if(launched.length) log('sys','Scheduler','PRAGATI Reviews',`Reviews opened: ${launched.join(', ')}.`);
+  const launched = [...midLaunch(S), ...autoLaunch(S)]; if(launched.length) log('sys','Scheduler','PRAGATI Reviews',`Reviews opened: ${launched.join(', ')}.`);
   const al = absAlerts(); al.forEach(({p,a})=>{ if(!S.alerts[p.id]){ S.alerts[p.id] = true; log('sys','PRAGATI','Line manager / HR',`Absence alert: ${p.name} absent ${a.cont} working days.`); } });
   const od = S.forms.filter(f=>!isDone(f) && new Date(f.cpDate)<TODAY);
   if(od.length) log('sys','Scheduler','Line managers',`Reminder: ${od.length} overdue review(s).`);
@@ -328,6 +349,7 @@ const A = {
   toast('Nightly checks done'); render();
  }
 };
+function keepNf(){ const N = UI.nf || (UI.nf = {cat:'good'}); const t = $('#nf-t'), x = $('#nf-x'); if(t) N.tid = t.value; if(x) N.text = x.value; }
 function keepLg(){ const G = UI.lg; if(!G) return; $$('[id^="lg-"]').forEach(el=>{ if(el.id!=='lg-tid' && el.id!=='lg-k' && el.type!=='file') G[el.id] = el.value; }); }
 function keepKzd(){ const D = UI.kzd; if(!D) return; ['kd-ti','kd-b','kd-a','kd-r','kd-st','kd-mn','kd-mb','kd-ma','kd-u','kd-s','kd-c'].forEach(id=>{ const el = document.getElementById(id); if(el) D[id] = el.value; }); }
 function restoreKzd(){ const D = UI.kzd; if(!D) return; Object.keys(D).filter(k=>k.startsWith('kd-')).forEach(id=>{ const el = document.getElementById(id); if(el) el.value = D[id]; }); }
@@ -359,6 +381,10 @@ document.addEventListener('change', e=>{
  if(el.matches('[data-lgimm]')){ const G = UI.lg; G.imm = el.checked ? [...new Set([...G.imm, el.value])] : G.imm.filter(x=>x!==el.value); return; }
  if(ds.cf && el.tagName==='SELECT'){ UI.cf[ds.cf] = el.value; render(); return; }
  if(ds.cft){ const F = UI.cform; F.name = val('cfm-n'); F.cat = val('cfm-c'); F.docs = val('cfm-d'); F.kwx = val('cfm-k'); F.imm = $$('[data-cfimm]').filter(x=>x.checked).map(x=>x.value); F.tier = Number(el.value); F.lad = null; render(); return; }
+ if(ds.md){ const m = S.mids.find(x=>x.id===ds.md); m[ds.k] = el.value; persistSoon(); return; }
+ if(ds.mdf){ const m = S.mids.find(x=>x.id===ds.mdf); if(el.checked){ if(m.focus.length>=3){ el.checked = false; toast('Keep it to three focus areas'); return; } m.focus.push(el.value); } else m.focus = m.focus.filter(x=>x!==el.value); persistSoon(); return; }
+ if(ds.mds){ const m = S.mids.find(x=>x.id===ds.mds); m.support = el.checked ? [...new Set([...m.support, el.value])] : m.support.filter(x=>x!==el.value); persistSoon(); return; }
+ if(el.id==='nf-t'){ keepNf(); return; }
  if(ds.imp){ const r = UI.imp.rows.find(x=>x.i===Number(ds.imp)); r.k = el.value; r.auto = false; render(); return; }
  if(ds.cfgchk){ S.cfg[ds.cfgchk] = el.checked ? 1 : 0; afterDataChange('Rule set changed'); log('sys','HR','Rule set',`Imported conduct cases ${el.checked?'count':'do not count'} in evaluation.`); persist(); render(); toast('Setting saved'); return; }
  if(el.id==='imp-f' && el.files && el.files[0]){ const f = el.files[0], rd = new FileReader(); rd.onload = () => { const rows = parseCSV(String(rd.result)).filter(r=>r.some(x=>String(x).trim())); if(rows.length && /ticket|teamlease/i.test(rows[0][0]||'')) rows.shift(); UI.imp = {name:f.name, rows:impRows(rows)}; render(); }; rd.readAsText(f); return; }
@@ -377,6 +403,7 @@ document.addEventListener('input', e=>{
  if(ds.ff){ const f = formOf(ds.ff); f[ds.k] = el.value; if(f.status==='Not started') f.status = 'In progress'; persistSoon(); return; }
  if(el.id==='q'){ UI.q = el.value; UI.refocus = 'q'; render(); return; }
  if(ds.cf==='q'){ UI.cf.q = el.value; UI.refocus = el.id; render(); return; }
+ if(ds.md){ const m = S.mids.find(x=>x.id===ds.md); m[ds.k] = el.value; if(m.status==='Not started') m.status = 'In progress'; persistSoon(); return; }
  if(ds.lgq){ keepLg(); UI.lg.q = el.value; UI.refocus = 'lgq'; render(); return; }
  if(ds.kzf==='q'){ UI.kzf.q = el.value; UI.refocus = el.id; render(); return; }
 });
@@ -388,7 +415,7 @@ document.addEventListener('submit', e=>{
  ME = u; try{ sessionStorage.setItem('pragati-sess-'+PORTAL, u); }catch(_){}
  render();
 });
-window.addEventListener('hashchange', ()=>{ UI.drawer = null; UI.showMiss = false; render(); });
+window.addEventListener('hashchange', ()=>{ UI.drawer = null; UI.showMiss = false; UI.mdErr = ''; render(); });
 
 /* ----- boot ----- */
 if(!loadStore()){ S = seed(); seedLog(); initAssess(); persist(); }

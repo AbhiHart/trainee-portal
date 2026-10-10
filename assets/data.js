@@ -189,7 +189,7 @@ const COMMENTS = {
 
 const DEFAULT_CFG = {
  w:{P:10,Q:10,C:10,D:10,S:10,M:10}, blend:50,
- bandA:76.5, bandB:47.1, vcurAsWL:3, wlNotRec:2, leniency:40, launchBefore:14, kzVerifyDays:30, habN:3, histCount:1,
+ bandA:76.5, bandB:47.1, vcurAsWL:3, wlNotRec:2, leniency:40, launchBefore:14, kzVerifyDays:30, habN:3, histCount:1, midBefore:7, midDue:14,
  vis:{
   hod:{agent:true, comments:true, data:true},
   plant:{scores:true, comments:false, conduct:true, kaizen:true},
@@ -247,7 +247,7 @@ function ansFor(mu, R, over){
 function profFromMu(mu){ return mu>=4.4?'strong':mu>=3.7?'good':mu>=2.9?'avg':'weak'; }
 
 function seed(){
- const S = {codes:{add:[],edit:{},log:[]}, cfg:clone(DEFAULT_CFG), people:{}, sfLen:{}, dev:{}, forms:[], cases:[], kaizens:[], assess:{}, decisions:{}, log:[], triggers:{}, alerts:{}, views:[], tour:{},
+ const S = {mids:[], notes:[], codes:{add:[],edit:{},log:[]}, cfg:clone(DEFAULT_CFG), people:{}, sfLen:{}, dev:{}, forms:[], cases:[], kaizens:[], assess:{}, decisions:{}, log:[], triggers:{}, alerts:{}, views:[], tour:{},
   seq:{case:131,form:1,aa:1,p:200,kz:1}, sources:{}, sfDelta:{done:false},
   tl:{file:'TL_Waluj_joiners_2026-10-06.csv', imported:false, rows:[
    {name:'Ajinkya Lokhande',tl:'TR10498812',doj:sh('2026-10-05'),mgr:'m3',line:'Frame Weld 2',course:'B.Voc Manufacturing'},
@@ -313,6 +313,8 @@ function seed(){
  autoLaunch(S);
  seedKaizens(S);
  seedCases(S);
+ seedNotes(S);
+ seedMids(S);
  // decisions on completed M12s
  // completed Month 12 reviews: HoD confirmed the outcome; older ones already recorded in SF/EC
  Object.values(S.people).forEach(p=>{ const f = S.forms.find(x=>x.tid===p.id&&x.cp==='M12'&&x.status==='Completed'); if(!f) return; const at = fmtS(new Date(new Date(f.cpDate).getTime()+3*DAY)); S.decisions[p.id] = {hod:{choice:null,reason:'',by:HODS[MANAGERS[p.mgr].hod].name,at}}; if(TODAY - new Date(f.cpDate) > 10*DAY) S.decisions[p.id].hr = {by:'N. Sharma',at}; });
@@ -350,6 +352,63 @@ function autoLaunch(S){
  });
  return n;
 }
+/* ======================= MONTH 6 LEARNING REVIEW ======================= */
+/* a short feedback conversation at Month 6. Not scored, not sent to SF/EC. Each item has three plain anchors so raters read it the same way. */
+const MID_LEVELS = [['well','Doing well','good'],['dev','Developing','warn'],['focus','Needs focus','bad']];
+const MID_EXPECT = 'By Month 6 the apprentice should do the work allocated to him independently, sincerely and meticulously, with discipline.';
+const MID_ITEMS = [
+ {k:'own',b:'P',name:'Works independently at the allocated stage',m12:'P1',a:{well:'Runs the stage alone at line rate.',dev:'Needs help now and then, or slows the line at times.',focus:'Needs regular support to keep up.'}},
+ {k:'know',b:'P',name:'Understands the work at the stage',m12:'M2',a:{well:'Can explain what the stage does, its checks and why they matter.',dev:'Knows the steps, not yet the reasons.',focus:'Follows others without understanding the steps.'}},
+ {k:'qown',b:'Q',name:'Quality ownership',m12:'Q1',a:{well:'Does not take, make or pass a defect; keeps a bad part aside and calls the group leader.',dev:'Mostly, but has missed raising a defect once or twice.',focus:'Has passed defects on or not reported them.'}},
+ {k:'care',b:'C',name:'Machine, tool and material care',m12:'C1',a:{well:'Does the cleaning and inspection checks without being reminded.',dev:'Does them when reminded.',focus:'Skips them, or misuses tools and material.'}},
+ {k:'dep',b:'D',name:'Sincerity and dependability',m12:'D2',a:{well:'Finishes the allocated work carefully, without follow-up.',dev:'Needs follow-up on some days.',focus:'Work has to be checked or redone often.'}},
+ {k:'safe',b:'S',name:'Safety',m12:'S1',a:{well:'Wears PPE and uses the safe method every time; no incident.',dev:'Needs reminders on PPE or the safe method.',focus:'Unsafe acts, or an incident from his own error.'}},
+ {k:'disc',b:'S',name:'Discipline',m12:'S2',a:{well:'Follows SOPs, shift timings and plant rules.',dev:'Small lapses, corrected after one reminder.',focus:'Repeated lapses, or a conduct case.'}},
+ {k:'learn',b:'M',name:'Attitude to learning and change',m12:'M3',a:{well:'Asks questions, takes feedback, tries the new way.',dev:'Accepts feedback but is slow to change.',focus:'Resists change or argues with feedback.'}},
+ {k:'speak',b:'M',name:'Speaks up',m12:'M3',a:{well:'Flags problems and wrong or unsafe practice on his own.',dev:'Speaks up only when asked.',focus:'Stays silent when something is wrong.'}}
+];
+const MIDK = Object.fromEntries(MID_ITEMS.map(x=>[x.k,x]));
+const MID_NOT_YET = ['Improvement ideas or a kaizen','A one-point lesson','Working on 2–3 stages'];
+const MID_TARGETS = 'By Month 12: works on 2–3 stages; has given at least one improvement idea or one-point lesson; keeps a clean conduct and safety record; attendance of 95% or more.';
+const MID_SUPPORT = ['Buddy on the line','SOP refresher at the stage','Second-stage training','Safety and PPE refresher','Quality: defect identification','Attendance counselling','JH / TPM basics'];
+const NOTE_CATS = [['good','Good work','good'],['idea','Improvement idea','good'],['qual','Quality catch','good'],['safe','Safety','good'],['team','Teamwork','good'],['concern','Concern','warn']];
+const NOTEK = Object.fromEntries(NOTE_CATS.map(x=>[x[0],x]));
+/* festival periods (± 2 days) used to flag leave taken around them; HR maintains the list */
+const FESTIVALS = [['Dussehra','2025-10-02'],['Diwali','2025-10-21'],['Holi','2026-03-04'],['Ganesh Chaturthi','2026-09-14'],['Dussehra','2026-10-20'],['Diwali','2026-11-08'],['Holi','2027-03-22']];
+function festAbs(days){ return FESTIVALS.map(([n,dt])=>{ const c = d(dt).getTime(); const k = days.filter(x=>x.s==='A' && Math.abs(d(x.d).getTime()-c)<=2*DAY).length; return k?{n,dt,k}:null; }).filter(Boolean); }
+function midOf(tid){ return (S.mids||[]).find(m=>m.tid===tid); }
+function midDate(p){ return addM(d(p.doj), 6); }
+/* what the records say for the first six months */
+function midData(p, asOf){
+ const at = asOf ? new Date(asOf) : TODAY, upto = dateKey(at);
+ const days = rawOf(p.id).slice(0, S.sfLen[p.id] ?? 0).filter(x=>x.d<=upto), work = days.filter(x=>x.s!=='W');
+ const abs = work.filter(x=>x.s==='A').length, late = work.filter(x=>x.s==='L').length;
+ const cs = S.cases.filter(c=>c.tid===p.id && c.date<=upto && c.k!=='posh');
+ const kz = kzOf(p.id).filter(k=>k.date<=upto).length, notes = (S.notes||[]).filter(n=>n.tid===p.id && n.date<=upto);
+ const dv = devAsOf(p, at);
+ return {att: work.length ? (work.length-abs)/work.length*100 : 100, abs, late, fest: festAbs(days), cases: cs.length, safety: cs.filter(c=>MISK[c.k].cat==='Safety' || c.k==='acc').length, open: cs.filter(c=>c.status<5).length, kz, st: dv.st, jh: dv.jh, notes, good: notes.filter(n=>n.cat!=='concern').length, concern: notes.filter(n=>n.cat==='concern').length};
+}
+function midStatus(m){
+ const v = Object.values(m.ans||{}), nf = v.filter(x=>x==='focus').length, nd = v.filter(x=>x==='dev').length;
+ const cd = conduct(m.tid, m.cpDate);
+ if(nf>=4 || (nf>=2 && cd.wl>=1)) return ['Needs a support plan','bad'];
+ if(nf>=1 || nd>=3) return ['On track, with focus areas','warn'];
+ return ['On track','good'];
+}
+const midDone = m => m && m.status==='Completed';
+function midLaunch(S){
+ const n = []; S.mids = S.mids || [];
+ Object.values(S.people).filter(p=>p.status==='Active').forEach(p=>{
+  if(S.mids.some(m=>m.tid===p.id)) return;
+  const cp = addM(d(p.doj), 6), open = new Date(cp.getTime()-S.cfg.midBefore*DAY);
+  if(open<=TODAY && addM(d(p.doj),12) > new Date(TODAY.getTime()+S.cfg.launchBefore*DAY)){
+   S.mids.push({id:'LR-'+(S.seq.mid = (S.seq.mid||100)+1), tid:p.id, cpDate:cp.toISOString(), launched:open.toISOString(), status:'Not started', ans:{}, well:'', focus:[], focusTxt:'', support:[], supportTxt:'', targets:MID_TARGETS, discussedOn:'', apComment:'', by:MANAGERS[p.mgr].name});
+   n.push(p.name+' M6');
+  }
+ });
+ return n;
+}
+
 function kzId(cat, dt, seq, plant){ return 'KZ/'+(plant||'WLJ')+'/'+cat+'/'+dateKey(dt).slice(0,7)+'/'+String(seq).padStart(4,'0'); }
 function kzGrade(pts){ return pts>=16?'Gold':pts>=9?'Silver':'Bronze'; }
 function seedKaizens(S){
@@ -399,6 +458,33 @@ function seedKaizens(S){
   }
   S.kaizens.push(k);
  });
+}
+function seedNotes(S){
+ const N = (tid, cat, dt, text) => { const p = S.people[tid]; if(!p) return; S.notes.push({id:'N-'+(S.seq.note = (S.seq.note||500)+1), tid, cat, date:sh(dt), text, by:MANAGERS[p.mgr].name}); };
+ N('t01','qual','2026-05-12','Stopped a cylinder head with a missing dowel from the previous stage and called the group leader.');
+ N('t01','idea','2026-08-21','Suggested a colour mark on the torque gun sockets to avoid mix-ups between models.');
+ N('t02','concern','2026-06-18','Second time seen with earphones at the stage this quarter.');
+ N('t05','concern','2026-09-20','Did not inform anyone after fitting the wrong piston variant.');
+ N('t08','good','2026-09-02','Covered the second weld station for a full week during a shortage without any rework.');
+ N('t09','team','2026-07-10','Helped two new joiners learn the carton-sealing stage.');
+ N('t12','safe','2026-08-28','Pointed out a loose guard on the conveyor before the shift started.');
+ N('t13','good','2026-04-15','Handled the model changeover at the paint loading stage on his own.');
+}
+function seedMids(S){
+ const WELL = ['Picks up the stage quickly and keeps the line rate.','Careful with checks; keeps the station clean.','Reliable on attendance and takes feedback well.','Asks the right questions and helps others on the line.'];
+ const FOC = {own:'Build speed at the stage so he can run it without help.',know:'Learn why each check at the stage matters, not only the steps.',qown:'Keep any doubtful part aside and call the group leader; never pass it on.',care:'Do the cleaning and inspection checks at the start of every shift.',dep:'Finish the allocated work without follow-up.',safe:'Wear full PPE every shift without reminders.',disc:'No mobile phone at the stage; follow shift timings.',learn:'Take feedback on board and try the new method.',speak:'Raise problems with the group leader as soon as they are seen.'};
+ Object.values(S.people).forEach((p,i)=>{
+  const cp = addM(d(p.doj),6); if(cp.getTime() + S.cfg.midDue*DAY > TODAY.getTime()) return;
+  const R = rng(i*97+13), ans = {};
+  MID_ITEMS.forEach(it=>{ const v = p.mu + (R()-.5)*1.1 - (['disc','safe'].includes(it.k) && p.prof==='weak' ? .4 : 0); ans[it.k] = v>=3.5 ? 'well' : v>=2.6 ? 'dev' : 'focus'; });
+  S.cases.filter(c=>c.tid===p.id && d(c.date)<=cp).forEach(c=>{ const cat = MISK[c.k].cat; if(cat==='Safety') ans.safe = 'focus'; else if(cat==='Quality') ans.qown = 'focus'; else if(c.k!=='acc') ans.disc = 'focus'; });
+  const order = MID_ITEMS.map(x=>x.k).filter(k=>ans[k]!=='well').sort((a,b)=>(ans[a]==='focus'?0:1)-(ans[b]==='focus'?0:1));
+  const focus = order.slice(0,3), disc = new Date(cp.getTime()+(2+Math.floor(R()*8))*DAY);
+  const support = focus.length ? [MID_SUPPORT[Math.floor(R()*MID_SUPPORT.length)]] : [];
+  S.mids.push({id:'LR-'+(S.seq.mid = (S.seq.mid||100)+1), tid:p.id, cpDate:cp.toISOString(), launched:new Date(cp.getTime()-S.cfg.midBefore*DAY).toISOString(), status:'Completed', ans, well:WELL[i%WELL.length], focus, focusTxt:focus.map(k=>FOC[k]).join(' '), support, supportTxt:'', targets:MID_TARGETS, discussedOn:dateKey(disc), apComment: R()<.4 ? 'Understood. Will work on it.' : '', by:MANAGERS[p.mgr].name, submitted:fmt(disc)});
+ });
+ midLaunch(S);
+ S.mids.filter(m=>m.status==='Not started').slice(0,2).forEach((m,j)=>{ if(j===0){ m.status = 'In progress'; m.ans = {own:'well',know:'dev',qown:'well'}; } });
 }
 function seedCases(S){
  const C = (id,tid,k,date0,time,place,desc,status,action,extra={}) => {
