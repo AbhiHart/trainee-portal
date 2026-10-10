@@ -337,6 +337,7 @@ function midDeliveryCard(m, p){
   ${m.talk&&m.talk.doneAt?`<div class="note good mt12"><b>Talked on ${fmt(new Date(m.talk.doneAt))}.</b> ${esc(m.talk.note||'')}</div>`:''}
   ${role==='manager'&&needsTalk(m)?`<div class="mt16"><div class="section-t">${ack&&ack.choice==='talk'?'He asked to talk':'Needs a support plan: talk to him'}</div><div class="fld mt8"><label for="tk-n">What you agreed</label><input id="tk-n" placeholder="e.g. Buddy on Stn 4 for two weeks; check again at the end of the month"></div><button class="btn pri mt12" data-act="midtalk" data-id="${m.id}" type="button">Mark as talked</button></div>`:''}
   ${role==='manager'&&!ack?`<div class="row mt16"><button class="btn sm" data-act="midresend" data-id="${m.id}" type="button">Send again</button><span class="sm muted">${s.via==='Line tablet'?'Waiting on the line tablet.':'PRAGATI resends once by itself after 3 days if it is not opened.'}</span></div>`:''}
+  ${s.via!=='Line tablet'?`<p class="sm muted mt12">Link sent: <a href="feedback.html#/${esc(s.token)}" target="_blank" rel="noopener">feedback.html#/${esc(s.token)}</a> (opens with his ticket number, ${esc(p.ticket)})</p>`:''}
   <details class="map mt16"><summary>What he sees</summary><div class="mt12">${meCard(m, s.lang||p.lang||'en', {preview:true})}</div></details></section>`;
 }
 function midSummary(m, p){
