@@ -308,8 +308,10 @@ function vMid(id){
  <div class="grid rvg">
   <div>
    <div class="card" style="padding:16px 22px;margin-bottom:16px"><div class="between"><div class="lkey">${LIKERT.map(([n,l])=>`<span><b>${n}</b> ${l}</span>`).join('')}</div><span class="sm muted">Rate what you have seen in the first six months. About 2 minutes. Not scored.</span></div></div>
-   <section class="card"><h2>Nine statements</h2><p class="sub">${esc(MID_EXPECT)}</p>
-    <div class="mt8">${MID_ITEMS.map(it=>`<div class="stmt ${UI.showMiss&&!m.ans[it.k]?'miss':''}"><p><span class="pq" style="width:22px;height:22px;font-size:11.5px;margin-right:8px">${it.b}</span>${esc(it.st)}</p>${midLikert(m,it.k)}</div>`).join('')}</div></section>
+   <p class="sub" style="margin:0 0 12px">${esc(MID_EXPECT)}</p>
+   ${BORDER.map(b=>{ const its = MID_ITEMS.filter(it=>it.b===b), done = its.filter(it=>m.ans[it.k]).length, key = m.id+':'+b, open = UI.open[key] ?? true;
+    return `<details class="acc" data-acc="${key}" ${open?'open':''}><summary><span class="pq lg">${b}</span><div><h3>${BUCKETS[b].name}</h3><div class="sub">${esc(its.map(it=>it.name).join(' · '))}</div></div><span class="prog">${done} of ${its.length} rated ${done===its.length?`<span class="chip good">${ic('check',14)} Done</span>`:''}${ic('chev')}</span></summary>
+    <div class="body">${its.map(it=>`<div class="stmt ${UI.showMiss&&!m.ans[it.k]?'miss':''}"><p>${esc(it.st)}</p>${midLikert(m,it.k)}</div>`).join('')}</div></details>`; }).join('')}
    <section class="card mt16"><h2>Comments</h2>
     <div class="fgrid mt12"><div class="fld"><label for="md-s">Strengths</label><textarea id="md-s" data-md="${m.id}" data-k="strengths" placeholder="What does this apprentice do well?">${esc(m.strengths||'')}</textarea></div>
     <div class="fld"><label for="md-i">Areas to improve</label><textarea id="md-i" data-md="${m.id}" data-k="improve" placeholder="What should improve by Month 12?">${esc(m.improve||'')}</textarea></div></div>
@@ -329,8 +331,10 @@ function midSummary(m, p){
  const st = midStatus(m), avg = midAvg(m);
  return `<div class="grid g21" style="align-items:start">
   <div class="stack">
-   <section class="card"><div class="between"><h2>Ratings</h2><span class="chip ${st[1]}">${esc(st[0])}</span></div><p class="sub">Average ${avg!=null?avg.toFixed(1):'—'} of 5. Feedback only; not part of the Month 12 score.</p>
-    <div class="mt12">${MID_ITEMS.map(it=>`<div class="between" style="padding:9px 0;border-bottom:1px solid var(--line-2);gap:16px;flex-wrap:nowrap"><span style="font-size:14px;color:var(--ink)"><span class="pq" style="width:22px;height:22px;font-size:11.5px;margin-right:8px">${it.b}</span>${esc(it.st)}</span>${lvChip(m.ans[it.k])}</div>`).join('')}</div></section>
+   <section class="card"><div class="between"><h2>Ratings by PQCDSM bucket</h2><span class="chip ${st[1]}">${esc(st[0])}</span></div><p class="sub">Average ${avg!=null?avg.toFixed(1):'—'} of 5. Feedback only; not part of the Month 12 score.</p>
+    <div class="mt12">${BORDER.map(b=>{ const its = MID_ITEMS.filter(it=>it.b===b), v = its.map(it=>m.ans[it.k]).filter(Boolean), av = v.length ? v.reduce((x,y)=>x+y,0)/v.length : null;
+     return `<div style="padding:10px 0;border-bottom:1px solid var(--line-2)"><div class="between" style="gap:16px"><span class="row" style="gap:10px"><span class="pq">${b}</span><b class="ink">${BUCKETS[b].name}</b></span><span class="row" style="gap:10px"><span style="width:120px">${bar(av||0,5,scoreCls(av))}</span><b class="ink" style="width:28px;text-align:right">${av!=null?av.toFixed(1):'—'}</b></span></div>
+      ${its.map(it=>`<div class="between" style="padding:6px 0 0 38px;gap:16px;flex-wrap:nowrap"><span class="sm" style="color:var(--text)">${esc(it.st)}</span>${lvChip(m.ans[it.k])}</div>`).join('')}</div>`; }).join('')}</div></section>
    <section class="card"><h2>Comments</h2>
     <div class="mt12"><div class="section-t">Strengths</div><div class="quote">${esc(m.strengths||'—')}</div></div>
     <div class="mt16"><div class="section-t">Areas to improve</div><div class="quote">${esc(m.improve||'—')}</div></div>
