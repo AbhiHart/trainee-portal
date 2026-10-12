@@ -354,23 +354,23 @@ function autoLaunch(S){
 }
 /* ======================= MONTH 6 LEARNING REVIEW ======================= */
 /* a short feedback conversation at Month 6. Not scored, not sent to SF/EC. Each item has three plain anchors so raters read it the same way. */
-const MID_LEVELS = [['well','Doing well','good'],['dev','Developing','warn'],['focus','Needs focus','bad']];
+/* nine plain statements on the same 1–5 Likert scale as Month 12; not scored */
 const MID_EXPECT = 'By Month 6 the apprentice should do the work allocated to him independently, sincerely and meticulously, with discipline.';
 const MID_ITEMS = [
- {k:'own',b:'P',name:'Works independently at the allocated stage',m12:'P1',a:{well:'Runs the stage alone at line rate.',dev:'Needs help now and then, or slows the line at times.',focus:'Needs regular support to keep up.'}},
- {k:'know',b:'P',name:'Understands the work at the stage',m12:'M2',a:{well:'Can explain what the stage does, its checks and why they matter.',dev:'Knows the steps, not yet the reasons.',focus:'Follows others without understanding the steps.'}},
- {k:'qown',b:'Q',name:'Quality ownership',m12:'Q1',a:{well:'Does not take, make or pass a defect; keeps a bad part aside and calls the group leader.',dev:'Mostly, but has missed raising a defect once or twice.',focus:'Has passed defects on or not reported them.'}},
- {k:'care',b:'C',name:'Machine, tool and material care',m12:'C1',a:{well:'Does the cleaning and inspection checks without being reminded.',dev:'Does them when reminded.',focus:'Skips them, or misuses tools and material.'}},
- {k:'dep',b:'D',name:'Sincerity and dependability',m12:'D2',a:{well:'Finishes the allocated work carefully, without follow-up.',dev:'Needs follow-up on some days.',focus:'Work has to be checked or redone often.'}},
- {k:'safe',b:'S',name:'Safety',m12:'S1',a:{well:'Wears PPE and uses the safe method every time; no incident.',dev:'Needs reminders on PPE or the safe method.',focus:'Unsafe acts, or an incident from his own error.'}},
- {k:'disc',b:'S',name:'Discipline',m12:'S2',a:{well:'Follows SOPs, shift timings and plant rules.',dev:'Small lapses, corrected after one reminder.',focus:'Repeated lapses, or a conduct case.'}},
- {k:'learn',b:'M',name:'Attitude to learning and change',m12:'M3',a:{well:'Asks questions, takes feedback, tries the new way.',dev:'Accepts feedback but is slow to change.',focus:'Resists change or argues with feedback.'}},
- {k:'speak',b:'M',name:'Speaks up',m12:'M3',a:{well:'Flags problems and wrong or unsafe practice on his own.',dev:'Speaks up only when asked.',focus:'Stays silent when something is wrong.'}}
+ {k:'own',b:'P',name:'Works independently',m12:'P1',st:'Does the work at the allocated stage independently, at line rate.'},
+ {k:'know',b:'P',name:'Understands the stage',m12:'M2',st:'Understands the work at the stage and why each check matters.'},
+ {k:'qown',b:'Q',name:'Quality ownership',m12:'Q1',st:'Does not take, make or pass a defect; keeps a bad part aside and calls the group leader.'},
+ {k:'care',b:'C',name:'Machine and material care',m12:'C1',st:'Takes care of the machine, tools and material without being reminded.'},
+ {k:'dep',b:'D',name:'Sincerity',m12:'D2',st:'Completes the allocated work sincerely and carefully, without follow-up.'},
+ {k:'safe',b:'S',name:'Safety',m12:'S1',st:'Wears PPE and follows the safe method every time.'},
+ {k:'disc',b:'S',name:'Discipline',m12:'S2',st:'Follows SOPs, shift timings and plant rules.'},
+ {k:'learn',b:'M',name:'Learning and change',m12:'M3',st:'Takes feedback well and is open to new ways of working.'},
+ {k:'speak',b:'M',name:'Speaks up',m12:'M3',st:'Speaks up when something is wrong or unsafe.'}
 ];
 const MIDK = Object.fromEntries(MID_ITEMS.map(x=>[x.k,x]));
-const MID_NOT_YET = ['Improvement ideas or a kaizen','A one-point lesson','Working on 2–3 stages'];
-const MID_TARGETS = 'Works on 2–3 stages; has given at least one improvement idea or one-point lesson; keeps a clean conduct and safety record; attendance of 95% or more.';
-const MID_SUPPORT = ['Buddy on the line','SOP refresher at the stage','Second-stage training','Safety and PPE refresher','Quality: defect identification','Attendance counselling','JH / TPM basics'];
+/* focus areas: the lowest-rated items at 1 or 2 (up to 3) */
+const midFocus = m => MID_ITEMS.filter(it=>m.ans[it.k] && m.ans[it.k]<=2).sort((a,b)=>m.ans[a.k]-m.ans[b.k]).slice(0,3).map(it=>it.k);
+const midAvg = m => { const v = MID_ITEMS.map(it=>m.ans[it.k]).filter(Boolean); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
 const NOTE_CATS = [['good','Good work','good'],['idea','Improvement idea','good'],['qual','Quality catch','good'],['safe','Safety','good'],['team','Teamwork','good'],['concern','Concern','warn']];
 const NOTEK = Object.fromEntries(NOTE_CATS.map(x=>[x[0],x]));
 /* festival periods (± 2 days) used to flag leave taken around them; HR maintains the list */
@@ -389,10 +389,10 @@ function midData(p, asOf){
  return {att: work.length ? (work.length-abs)/work.length*100 : 100, abs, late, fest: festAbs(days), cases: cs.length, safety: cs.filter(c=>MISK[c.k].cat==='Safety' || c.k==='acc').length, open: cs.filter(c=>c.status<5).length, kz, st: dv.st, jh: dv.jh, notes, good: notes.filter(n=>n.cat!=='concern').length, concern: notes.filter(n=>n.cat==='concern').length};
 }
 function midStatus(m){
- const v = Object.values(m.ans||{}), nf = v.filter(x=>x==='focus').length, nd = v.filter(x=>x==='dev').length;
+ const v = MID_ITEMS.map(it=>m.ans[it.k]).filter(Boolean), low = v.filter(x=>x<=2).length, avg = midAvg(m);
  const cd = conduct(m.tid, m.cpDate);
- if(nf>=4 || (nf>=2 && cd.wl>=1)) return ['Needs a support plan','bad'];
- if(nf>=1 || nd>=3) return ['On track, with focus areas','warn'];
+ if(low>=3 || (low>=1 && cd.wl>=1) || (avg!=null && avg<2.5)) return ['Needs a support plan','bad'];
+ if(low>=1 || (avg!=null && avg<3.5)) return ['On track, with focus areas','warn'];
  return ['On track','good'];
 }
 const midDone = m => m && m.status==='Completed';
@@ -402,7 +402,7 @@ function midLaunch(S){
   if(S.mids.some(m=>m.tid===p.id)) return;
   const cp = addM(d(p.doj), 6), open = new Date(cp.getTime()-S.cfg.midBefore*DAY);
   if(open<=TODAY && addM(d(p.doj),12) > new Date(TODAY.getTime()+S.cfg.launchBefore*DAY)){
-   S.mids.push({id:'LR-'+(S.seq.mid = (S.seq.mid||100)+1), tid:p.id, cpDate:cp.toISOString(), launched:open.toISOString(), status:'Not started', ans:{}, well:'', focus:[], focusTxt:'', support:[], supportTxt:'', targets:MID_TARGETS, by:MANAGERS[p.mgr].name});
+   S.mids.push({id:'LR-'+(S.seq.mid = (S.seq.mid||100)+1), tid:p.id, cpDate:cp.toISOString(), launched:open.toISOString(), status:'Not started', ans:{}, strengths:'', improve:'', train:'', focus:[], by:MANAGERS[p.mgr].name});
    n.push(p.name+' M6');
   }
  });
@@ -471,20 +471,20 @@ function seedNotes(S){
  N('t13','good','2026-04-15','Handled the model changeover at the paint loading stage on his own.');
 }
 function seedMids(S){
- const WELL = ['Picks up the stage quickly and keeps the line rate.','Careful with checks; keeps the station clean.','Reliable on attendance and takes feedback well.','Asks the right questions and helps others on the line.'];
- const FOC = {own:'Build speed at the stage so he can run it without help.',know:'Learn why each check at the stage matters, not only the steps.',qown:'Keep any doubtful part aside and call the group leader; never pass it on.',care:'Do the cleaning and inspection checks at the start of every shift.',dep:'Finish the allocated work without follow-up.',safe:'Wear full PPE every shift without reminders.',disc:'No mobile phone at the stage; follow shift timings.',learn:'Take feedback on board and try the new method.',speak:'Raise problems with the group leader as soon as they are seen.'};
+ const GOOD = ['Picks up the stage quickly and keeps the line rate.','Careful with checks; keeps the station clean.','Regular, and takes feedback well.','Asks the right questions and helps others on the line.'];
+ const IMP = {own:'Needs to build speed so he can run the stage without help.',know:'Should learn why each check matters, not only the steps.',qown:'Must keep any doubtful part aside and call the group leader; never pass it on.',care:'Should do the cleaning and inspection checks at the start of every shift.',dep:'Needs follow-up to finish the allocated work.',safe:'Must wear full PPE every shift without reminders.',disc:'No mobile phone at the stage; follow shift timings.',learn:'Should take feedback on board and try the new method.',speak:'Should raise problems with the group leader as soon as they are seen.'};
+ const TRN = {own:'Two weeks with the group leader at the stage.',know:'SOP walk-through for the stage.',qown:'Defect identification session with quality.',care:'JH / TPM basics.',dep:'',safe:'Safety and PPE refresher.',disc:'',learn:'',speak:''};
  Object.values(S.people).forEach((p,i)=>{
   const cp = addM(d(p.doj),6); if(cp.getTime() + S.cfg.midDue*DAY > TODAY.getTime()) return;
   const R = rng(i*97+13), ans = {};
-  MID_ITEMS.forEach(it=>{ const v = p.mu + (R()-.5)*1.1 - (['disc','safe'].includes(it.k) && p.prof==='weak' ? .4 : 0); ans[it.k] = v>=3.5 ? 'well' : v>=2.6 ? 'dev' : 'focus'; });
-  S.cases.filter(c=>c.tid===p.id && d(c.date)<=cp).forEach(c=>{ const cat = MISK[c.k].cat; if(cat==='Safety') ans.safe = 'focus'; else if(cat==='Quality') ans.qown = 'focus'; else if(c.k!=='acc') ans.disc = 'focus'; });
-  const order = MID_ITEMS.map(x=>x.k).filter(k=>ans[k]!=='well').sort((a,b)=>(ans[a]==='focus'?0:1)-(ans[b]==='focus'?0:1));
-  const focus = order.slice(0,3), disc = new Date(cp.getTime()+(2+Math.floor(R()*8))*DAY);
-  const support = focus.length ? [MID_SUPPORT[Math.floor(R()*MID_SUPPORT.length)]] : [];
-  S.mids.push({id:'LR-'+(S.seq.mid = (S.seq.mid||100)+1), tid:p.id, cpDate:cp.toISOString(), launched:new Date(cp.getTime()-S.cfg.midBefore*DAY).toISOString(), status:'Completed', ans, well:WELL[i%WELL.length], focus, focusTxt:focus.map(k=>FOC[k]).join(' '), support, supportTxt:'', targets:MID_TARGETS, by:MANAGERS[p.mgr].name, submitted:fmt(disc)});
+  MID_ITEMS.forEach(it=>{ const v = p.mu + (R()-.5)*1.3 - (['disc','safe'].includes(it.k) && p.prof==='weak' ? .5 : 0); ans[it.k] = Math.max(1, Math.min(5, Math.round(v))); });
+  S.cases.filter(c=>c.tid===p.id && d(c.date)<=cp).forEach(c=>{ const cat = MISK[c.k].cat; const k = cat==='Safety' ? 'safe' : cat==='Quality' ? 'qown' : c.k!=='acc' ? 'disc' : null; if(k) ans[k] = Math.min(ans[k], 2); });
+  const m = {id:'LR-'+(S.seq.mid = (S.seq.mid||100)+1), tid:p.id, cpDate:cp.toISOString(), launched:new Date(cp.getTime()-S.cfg.midBefore*DAY).toISOString(), status:'Completed', ans, by:MANAGERS[p.mgr].name, submitted:fmt(new Date(cp.getTime()+(2+Math.floor(R()*8))*DAY))};
+  m.focus = midFocus(m); m.strengths = GOOD[i%GOOD.length]; m.improve = m.focus.map(k=>IMP[k]).join(' '); m.train = m.focus.map(k=>TRN[k]).filter(Boolean).join(' ');
+  S.mids.push(m);
  });
  midLaunch(S);
- S.mids.filter(m=>m.status==='Not started').slice(0,2).forEach((m,j)=>{ if(j===0){ m.status = 'In progress'; m.ans = {own:'well',know:'dev',qown:'well'}; } });
+ S.mids.filter(m=>m.status==='Not started').slice(0,1).forEach(m=>{ m.status = 'In progress'; m.ans = {own:4,know:3,qown:4}; });
 }
 function seedCases(S){
  const C = (id,tid,k,date0,time,place,desc,status,action,extra={}) => {

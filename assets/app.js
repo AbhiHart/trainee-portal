@@ -24,7 +24,7 @@ const PORTALS = {
  home:{file:'index.html',name:'Portals',roles:[],nav:[]},
  manager:{file:'manager.html',name:'Line Manager',icon:'clip',who:'Line managers on the shop floor (appraisers)',roles:['manager'],
   pitch:'Appraise your apprentices in minutes, evaluate their kaizens and validate incidents from your line.',
-  points:['Month 6 learning review (feedback, not scored) and the Month 12 review: 16 plain statements on a 1–5 scale','Attendance, kaizens, skills and conduct pulled in for you','Quick rate the whole team one bucket at a time'],
+  points:['Month 6 review (feedback, not scored) and the Month 12 review: 16 plain statements on a 1–5 scale','Attendance, kaizens, skills and conduct pulled in for you','Quick rate the whole team one bucket at a time'],
   nav:[['home','Home'],['team','My apprentices'],['reviews','Reviews'],['quick','Quick rate'],['kaizen','Kaizen'],['cases','Conduct']]},
  hod:{file:'hod.html',name:'Head of Department',icon:'users',who:'Skip-level managers (reviewing officers)',roles:['hod'],
   pitch:'See each apprentice on one page: the line manager’s appraisal with every record behind it.',
@@ -117,7 +117,7 @@ function toast(msg){ const n = document.createElement('div'); n.className = 'toa
 function go(path){ location.hash = '#/'+path; }
 
 /* ----- shared store (this browser; all portals) ----- */
-const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v10';
+const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v11';
 let rev = 0, _ptimer = null;
 function persist(){
  rev++;
@@ -170,17 +170,16 @@ const A = {
  rtab(el){ UI.rtab = el.dataset.id; render(); },
  rkind(el){ UI.rk = el.dataset.id; if(el.dataset.goto) go(el.dataset.goto); else render(); },
  mtab(el){ UI.mtab = el.dataset.id; render(); },
- midset(el){ const m = S.mids.find(x=>x.id===el.dataset.id), k = el.dataset.k, v = el.dataset.v; m.ans[k] = v; if(m.status==='Not started') m.status = 'In progress';
-  if(v==='well') m.focus = m.focus.filter(x=>x!==k); else if(v==='focus' && !m.focus.includes(k) && m.focus.length<3) m.focus.push(k);
+ midset(el){ const m = S.mids.find(x=>x.id===el.dataset.id), k = el.dataset.k, v = el.dataset.v; m.ans[k] = Number(v); UI.mdErr = ''; if(m.status==='Not started') m.status = 'In progress';
   const y = window.scrollY; render(); window.scrollTo(0,y); },
  midsubmit(el){ const m = S.mids.find(x=>x.id===el.dataset.id), err = [];
-  const miss = MID_ITEMS.filter(x=>!m.ans[x.k]).length; if(miss) err.push(miss+' item'+(miss>1?'s':'')+' not answered');
-  if(MID_ITEMS.some(x=>m.ans[x.k]&&m.ans[x.k]!=='well') && !m.focus.length) err.push('pick at least one focus area');
-  if((m.well||'').trim().length<5) err.push('say what is going well');
+  const miss = MID_ITEMS.filter(x=>!m.ans[x.k]).length; if(miss) err.push(miss+' statement'+(miss>1?'s':'')+' not rated');
+  if((m.strengths||'').trim().length<5) err.push('add strengths');
+  if(midFocus(m).length && (m.improve||'').trim().length<5) err.push('add areas to improve');
   if(err.length){ UI.showMiss = !!miss; UI.mdErr = 'Please: '+err.join('; ')+'.'; render(); return false; }
   UI.mdErr = '';
-  m.status = 'Completed'; m.submitted = fmt(TODAY); UI.showMiss = false; const p = S.people[m.tid], st = midStatus(m)[0];
-  log('wf',m.by,'PRAGATI Reviews',`${p.name}: Month 6 learning review completed (${st}).`);
+  m.focus = midFocus(m); m.status = 'Completed'; m.submitted = fmt(TODAY); UI.showMiss = false; const p = S.people[m.tid], st = midStatus(m)[0];
+  log('wf',m.by,'PRAGATI Reviews',`${p.name}: Month 6 review completed (${st}).`);
   if(st.startsWith('Needs')) log('wf','PRAGATI','HoD '+HODS[hodOf(p)].name,`${p.name} needs a support plan after the Month 6 review.`);
   toast('Month 6 review completed: '+st); window.scrollTo(0,0); render(); },
  nfcat(el){ keepNf(); UI.nf.cat = el.dataset.id; render(); },
@@ -381,8 +380,6 @@ document.addEventListener('change', e=>{
  if(ds.cf && el.tagName==='SELECT'){ UI.cf[ds.cf] = el.value; render(); return; }
  if(ds.cft){ const F = UI.cform; F.name = val('cfm-n'); F.cat = val('cfm-c'); F.docs = val('cfm-d'); F.kwx = val('cfm-k'); F.imm = $$('[data-cfimm]').filter(x=>x.checked).map(x=>x.value); F.tier = Number(el.value); F.lad = null; render(); return; }
  if(ds.md){ const m = S.mids.find(x=>x.id===ds.md); m[ds.k] = el.value; persistSoon(); return; }
- if(ds.mdf){ const m = S.mids.find(x=>x.id===ds.mdf); if(el.checked){ if(m.focus.length>=3){ el.checked = false; toast('Keep it to three focus areas'); return; } m.focus.push(el.value); } else m.focus = m.focus.filter(x=>x!==el.value); persistSoon(); return; }
- if(ds.mds){ const m = S.mids.find(x=>x.id===ds.mds); m.support = el.checked ? [...new Set([...m.support, el.value])] : m.support.filter(x=>x!==el.value); persistSoon(); return; }
  if(el.id==='nf-t'){ keepNf(); return; }
  if(ds.imp){ const r = UI.imp.rows.find(x=>x.i===Number(ds.imp)); r.k = el.value; r.auto = false; render(); return; }
  if(ds.cfgchk){ S.cfg[ds.cfgchk] = el.checked ? 1 : 0; afterDataChange('Rule set changed'); log('sys','HR','Rule set',`Imported conduct cases ${el.checked?'count':'do not count'} in evaluation.`); persist(); render(); toast('Setting saved'); return; }
