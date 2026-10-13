@@ -555,7 +555,7 @@ function cLog(){
  const hits = findCodes(G.q||''), generic = GENERIC_RX.test((G.q||'').toLowerCase());
  const sec = (n, t, inner) => `<section class="card mt16"><div class="row" style="gap:12px;margin-bottom:16px"><span class="pq lg">${n}</span><h2>${t}</h2></div>${inner}</section>`;
  const routeNote = !m ? '' : m.k==='posh' ? '<div class="note mt12">POSH complaint: goes straight to HR for referral to the Internal Committee (POSH Act, 2013). Only HR can see it. It is not handled on the discipline ladder and is not scored.</div>' : m.k==='oth' ? '<div class="note mt12">Use Other only when no code fits. Describe exactly what happened; HR assigns a code within 7 days. Never record “policy violation” or “indiscipline” alone.</div>' : m.k==='acc' ? '<div class="note mt12">Record only. If a violation caused the accident (no PPE, for example), log that misconduct as a separate case.</div>' : '';
- return `${ph('Log an incident', 'One form for every incident: misconduct, quality lapse or accident. It replaces the paper misconduct report and the TeamLease incident / accident report (Annexure 1). One apprentice per case: if three were involved, log three cases.')}
+ return `${ph('Log an incident', 'One form for every incident: misconduct or accident. It replaces the paper misconduct report and the TeamLease incident / accident report (Annexure 1). One apprentice per case: if three were involved, log three cases.')}
  <div class="grid rvg">
  <div>
  ${sec(1,'Apprentice',`<div class="fld"><label for="lg-tid">Apprentice</label><select id="lg-tid" data-lg="tid"><option value="">Select apprentice</option>${ps.map(x=>`<option value="${x.id}" ${x.id===G.tid?'selected':''}>${esc(x.name)} · ${x.ticket}${x.tl?' · '+x.tl:''}</option>`).join('')}</select></div>
