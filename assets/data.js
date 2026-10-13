@@ -21,7 +21,7 @@ const BORDER = ['P','Q','C','D','S','M'];
 
 const PARAMS = [
  {k:'P1',b:'P',name:'Output & line rate',what:'Meets station targets and keeps pace with the line',st:['P1a','P1b'],data:'ie',src:'IE time study',clubbed:'Quantity of output · Productivity improvement'},
- {k:'Q1',b:'Q',name:'Quality & defect reporting',what:'Does every check; reports defects including own mistakes',st:['Q1a','Q1b'],data:'qlapse',src:'Conduct log · quality lapses',clubbed:'Quality orientation · Work negligence'},
+ {k:'Q1',b:'Q',name:'Quality & defect reporting',what:'Does every check; reports defects including own mistakes',st:['Q1a','Q1b'],data:null,clubbed:'Quality orientation · Work negligence'},
  {k:'C1',b:'C',name:'Machine & material care',what:'Jishu Hozen: cleans, oils, inspects, reports abnormalities',st:['C1a'],data:'jh',src:'TPM register · JH step',clubbed:'TPM / JH'},
  {k:'D1',b:'D',name:'Attendance & punctuality',what:'Present days and late-ins from gate punches',st:[],data:'att',src:'Time system',clubbed:'Attendance & punctuality'},
  {k:'D2',b:'D',name:'Dependability',what:'Finishes work on time and can be relied on unsupervised',st:['D2a','D2b'],data:null,clubbed:'Dependability · Initiative'},
@@ -55,7 +55,7 @@ const ALL_ST = PARAMS.flatMap(p=>p.st);
 const LIKERT = [[1,'Strongly disagree'],[2,'Disagree'],[3,'Neutral'],[4,'Agree'],[5,'Strongly agree']];
 const DATA_RULES = {
  safety:'No closed safety case = 5 \u00b7 1 VC/UR = 3 \u00b7 warning letter or more = 1',
- conduct:'Clean = 5 \u00b7 1 VC/UR = 4 \u00b7 2 VC/UR = 3 \u00b7 3+ VC/UR or 1 warning = 2 \u00b7 2+ warnings = 1. Safety and quality cases count under their own parameters.',
+ conduct:'Clean = 5 \u00b7 1 VC/UR = 4 \u00b7 2 VC/UR = 3 \u00b7 3+ VC/UR or 1 warning = 2 \u00b7 2+ warnings = 1. Safety cases count under S1.',
  ie:'Task-time reduction \u2265 10% = 5 \u00b7 5\u201310% = 4 \u00b7 1\u20135% = 3 \u00b7 0% = 2',
  qlapse:'No closed quality lapse = 5 \u00b7 1 = 3 \u00b7 2 or more = 1',
  jh:'JH Step 3 = 5 \u00b7 Step 2 = 4 \u00b7 Step 1 = 3 \u00b7 no step = 2',
@@ -78,21 +78,14 @@ const MIS = [
  {k:'hab',no:'MC-08',name:"Habitual absenteeism",cat:"Attendance",tier:1,docs:"Incident report; time-system extract",kw:"absent without intimation, unplanned leave, unauthorised absence (threshold below)",lad:[["VC / UR; entry in habitual record","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
  {k:'cua',no:'MC-09',name:"Continuous unauthorised absence (> 3 days)",cat:"Attendance",tier:2,docs:"Call log; warning letter",kw:"continuous absence, long absence, absent since <date>",lad:[["Day 4 call + warning letter; Day 6 call; Day 11 call","wl"],["Discontinuation if not resumed by Day 11 (if resumed: HRD meeting + underwriting)","end"]]},
  {k:'thf',no:'MC-10',name:"Theft",cat:"Integrity & security",tier:3,docs:"Confession; ID, punch card, bus pass collected",kw:"theft, stealing",lad:[["Termination on the day (confession; ID collected)","end"]]},
- {k:'dmg',no:'MC-11',name:"Damage to company property",cat:"Integrity & security",tier:3,docs:"Incident report; confession; ID collected",kw:"damaged vehicle / property",lad:[["Termination on the day (incident report + confession; ID collected)","end"]]},
+ {k:'dmg',no:'MC-11',name:"Damage to company property / driving without licence",cat:"Integrity & security",tier:3,docs:"Incident report; confession; ID collected",kw:"damaged vehicle / property, drove a vehicle without a driving licence",lad:[["Termination on the day (incident report + confession; ID collected)","end"]]},
  {k:'stg',no:'MC-12',name:"Absent from work stage without approval",cat:"Attendance",tier:1,docs:"Incident report",kw:"absent on stage, away from stage, punched in but not at stage",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
  {k:'pho',no:'MC-13',name:"Photo / video in company premises",cat:"Integrity & security",tier:3,docs:"Confession; ID collected",kw:"captured video, recording, photo on shop floor",lad:[["Discontinuation on the day (confession; ID collected)","end"]]},
  {k:'vrb',no:'MC-14',name:"Verbal fight / abusive language / misbehaviour",cat:"Behaviour",tier:2,docs:"Incident report; confession on repeat",kw:"verbal fight, abusive language, misbehave with supervisor / engineer, insubordination",lad:[["Incident report + VC / UR + warning letter","wl"],["Confession; ID collected; discontinuation on the day","end"]]},
  {k:'tob',no:'MC-15',name:"Tobacco / smoking in company premises",cat:"Substance",tier:2,docs:"Incident report; confession on repeat",kw:"tobacco, gutkha, smoking",lad:[["Incident report + VC / UR + warning letter","wl"],["Confession; ID collected; discontinuation on the day","end"]]},
  {k:'alc',no:'MC-16',name:"Alcohol consumption on duty",cat:"Substance",tier:3,docs:"Confession; ID collected",kw:"alcohol, drunk",lad:[["Confession / misconduct report; ID collected; discontinuation on the day","end"]]},
- {k:'drv',no:'MC-17',name:"Driving without licence",cat:"Safety",tier:3,docs:"Incident report; confession; ID collected",kw:"drove vehicle without driving licence",lad:[["Termination on the day (incident report + confession; ID collected)","end"]]},
- {k:'neg',no:'MC-18',name:"Work negligence / quality / SOP lapse",cat:"Quality",tier:1,docs:"Incident report",kw:"SOP violation, not following SOPs, wrong part fitted, mistake in work, skipped inspection",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
- {k:'brk',no:'MC-19',name:"Break-time / shift-timing violation",cat:"Work indiscipline",tier:1,docs:"Incident report",kw:"lunch break time violation, late from break, timepass during working hours",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
- {k:'chg',no:'MC-20',name:"Unapproved change of shift, stage or department",cat:"Work indiscipline",tier:1,docs:"Incident report",kw:"changed shift without informing, came to general shift, worked in other department without permission",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
- {k:'reg',no:'MC-21',name:"Attendance regularisation misuse",cat:"Integrity & security",tier:1,docs:"Incident report; system log",kw:"applied regularisation instead of leave, miss punching TL portal",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
- {k:'hyg',no:'MC-22',name:"Hygiene / 5S breach (e.g. spitting)",cat:"Safety",tier:1,docs:"Incident report",kw:"spitting on shop floor",lad:[["VC / UR","vcur"],["Warning letter","wl"],["Discontinuation","end"]]},
- {k:'stop',no:'MC-23',name:"Stopping the line / instigating others",cat:"Work indiscipline",tier:2,docs:"Incident report; confession",kw:"stopped line by creating group",lad:[["Warning letter + confession","wl"],["Discontinuation","end"]]},
- {k:'posh',no:'MC-24',name:"POSH complaint",cat:"Separate route: Internal Committee",tier:0,docs:"Complaint; IC reference no.",kw:"POSH case",lad:[["Refer to the Internal Committee (POSH Act, 2013); restricted access; no conduct action until IC concludes","ic"]]},
- {k:'acc',no:'MC-25',name:"Accident (no violation found)",cat:"Incident \u2013 non-disciplinary",tier:0,docs:"Accident report; first-aid / medical record",kw:"accident in premises / on the way",lad:[["Record only; no penalty (if a violation caused it, log that misconduct instead)","none"]]},
+ {k:'posh',no:'MC-17',name:"POSH complaint",cat:"Separate route: Internal Committee",tier:0,docs:"Complaint; IC reference no.",kw:"POSH case",lad:[["Refer to the Internal Committee (POSH Act, 2013); restricted access; no conduct action until IC concludes","ic"]]},
+ {k:'acc',no:'MC-18',name:"Accident (no violation found)",cat:"Incident \u2013 non-disciplinary",tier:0,docs:"Accident report; first-aid / medical record",kw:"accident in premises / on the way",lad:[["Record only; no penalty (if a violation caused it, log that misconduct instead)","none"]]},
  {k:'oth',no:'MC-99',name:"Other (describe)",cat:"To be classified by HR",tier:0,docs:"Incident report",kw:"anything not listed; never \"policy violation\" alone",lad:[["HR assigns a code within 7 days","none"]]}
 ];
 const MISK = Object.fromEntries(MIS.map(m=>[m.k,m]));
@@ -105,21 +98,20 @@ function syncCodes(){
  C.add.forEach(a=>{ let m = MISK[a.k]; if(!m){ m = {}; MIS.push(m); MISK[a.k] = m; } Object.assign(m, a, {kw0:'', lad:a.lad.map(x=>x.slice()), custom:true}); });
  MIS.forEach(m=>{ const e = C.edit[m.k] || {}; if(!m.custom) m.kwx = e.kwx || ''; m.kw = [m.kw0, m.kwx].filter(Boolean).join(', '); m.off = !!e.off; });
 }
-function nextCode(){ const n = Math.max(25, ...MIS.filter(m=>m.no!=='MC-99').map(m=>Number(m.no.slice(3))||0)) + 1; return 'MC-'+String(n).padStart(2,'0'); }
+function nextCode(){ const n = Math.max(18, ...MIS.filter(m=>m.no!=='MC-99').map(m=>Number(m.no.slice(3))||0)) + 1; return 'MC-'+String(n).padStart(2,'0'); }
 const phrases = s => String(s||'').toLowerCase().split(/[,;\n]+/).map(x=>x.trim()).filter(x=>x.length>=3);
-const SAFETY_K = ['sho','drv','hyg'], QUALITY_K = ['neg'];
+const SAFETY_K = ['sho'], QUALITY_K = [];
 const ACTIONS = [['VC / UR','vcur'],['Warning letter','wl'],['Show cause notice','wl'],['Suspension','wl'],['Discontinuation / termination','end'],['Refer to Internal Committee','ic'],['Record only (no penalty)','none']];
 /* how phrases used in the current registers map to a code (first match wins; generic words map to nothing) */
 const CODE_RULES = [
  ['posh',/posh|sexual harass/],['prx',/proxy|miss punch|punching for/],['alc',/alcohol|drunk/],['tob',/tobacco|smok|gutkha|cigarette/],
  ['vrb',/verbal|abus|miss?behav|insubordinat|argu|inappropriate language|rude/],['phy',/physical|engaged in a fight|fighting|\bfight\b|beat/],
- ['thf',/theft|stole|stealing/],['dmg',/damag|broke/],['drv',/driv\w* .*licen|without driving|licence|license/],['pho',/photo|video|recording|reel/],
- ['slp',/sleep|slept/],['ref',/refus|not working at stage/],['sho',/safety shoe|saftey shoe|shoes|ppe|gloves|goggle|helmet/],['uni',/uniform|dress/],
- ['mob',/mobile|headphone|earbud|earphone|\bipl\b|phone/],['brk',/lunch|break time|tea break|late from break|timepass/],
- ['stg',/absent on stage|absent from (work )?stage|away from stage|left stage|not at stage|instead of reporting/],
+ ['thf',/theft|stole|stealing/],['dmg',/damag|broke|driv\w* .*licen|without driving|licence|license/],['pho',/photo|video|recording|reel/],
+ ['slp',/sleep|slept/],['ref',/refus|not working at stage|stopped (the )?line|creating group|instigat/],['sho',/safety shoe|saftey shoe|shoes|ppe|gloves|goggle|helmet/],['uni',/uniform|dress/],
+ ['mob',/mobile|headphone|earbud|earphone|\bipl\b|phone/],
+ ['stg',/absent on stage|absent from (work )?stage|away from stage|left stage|not at stage|instead of reporting|lunch|break time|tea break|late from break|timepass|change(d)? (of )?shift|other department|stage change|general shift|without permission/],
  ['cua',/continuous|continuously absent|long absence|absent since/],['hab',/habit|absent without|unplanned leave|unauthori[sz]ed abs|absenteeism|absent|without intimation/],
- ['neg',/\bsop\b|wrong|negligen|quality|not following|inspection|mistake|torque|defect/],['chg',/change(d)? (of )?shift|other department|stage change|general shift|without permission/],
- ['reg',/regulari/],['hyg',/spit|5s|hygien/],['stop',/stopped (the )?line|creating group|instigat/],['acc',/accident|injur|first aid/]
+ ['acc',/accident|injur|first aid/]
 ];
 const GENERIC_RX = /indiscip|indicip|policy violation|misconduct|act of|warning/;
 function classify(text){ const t = String(text||'').toLowerCase(); if(!t.trim()) return null; const toks = new Set(t.split(/[^a-z0-9]+/)), STOP = /^(a|an|the|his|her|their|of|in|on|to|at|with|for|and|or|is|was)$/; const fits = ph => { const w = ph.split(/[^a-z0-9]+/).filter(x=>x.length>1 && !STOP.test(x)); return w.length>0 && w.every(x=>toks.has(x) || toks.has(x+'s') || (x.length>4 && t.includes(x))); };
@@ -284,7 +276,7 @@ function seed(){
    const cm = cms[(i+j)%cms.length];
    const ans = ansFor(Math.min(5, mu + j*0.12), rng(i*101+n), prof==='lenient' ? Object.fromEntries(ALL_ST.map(k=>[k,5])) : OVER[id]);
    let status = 'Completed';
-   if(gen && TODAY - cpDate < 21*DAY){ const x = R(); status = x<.4?'With HoD':x<.65?'In progress':'Completed'; }
+   if(gen && TODAY - cpDate < 21*DAY){ const x = R(); status = x<.4?'With GM':x<.65?'In progress':'Completed'; }
    const f = {id:'PF-'+(S.seq.form++), tid:id, cp:'M'+n, cpDate:cpDate.toISOString(), launched:new Date(cpDate.getTime()-14*DAY).toISOString(), status,
     ans: status==='In progress' ? Object.fromEntries(Object.entries(ans).slice(0,7)) : ans, strengths:status==='In progress'?'':cm[0], improve:status==='In progress'?'':cm[1], train:'', discussed:status!=='In progress',
     submitted: status==='In progress' ? '' : fmt(cpDate), signed: status==='Completed' ? fmt(new Date(cpDate.getTime()+2*DAY)) : '', by:MANAGERS[mgr].name};
@@ -309,14 +301,14 @@ function seed(){
   const row = ['g'+String(i+1).padStart(2,'0'), name, type, mgr, doj, M.lines[Math.floor(R0()*M.lines.length)], profFromMu(mu), mu, dev, r1(.3+q*2), Math.round((.012+(1-q)*.07)*1000)/1000, Math.round((.015+(1-q)*.06)*1000)/1000, 0, done, null];
   add(row, 14+i, true);
  }
- S.forms.filter(f=>f.cp==='M12' && (f.tid==='t02'||f.tid==='t03')).forEach(f=>{ f.status='With HoD'; f.signed=''; });
+ S.forms.filter(f=>f.cp==='M12' && (f.tid==='t02'||f.tid==='t03')).forEach(f=>{ f.status='With GM'; f.signed=''; });
  autoLaunch(S);
  seedKaizens(S);
  seedCases(S);
  seedNotes(S);
  seedMids(S);
  // decisions on completed M12s
- // completed Month 12 reviews: HoD confirmed the outcome; older ones already recorded in SF/EC
+ // completed Month 12 reviews: GM confirmed the outcome; older ones already recorded in SF/EC
  Object.values(S.people).forEach(p=>{ const f = S.forms.find(x=>x.tid===p.id&&x.cp==='M12'&&x.status==='Completed'); if(!f) return; const at = fmtS(new Date(new Date(f.cpDate).getTime()+3*DAY)); S.decisions[p.id] = {hod:{choice:null,reason:'',by:HODS[MANAGERS[p.mgr].hod].name,at}}; if(TODAY - new Date(f.cpDate) > 10*DAY) S.decisions[p.id].hr = {by:'N. Sharma',at}; });
  // reg upload rows for September
  Object.values(S.people).forEach((p,i)=>{ const v = S.dev[p.id], R = rng(i*31+5); S.reg.rows.push({ticket:p.ticket, name:p.name, st: v.st==null?null:v.st+(R()<.4?1:0), jh:v.jh, ie: v.ie==null?null:v.ie+(R()<.5?1:0)}); });
@@ -494,7 +486,7 @@ function seedCases(S){
   if(status>=2) c.steps.validated = {by:extra.val||MANAGERS[S.people[tid].mgr].name,at:at(1),remarks:extra.vr||'Confirmed with line supervisor.'};
   if(status>=3) c.steps.action = {by:HODS[MANAGERS[S.people[tid].mgr].hod].name,at:at(2),label:action[0],level:action[1],reason:''};
   if(status>=4) c.steps.letter = action[1]==='none' ? {by:'N. Sharma',at:at(3),type:'No letter'} : {by:'N. Sharma',at:at(3),type:{vcur:'Verbal counselling / underwriting record',wl:'Warning letter',end:'Termination / discontinuation letter'}[action[1]],ref:'HR/CON/'+date.slice(0,4)+'/'+id.replace('C-',''),ack:true};
-  c.imm = ({oth:['Supervisor and HR informed'],brk:['Supervisor and HR informed'],mob:['Mobile phone confiscated','Mobile returned after shift'],tob:['Statement / confession taken'],uni:['Sent home and marked absent'],sho:['Supervisor and HR informed'],acc:['First aid given'],vrb:['Statement / confession taken'],neg:['Supervisor and HR informed']})[k]||[];
+  c.imm = ({oth:['Supervisor and HR informed'],mob:['Mobile phone confiscated','Mobile returned after shift'],tob:['Statement / confession taken'],uni:['Sent home and marked absent'],sho:['Supervisor and HR informed'],acc:['First aid given'],vrb:['Statement / confession taken']})[k]||[];
   if(k==='acc') c.injury = {what:'Minor cut on hand', days:0, cause:'No: record only'};
   if(extra.wit) c.wit = extra.wit;
   if(status>=5){ c.steps.closed = {by:'N. Sharma',at:at(4)}; c.closedAt = new Date(d(date).getTime()+4*DAY).toISOString(); }
@@ -502,27 +494,27 @@ function seedCases(S){
  };
  C('C-101','t02','mob','2026-03-11','10:40','V-Line 1','Found using mobile phone during working hours in security round.',5,['VC / UR','vcur']);
  C('C-102','t02','mob','2026-06-18','15:05','V-Line 1','Second instance: mobile phone with earphones at stage during shift.',5,['Warning letter','wl']);
- C('C-103','t05','neg','2026-09-20','14:15','E-Line D','During model change did not check the piston variant; after knowing it was wrong, did not inform anyone.',1,null,{rep:'S. Kulkarni (line manager)'});
+ C('C-103','t05','oth','2026-09-20','14:15','E-Line D','During model change did not check the piston variant; after knowing it was wrong, did not inform anyone.',1,null,{rep:'S. Kulkarni (manager)'});
  C('C-104','t06','sho','2026-03-02','08:20','Frame Weld 1','Found without safety shoes at the station.',5,['VC / UR','vcur']);
  C('C-105','t06','uni','2026-05-14','07:55','Main gate','Reported without uniform; sent home and marked absent.',5,['VC / UR','vcur']);
  C('C-106','t06','stg','2026-08-07','11:30','Frame Weld 1','Left stage for 40 minutes without approval.',5,['VC / UR','vcur']);
- C('C-107','t12','vrb','2026-09-29','16:10','E-Line 1','Verbal argument with senior operator; abusive language used.',2,null,{rep:'S. Kulkarni (line manager)',vr:'Two witnesses confirm abusive language.'});
- C('C-108','t10','acc','2026-07-22','13:00','Dispatch Bay 1','Minor cut on hand while opening packing strap. First aid given. Gloves were worn.',5,['Record only (no penalty)','none'],{rep:'M. Rao (line manager)'});
+ C('C-107','t12','vrb','2026-09-29','16:10','E-Line 1','Verbal argument with senior operator; abusive language used.',2,null,{rep:'S. Kulkarni (manager)',vr:'Two witnesses confirm abusive language.'});
+ C('C-108','t10','acc','2026-07-22','13:00','Dispatch Bay 1','Minor cut on hand while opening packing strap. First aid given. Gloves were worn.',5,['Record only (no penalty)','none'],{rep:'M. Rao (manager)'});
  C('C-109','t03','tob','2026-02-09','12:50','Canteen area','Found consuming tobacco on company premises.',5,['Warning letter','wl']);
  C('C-110','t03','cua','2026-05-04','09:00','\u2014','Absent without information for 5 continuous days. Day 4 call made, warning letter issued.',5,['Warning letter','wl']);
- C('C-111','t12','neg','2026-07-15','10:20','E-Line 1','Torque check skipped on two engines; found at end-of-line audit.',5,['VC / UR','vcur'],{rep:'S. Kulkarni (line manager)'});
+ C('C-111','t12','stg','2026-07-15','10:20','E-Line 1','Away from the stage for 20 minutes during the shift without telling the group leader; found in the canteen.',5,['VC / UR','vcur'],{rep:'S. Kulkarni (manager)'});
  C('C-120','t11','oth','2026-10-03','15:40','Scrap yard','Found in the scrap yard during shift without a gate pass; no reason given.',1,null,{rep:'Security (line tablet)'});
- C('C-122','t10','oth','2026-10-06','11:20','Dispatch Bay 1','Chewing gutkha near the loading dock during the shift; spat near the dock.',2,null,{rep:'M. Rao (line manager)',vr:'Confirmed with the dock supervisor.'});
+ C('C-122','t10','oth','2026-10-06','11:20','Dispatch Bay 1','Chewing gutkha near the loading dock during the shift; spat near the dock.',2,null,{rep:'M. Rao (manager)',vr:'Confirmed with the dock supervisor.'});
  C('C-123','t01','oth','2026-10-07','09:05','E-Line 2','Lent his ID card to another trainee to enter the canteen.',1,null,{rep:'Security (line tablet)'});
- C('C-121','t09','brk','2026-08-12','13:35','Packing L1','Came back 25 minutes late from the lunch break; second time this week per the line leader.',5,['VC / UR','vcur'],{rep:'M. Rao (line manager)'});
+ C('C-121','t09','stg','2026-08-12','13:35','Packing L1','Came back 25 minutes late from the lunch break; second time this week per the line leader.',5,['VC / UR','vcur'],{rep:'M. Rao (manager)'});
  // a few on generated apprentices
  const R = rng(77), gs = Object.values(S.people).filter(p=>p.id[0]==='g' && p.mu<3.6);
- const opts = [['mob','Mobile phone use at the station during shift.'],['stg','Away from stage for 30 minutes without approval.'],['sho','Working without safety gloves at the station.'],['hab','Absent on 4 Mondays this month without information.'],['neg','Wrong part fitted and not reported; found at quality gate.']];
+ const opts = [['mob','Mobile phone use at the station during shift.'],['stg','Away from stage for 30 minutes without approval.'],['sho','Working without safety gloves at the station.'],['hab','Absent on 4 Mondays this month without information.'],['ref','Refused to work at the allocated stage for an hour.']];
  gs.slice(0,7).forEach((p,i)=>{
   const [k,desc] = opts[i%opts.length];
   const dt = new Date(Math.max(d(p.doj).getTime()+40*DAY, TODAY.getTime()-(10+Math.floor(R()*150))*DAY));
   const st = i<5 ? 5 : (i===5 ? 2 : 1);
-  C('C-'+(112+i), p.id, k, dateKey(dt), '1'+Math.floor(R()*6)+':'+String(Math.floor(R()*60)).padStart(2,'0'), p.line, desc, st, ['VC / UR','vcur'], {abs:true, rep: R()<.5?'Security (line tablet)':MANAGERS[p.mgr].name+' (line manager)'});
+  C('C-'+(112+i), p.id, k, dateKey(dt), '1'+Math.floor(R()*6)+':'+String(Math.floor(R()*60)).padStart(2,'0'), p.line, desc, st, ['VC / UR','vcur'], {abs:true, rep: R()<.5?'Security (line tablet)':MANAGERS[p.mgr].name+' (manager)'});
  });
 }
 
@@ -641,7 +633,7 @@ function evaluate(p, f, opts={}){
  if(cd.end) fb = 'X'; else if(cd.eff>=C.wlNotRec){ fb='C'; capped = band!=='C'; } else if(cd.eff>=1 && band==='A'){ fb='B'; capped = true; }
  const reasons = ['Overall '+pct(overall)+' \u2192 band '+band+' (A \u2265 '+C.bandA+'%, B \u2265 '+C.bandB+'%).'];
  if(cd.end) reasons.push('Gross misconduct closed with termination: training ended.');
- else if(cd.eff>=C.wlNotRec) reasons.push(cd.eff+' warning-level actions on record (limit '+C.wlNotRec+'): outcome is Below expectations unless the HoD overrides with a reason.');
+ else if(cd.eff>=C.wlNotRec) reasons.push(cd.eff+' warning-level actions on record (limit '+C.wlNotRec+'): outcome is Below expectations unless the GM overrides with a reason.');
  else if(cd.eff===1) reasons.push((cd.wl?'1 warning letter / show cause / suspension':cd.vcur+' VC/UR across categories (treated as a warning letter)')+': band capped at B.');
  else if(cd.vcur) reasons.push(cd.vcur+' VC/UR on record (minor).'); else reasons.push('Clean conduct record.');
  if(cd.open) reasons.push(cd.open+' open case(s): not counted until closed.');
@@ -685,7 +677,7 @@ function narrative(p, f, e){
 function paramShare(k){ const C = S.cfg, b = PK[k].b, tot = BORDER.reduce((s,x)=>s+(Number(C.w[x])||0),0)||1; return (Number(C.w[b])||0)/tot / PARAMS.filter(p=>p.b===b).length; }
 function bucketShare(b){ const C = S.cfg, tot = BORDER.reduce((s,x)=>s+(Number(C.w[x])||0),0)||1; return (Number(C.w[b])||0)/tot; }
 function formsOf(tid){ return S.forms.filter(f=>f.tid===tid).sort((a,b)=>new Date(a.cpDate)-new Date(b.cpDate)); }
-const isDone = f => f.status==='With HoD' || f.status==='Completed';
+const isDone = f => f.status==='With GM' || f.status==='Completed';
 function lastSubmitted(tid){ const f = formsOf(tid).filter(isDone); return f[f.length-1]||null; }
 function openForm(tid){ return formsOf(tid).find(f=>f.status==='Not started'||f.status==='In progress')||null; }
 function leniency(){
@@ -727,7 +719,7 @@ function seedLog(){
  L('07 Oct 05:30','in','SAP SF/EC','PRAGATI Master','Employee master delta: 0 new, 0 changed, 0 exits.');
  L('06 Oct 23:00','sys','Scheduler','PRAGATI Reviews','Nightly checks: Month 12 reviews opened 14 days before the date; reminders sent for overdue reviews.');
  L('03 Oct 16:41','out','PRAGATI','SAP SF/EC Performance','Sneha Patil: Month 12 rating recorded (Meets expectations).');
- L('02 Oct 11:05','wf','HoD','PRAGATI Review','Sneha Patil: Month 12 review signed; outcome Meets expectations confirmed.');
+ L('02 Oct 11:05','wf','GM','PRAGATI Review','Sneha Patil: Month 12 review signed; outcome Meets expectations confirmed.');
  L('05 Sep 11:20','in','Coordinators','PRAGATI Skills & TPM','August registers uploaded: '+Object.keys(S.people).length+' rows accepted.');
 }
 function snapshot(p, f, e){ return {tid:p.id, formId:f.id, cp:f.cp, overall:e.overall, band:e.band, fb:e.fb, rec:e.rec, status:e.status, sen:e.sen.label, flags:e.flags.map(x=>x[1]), reasons:e.reasons, narrative:e.narrative, rules:RULES_VER}; }

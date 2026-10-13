@@ -1,14 +1,14 @@
 /* PRAGATI · portal shell: login, routing, actions, shared store. */
 const PORTAL = document.body.dataset.portal;
 const USERS = {
- anaik:{name:'A. Naik',role:'manager',persona:'m3',title:'Line manager · Frame Shop'},
- skulkarni:{name:'S. Kulkarni',role:'manager',persona:'m1',title:'Line manager · Engine Assembly'},
- rjoshi:{name:'R. Joshi',role:'manager',persona:'m2',title:'Line manager · Vehicle Assembly'},
- msawant:{name:'M. Sawant',role:'manager',persona:'m5',title:'Line manager · Machine Shop'},
- kpillai:{name:'K. Pillai',role:'manager',persona:'m6',title:'Line manager · Paint Shop'},
- mrao:{name:'M. Rao',role:'manager',persona:'m4',title:'Line manager · Packing & Dispatch'},
- dmehta:{name:'D. Mehta',role:'hod',persona:'h1',title:'Head of Department · MCD'},
- piyer:{name:'P. Iyer',role:'hod',persona:'h2',title:'Head of Department · CVD & SPD'},
+ anaik:{name:'A. Naik',role:'manager',persona:'m3',title:'Manager · Frame Shop'},
+ skulkarni:{name:'S. Kulkarni',role:'manager',persona:'m1',title:'Manager · Engine Assembly'},
+ rjoshi:{name:'R. Joshi',role:'manager',persona:'m2',title:'Manager · Vehicle Assembly'},
+ msawant:{name:'M. Sawant',role:'manager',persona:'m5',title:'Manager · Machine Shop'},
+ kpillai:{name:'K. Pillai',role:'manager',persona:'m6',title:'Manager · Paint Shop'},
+ mrao:{name:'M. Rao',role:'manager',persona:'m4',title:'Manager · Packing & Dispatch'},
+ dmehta:{name:'D. Mehta',role:'hod',persona:'h1',title:'General Manager · MCD'},
+ piyer:{name:'P. Iyer',role:'hod',persona:'h2',title:'General Manager · CVD & SPD'},
  vdeshpande:{name:'V. Deshpande',role:'plant',title:'Head of Manufacturing'},
  nsharma:{name:'N. Sharma',role:'hr',title:'HR \u00b7 Apprentice programme'},
  supervisor:{name:'Line supervisor',role:'tablet',title:'Shift A supervisor'},
@@ -22,12 +22,12 @@ const USERS = {
 const DEMO_PW = 'Demo@123';
 const PORTALS = {
  home:{file:'index.html',name:'Portals',roles:[],nav:[]},
- manager:{file:'manager.html',name:'Line Manager',icon:'clip',who:'Line managers on the shop floor (appraisers)',roles:['manager'],
+ manager:{file:'manager.html',name:'Manager',icon:'clip',who:'Managers on the shop floor (appraisers)',roles:['manager'],
   pitch:'Appraise your apprentices in minutes, evaluate their kaizens and validate incidents from your line.',
   points:['Month 6 review (feedback, not scored) and the Month 12 review: 16 plain statements on a 1–5 scale','Attendance, kaizens, skills and conduct pulled in for you','Quick rate the whole team one bucket at a time'],
   nav:[['home','Home'],['team','My apprentices'],['reviews','Reviews'],['quick','Quick rate'],['kaizen','Kaizen'],['cases','Conduct']]},
- hod:{file:'hod.html',name:'Head of Department',icon:'users',who:'Skip-level managers (reviewing officers)',roles:['hod'],
-  pitch:'See each apprentice on one page: the line manager’s appraisal with every record behind it.',
+ hod:{file:'hod.html',name:'General Manager',icon:'users',who:'Skip-level managers (reviewing officers)',roles:['hod'],
+  pitch:'See each apprentice on one page: the manager’s appraisal with every record behind it.',
   points:['Summary per apprentice with the year\u2019s records and agent flags','Sign or return reviews; decide conduct actions','Sign Month 12 outcomes with the full record'],
   nav:[['home','Home'],['reviews','Reviews to sign'],['team','Apprentices'],['cases','Conduct'],['m12','Outcomes']]},
  plant:{file:'plant.html',name:'Leadership',icon:'plant',who:'Plant heads and business leadership',roles:['plant'],
@@ -73,7 +73,7 @@ function parseHash(){ const h = location.hash.replace(/^#\/?/,'').split('/').fil
 function navCount(k){
  if(!ME) return 0; const u = USER(), ps = ['manager','hod'].includes(u.role) ? myPeople() : Object.values(S.people), has = f => ps.some(p=>p.id===f.tid);
  if(u.role==='manager'){ if(k==='reviews') return S.forms.filter(f=>has(f)&&!isDone(f)).length + (S.mids||[]).filter(m=>has(m)&&!midDone(m)).length; if(k==='kaizen') return S.kaizens.filter(x=>x.status==='Submitted'&&ps.some(p=>p.id===x.tid)).length; if(k==='cases') return S.cases.filter(c=>c.status===1&&ps.some(p=>p.id===c.tid)).length; }
- if(u.role==='hod'){ if(k==='reviews') return S.forms.filter(f=>has(f)&&f.status==='With HoD').length; if(k==='cases') return S.cases.filter(c=>c.status===2&&c.k!=='oth'&&ps.some(p=>p.id===c.tid)).length; }
+ if(u.role==='hod'){ if(k==='reviews') return S.forms.filter(f=>has(f)&&f.status==='With GM').length; if(k==='cases') return S.cases.filter(c=>c.status===2&&c.k!=='oth'&&ps.some(p=>p.id===c.tid)).length; }
  if(u.role==='hr'){ if(k==='cases') return S.cases.filter(c=>c.status===3||c.status===4||(c.k==='oth'&&c.status<5)).length; if(k==='m12') return Object.values(S.decisions).filter(x=>x.hod&&!x.hr).length; }
  if(u.role==='coordinator' && k==='kzverify') return S.kaizens.filter(x=>x.status==='Implemented' && new Date(d(x.implAt).getTime()+S.cfg.kzVerifyDays*DAY)<=TODAY).length;
  if(u.role==='agent' && k==='console') return queue().length;
@@ -117,7 +117,7 @@ function toast(msg){ const n = document.createElement('div'); n.className = 'toa
 function go(path){ location.hash = '#/'+path; }
 
 /* ----- shared store (this browser; all portals) ----- */
-const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v11';
+const TAB = Math.random().toString(36).slice(2,10), LKEY = 'pragati-v12';
 let rev = 0, _ptimer = null;
 function persist(){
  rev++;
@@ -150,8 +150,8 @@ const A = {
   if(!f.discussed) errs.push('confirm you discussed it with the apprentice');
   if(errs.length){ UI.showMiss = true; BORDER.forEach(b=>{ if(PARAMS.filter(x=>x.b===b).some(x=>x.st.some(s=>!f.ans[s]))) UI.open[f.id+':'+b] = true; }); render(); $('#ff-err').textContent = 'Before submitting: '+errs.join('; ')+'.'; return false; }
   UI.showMiss = false;
-  f.status = 'With HoD'; f.submitted = stamp(); delete f.returned;
-  log('wf','Line manager','PRAGATI Review',`${f.id} ${f.cp} for ${p.name} submitted to HoD ${HODS[hodOf(p)].name}.`);
+  f.status = 'With GM'; f.submitted = stamp(); delete f.returned;
+  log('wf','Manager','PRAGATI Review',`${f.id} ${f.cp} for ${p.name} submitted to GM ${HODS[hodOf(p)].name}.`);
   runAgent(p.id, 'Review submitted');
   toast(p.name+' sent to '+HODS[hodOf(p)].name+'. Agent summary ready.'); go('reviews');
  },
@@ -159,8 +159,8 @@ const A = {
   if(c!==e.rec && r.length<5){ $('#dh-e').textContent = 'You changed the outcome from '+e.rec+'. Add a reason.'; return false; }
   S.decisions[p.id] = Object.assign(S.decisions[p.id]||{}, {hod:{choice:c===e.rec?null:c, reason:c===e.rec?'':r, by:USER().name, at:stamp()}});
   f.status = 'Completed'; f.signed = stamp();
-  log('wf','HoD','PRAGATI Review',`${f.id} ${f.cp} for ${p.name} signed by ${USER().name}: ${c}${c!==e.rec?' (agent: '+e.rec+') \u2014 '+r:''}.`); toast('Review signed: '+c); go('reviews'); },
- returnform(el){ const f = formOf(el.dataset.id), p = S.people[f.tid], n = val('rt-n') || val('dh-r'); if(n.length<5){ $('#dh-e').textContent = 'Add a note for the line manager.'; return false; } f.status = 'In progress'; f.returned = {by:USER().name, note:n, at:stamp()}; f.submitted = ''; log('wf','HoD','Line manager',`${f.id} ${f.cp} for ${p.name} returned: ${n}`); toast('Returned to '+f.by); go('reviews'); },
+  log('wf','GM','PRAGATI Review',`${f.id} ${f.cp} for ${p.name} signed by ${USER().name}: ${c}${c!==e.rec?' (agent: '+e.rec+') \u2014 '+r:''}.`); toast('Review signed: '+c); go('reviews'); },
+ returnform(el){ const f = formOf(el.dataset.id), p = S.people[f.tid], n = val('rt-n') || val('dh-r'); if(n.length<5){ $('#dh-e').textContent = 'Add a note for the manager.'; return false; } f.status = 'In progress'; f.returned = {by:USER().name, note:n, at:stamp()}; f.submitted = ''; log('wf','GM','Manager',`${f.id} ${f.cp} for ${p.name} returned: ${n}`); toast('Returned to '+f.by); go('reviews'); },
  hrfinal(el){
   const p = S.people[el.dataset.id], dc = S.decisions[p.id], out = hodOutcome(p); dc.hr = {by:USER().name, at:stamp()};
   log('out','PRAGATI','SAP SF/EC Performance',`${p.name}: Month 12 outcome recorded \u2014 ${out}.`);
@@ -180,7 +180,7 @@ const A = {
   UI.mdErr = '';
   m.focus = midFocus(m); m.status = 'Completed'; m.submitted = fmt(TODAY); UI.showMiss = false; const p = S.people[m.tid], st = midStatus(m)[0];
   log('wf',m.by,'PRAGATI Reviews',`${p.name}: Month 6 review completed (${st}).`);
-  if(st.startsWith('Needs')) log('wf','PRAGATI','HoD '+HODS[hodOf(p)].name,`${p.name} needs a support plan after the Month 6 review.`);
+  if(st.startsWith('Needs')) log('wf','PRAGATI','GM '+HODS[hodOf(p)].name,`${p.name} needs a support plan after the Month 6 review.`);
   toast('Month 6 review completed: '+st); window.scrollTo(0,0); render(); },
  nfcat(el){ keepNf(); UI.nf.cat = el.dataset.id; render(); },
  noteadd(el){ keepNf(); const N = UI.nf, tid = el.dataset.id || N.tid, txt = (N.text||'').trim();
@@ -197,10 +197,10 @@ const A = {
   if(dec!=='Approved' && r.length<5){ $('#kz-e').textContent = 'Add a remark for the apprentice.'; return false; }
   k.eval = {impact:E.impact||1, orig:E.orig||1, pts:(E.impact||1)*(E.orig||1), by:USER().name, at:stamp(), remarks:r};
   k.status = dec; k.hist.push({at:stamp(), by:USER().name, what: dec==='Approved'?'Approved · '+kzGrade(k.eval.pts):dec==='Rework'?'Sent back for rework':'Rejected'});
-  log('wf','Line manager','PRAGATI Kaizen',`${k.id} ${dec.toLowerCase()} (${S.people[k.tid].name}).`);
+  log('wf','Manager','PRAGATI Kaizen',`${k.id} ${dec.toLowerCase()} (${S.people[k.tid].name}).`);
   UI.kze = {}; toast('Kaizen '+dec.toLowerCase()); render();
  },
- kzimpl(el){ const k = S.kaizens.find(x=>x.seq===Number(el.dataset.id)); k.status = 'Implemented'; k.implAt = dateKey(TODAY); k.photos.after = true; k.hist.push({at:stamp(), by:USER().name, what:'Marked implemented'}); log('wf','Line manager','PRAGATI Kaizen',`${k.id} implemented; sustain check due ${fmt(new Date(TODAY.getTime()+S.cfg.kzVerifyDays*DAY))}.`); afterDataChange('Kaizen implemented',[k.tid]); toast('Marked implemented'); render(); },
+ kzimpl(el){ const k = S.kaizens.find(x=>x.seq===Number(el.dataset.id)); k.status = 'Implemented'; k.implAt = dateKey(TODAY); k.photos.after = true; k.hist.push({at:stamp(), by:USER().name, what:'Marked implemented'}); log('wf','Manager','PRAGATI Kaizen',`${k.id} implemented; sustain check due ${fmt(new Date(TODAY.getTime()+S.cfg.kzVerifyDays*DAY))}.`); afterDataChange('Kaizen implemented',[k.tid]); toast('Marked implemented'); render(); },
  kzverify(el){ const k = S.kaizens.find(x=>x.seq===Number(el.dataset.id)), ok = el.dataset.v==='1'; k.status = ok?'Verified':'Not sustained'; k.verify = {by:USER().name, at:stamp(), sustained:ok, saving: ok?Number(val('kv-s'))||0:0, remarks:val('kv-r')}; k.horiz.yes = $('#kv-h').checked; k.hist.push({at:stamp(), by:USER().name, what: ok?'Verified · sustained':'Not sustained'}); log('wf','Coordinator','PRAGATI Kaizen',`${k.id} ${ok?'verified as sustained':'not sustained'}.`); afterDataChange('Kaizen verified',[k.tid]); UI.drawer = null; toast(ok?'Verified':'Marked not sustained'); render(); },
  kzcat(el){ UI.kzd.cat = el.dataset.id; keepKzd(); render(); },
  kzsubmit(){
@@ -227,9 +227,9 @@ const A = {
   log('in','Line tablet','PRAGATI Conduct',`${c.id} for ${p.name}: ${MISK[D.k].name}. Waiting for ${MANAGERS[p.mgr].name} to validate.`);
   UI.tablet = null; toast(c.id+' sent to '+MANAGERS[p.mgr].name); render();
  },
- cvalid(el){ const c = S.cases.find(x=>x.id===el.dataset.id), r = val('cv-r'), nk = val('cv-k'); if(r.length<5){ $('#cv-e').textContent = 'Add validation remarks.'; return false; } if(nk && nk!==c.k){ c.steps.validated = {by:USER().name,at:stamp(),remarks:r+' (misconduct corrected from '+MISK[c.k].name+')'}; c.k = nk; } else c.steps.validated = {by:USER().name,at:stamp(),remarks:r}; c.status = 2; log('wf','Line manager','PRAGATI Conduct',`${c.id} validated by ${USER().name}; HoD to decide the action.`); render(); },
- cnot(el){ const c = S.cases.find(x=>x.id===el.dataset.id), r = val('cv-r'); if(r.length<5){ $('#cv-e').textContent = 'Add remarks explaining why.'; return false; } const by = USER().name; c.steps.validated = {by,at:stamp(),remarks:r}; c.steps.action = {by,at:stamp(),label:'Not substantiated',level:'none',reason:r}; c.steps.letter = {by:'—',at:stamp()}; c.steps.closed = {by,at:stamp()}; c.status = 5; c.closedAt = TODAY.toISOString(); log('wf','Line manager','PRAGATI Conduct',`${c.id} closed as not substantiated.`); render(); },
- caction(el){ const c = S.cases.find(x=>x.id===el.dataset.id), sg = suggest(c.tid,c.k,c.id), label = val('ca-a'), level = ACTIONS.find(a=>a[0]===label)[1], reason = val('ca-r'); if(level!==sg.level && reason.length<5){ $('#ca-e').textContent = 'Differs from the ladder ('+sg.label+'). Add a reason.'; return false; } c.steps.action = {by:USER().name,at:stamp(),label,level,reason}; c.status = 3; log('wf','HoD','PRAGATI Conduct',`${c.id}: action ${label}.`); render(); },
+ cvalid(el){ const c = S.cases.find(x=>x.id===el.dataset.id), r = val('cv-r'), nk = val('cv-k'); if(r.length<5){ $('#cv-e').textContent = 'Add validation remarks.'; return false; } if(nk && nk!==c.k){ c.steps.validated = {by:USER().name,at:stamp(),remarks:r+' (misconduct corrected from '+MISK[c.k].name+')'}; c.k = nk; } else c.steps.validated = {by:USER().name,at:stamp(),remarks:r}; c.status = 2; log('wf','Manager','PRAGATI Conduct',`${c.id} validated by ${USER().name}; GM to decide the action.`); render(); },
+ cnot(el){ const c = S.cases.find(x=>x.id===el.dataset.id), r = val('cv-r'); if(r.length<5){ $('#cv-e').textContent = 'Add remarks explaining why.'; return false; } const by = USER().name; c.steps.validated = {by,at:stamp(),remarks:r}; c.steps.action = {by,at:stamp(),label:'Not substantiated',level:'none',reason:r}; c.steps.letter = {by:'—',at:stamp()}; c.steps.closed = {by,at:stamp()}; c.status = 5; c.closedAt = TODAY.toISOString(); log('wf','Manager','PRAGATI Conduct',`${c.id} closed as not substantiated.`); render(); },
+ caction(el){ const c = S.cases.find(x=>x.id===el.dataset.id), sg = suggest(c.tid,c.k,c.id), label = val('ca-a'), level = ACTIONS.find(a=>a[0]===label)[1], reason = val('ca-r'); if(level!==sg.level && reason.length<5){ $('#ca-e').textContent = 'Differs from the ladder ('+sg.label+'). Add a reason.'; return false; } c.steps.action = {by:USER().name,at:stamp(),label,level,reason}; c.status = 3; log('wf','GM','PRAGATI Conduct',`${c.id}: action ${label}.`); render(); },
  cletter(el){ const c = S.cases.find(x=>x.id===el.dataset.id), lvl = c.steps.action.level;
   if(lvl==='ic'){ const ref = val('cl-r'); if(ref.length<3){ $('#cl-e').textContent = 'Add the IC reference no.'; return false; } c.steps.letter = {by:USER().name,at:stamp(),type:'Internal Committee referral',ref}; c.status = 4; log('wf','HR','PRAGATI Conduct',`${c.id}: referred to the Internal Committee.`); render(); return; }
   if(lvl!=='none'){ const ref = val('cl-r'), ack = $('#cl-a').checked; if(ref.length<3){ $('#cl-e').textContent = 'Add the letter reference no.'; return false; } if(!ack){ $('#cl-e').textContent = 'Record the apprentice\u2019s acknowledgement first.'; return false; } c.steps.letter = {by:USER().name,at:stamp(),type:val('cl-t'),ref,ack:true}; }
@@ -289,10 +289,10 @@ const A = {
   const c = {id:'C-'+(S.seq.case++), tid:p.id, k:G.k, date:G['lg-date'], time:G['lg-time']||'\u2014', place:G['lg-place']||p.line, desc:G['lg-desc'].trim(), other:G['lg-oth']||'', wit:G['lg-wit']||'', imm:G.imm.slice(), evidence:files, reporter:u.name+' ('+u.title+')', status:posh?3:isLM?2:1, channel:'Desktop', steps:{reported:{by:u.name,at:stamp()}}};
   if(posh){ c.steps.action = {by:'PRAGATI',at:stamp(),label:'Refer to Internal Committee',level:'ic',reason:'POSH complaint'}; }
   if(G.k==='acc') c.injury = {what:G['lg-inj']||'\u2014', days:Number(G['lg-days'])||0, cause:G['lg-cause']||'No: record only'};
-  if(isLM && !posh) c.steps.validated = {by:u.name,at:stamp(),remarks:'Logged by the line manager.'};
+  if(isLM && !posh) c.steps.validated = {by:u.name,at:stamp(),remarks:'Logged by the manager.'};
   S.cases.push(c); UI.lg = null;
   if(posh){ log('in',u.name,'PRAGATI Conduct',`${c.id}: POSH complaint sent to HR for Internal Committee referral.`); toast(c.id+' sent to HR'); go(u.role==='hr'?'case/'+c.id:'cases/register'); return; }
-  log('in',u.name,'PRAGATI Conduct',`${c.id} logged for ${p.name}: ${MISK[c.k].no} ${MISK[c.k].name}. ${isLM?'Validated; HoD '+HODS[hodOf(p)].name+' to decide the action.':'Waiting for '+MANAGERS[p.mgr].name+' to validate.'}`);
+  log('in',u.name,'PRAGATI Conduct',`${c.id} logged for ${p.name}: ${MISK[c.k].no} ${MISK[c.k].name}. ${isLM?'Validated; GM '+HODS[hodOf(p)].name+' to decide the action.':'Waiting for '+MANAGERS[p.mgr].name+' to validate.'}`);
   toast(c.id+' logged'); go('case/'+c.id);
  },
  casecsv(){ const all = visCases().filter(c=>myPeople().some(p=>p.id===c.tid)); download('conduct_register.csv', [['Case','Date','Time','Place','Apprentice','Ticket','TeamLease code','Plant','Department','MC code','Misconduct','Category','Tier','Description','Witnesses','Immediate action','Reported by','Validated by','Action','Action by','Letter','Letter ref','Acknowledged','Status','Closed on','Record check','Source']].concat(caseFilter(all).map(c=>{ const p = S.people[c.tid], m = MISK[c.k], st = c.steps; return [c.id,c.date,c.time,c.place,p.name,p.ticket,p.tl||'',PLANTS[plantOf(p)],deptOf(p),m.no,m.name,m.cat,TIER[m.tier][0],c.desc,c.wit||'',(c.imm||[]).join('; '),c.reporter,st.validated?st.validated.by:'',st.action?st.action.label:'',st.action?st.action.by:'',st.letter?st.letter.type||'':'',st.letter?st.letter.ref||'':'',st.letter&&st.letter.ack?'Yes':'',CSTATUS[c.status],st.closed?st.closed.at:'',caseIssues(c).join('; '),c.hist?'Imported':'']; }))); },
@@ -312,7 +312,7 @@ const A = {
   if(!n){ toast('Nothing pending'); return false; }
   S.sources.time = {last:stamp(), rec:n, status:'ok', note:'File for '+fmtS(TODAY)+' accepted'};
   log('in','Time system','PRAGATI Attendance',`Daily file: ${n} apprentices × ${mx} day(s) accepted, 0 rejected.`);
-  const al = absAlerts(); al.forEach(({p,a})=>{ if(!S.alerts[p.id]){ S.alerts[p.id] = true; log('sys','PRAGATI','Line manager / HR',`Absence alert: ${p.name} absent ${a.cont} working days. Day 4 action due (call + warning letter).`); } });
+  const al = absAlerts(); al.forEach(({p,a})=>{ if(!S.alerts[p.id]){ S.alerts[p.id] = true; log('sys','PRAGATI','Manager / HR',`Absence alert: ${p.name} absent ${a.cont} working days. Day 4 action due (call + warning letter).`); } });
   afterDataChange('Attendance updated'); toast(`Attendance loaded${al.length?'. '+al.length+' absence alert(s) raised':''}`); render();
  },
  regup(){
@@ -338,9 +338,9 @@ const A = {
  runall(){ const q = queue(); q.forEach(x=>runAgent(x.p.id, x.reason)); toast(q.length+' assessment(s) written'); render(); },
  nightly(){
   const launched = [...midLaunch(S), ...autoLaunch(S)]; if(launched.length) log('sys','Scheduler','PRAGATI Reviews',`Reviews opened: ${launched.join(', ')}.`);
-  const al = absAlerts(); al.forEach(({p,a})=>{ if(!S.alerts[p.id]){ S.alerts[p.id] = true; log('sys','PRAGATI','Line manager / HR',`Absence alert: ${p.name} absent ${a.cont} working days.`); } });
+  const al = absAlerts(); al.forEach(({p,a})=>{ if(!S.alerts[p.id]){ S.alerts[p.id] = true; log('sys','PRAGATI','Manager / HR',`Absence alert: ${p.name} absent ${a.cont} working days.`); } });
   const od = S.forms.filter(f=>!isDone(f) && new Date(f.cpDate)<TODAY);
-  if(od.length) log('sys','Scheduler','Line managers',`Reminder: ${od.length} overdue review(s).`);
+  if(od.length) log('sys','Scheduler','Managers',`Reminder: ${od.length} overdue review(s).`);
   afterDataChange('Nightly re-check'); const q = queue(); q.forEach(x=>runAgent(x.p.id, x.reason));
   const kd = S.kaizens.filter(x=>x.status==='Implemented' && new Date(d(x.implAt).getTime()+S.cfg.kzVerifyDays*DAY)<=TODAY).length;
   log('sys','Scheduler','PRAGATI',`Nightly checks: ${launched.length} review(s) opened, ${al.length} absence alert(s), ${q.length} re-scored, ${kd} kaizen sustain check(s) due.`);
